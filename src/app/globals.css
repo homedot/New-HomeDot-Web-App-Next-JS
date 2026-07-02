@@ -22,5 +22,198 @@
 body {
   background: var(--background);
   color: var(--foreground);
-  font-family: Arial, Helvetica, sans-serif;
+  font-family: var(--font-sans), Arial, Helvetica, sans-serif;
+}
+
+@keyframes floaty {
+  0%,
+  100% {
+    transform: translateY(0);
+  }
+  50% {
+    transform: translateY(-9px);
+  }
+}
+
+@keyframes glowPulse {
+  0%,
+  100% {
+    opacity: 0.5;
+    transform: scale(1);
+  }
+  50% {
+    opacity: 0.72;
+    transform: scale(1.07);
+  }
+}
+
+@keyframes scrollDot {
+  0% {
+    opacity: 0;
+    transform: translateY(-2px);
+  }
+  30% {
+    opacity: 1;
+  }
+  80% {
+    opacity: 0.15;
+    transform: translateY(9px);
+  }
+  100% {
+    opacity: 0;
+  }
+}
+
+.animate-floaty {
+  animation: floaty 6s ease-in-out infinite;
+}
+
+.animate-glow-pulse {
+  animation: glowPulse 5s ease-in-out infinite;
+}
+
+.animate-scroll-dot {
+  animation: scrollDot 1.7s ease-in-out infinite;
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .animate-floaty,
+  .animate-glow-pulse,
+  .animate-scroll-dot {
+    animation: none;
+  }
+}
+
+/* Explorer cursor: glowing core + comet trail + a ring that blooms into a house
+   glyph over interactive elements. Desktop/fine-pointer only; see Cursor component. */
+.cursor-layer {
+  position: fixed;
+  inset: 0;
+  z-index: 2147483600;
+  pointer-events: none;
+}
+
+.cursor-core,
+.cursor-ring,
+.cursor-trail {
+  position: fixed;
+  top: 0;
+  left: 0;
+  pointer-events: none;
+  border-radius: 50%;
+  will-change: transform;
+}
+
+.cursor-core {
+  width: 9px;
+  height: 9px;
+  margin: -4.5px 0 0 -4.5px;
+  background: var(--cursor-accent, #2997ff);
+  opacity: 1;
+  box-shadow:
+    0 0 10px 2px color-mix(in srgb, var(--cursor-accent, #2997ff) 65%, transparent),
+    0 0 24px 7px color-mix(in srgb, var(--cursor-accent, #2997ff) 32%, transparent);
+  transition: width 0.2s ease, height 0.2s ease, margin 0.2s ease;
+}
+
+.cursor-core.hover {
+  width: 0;
+  height: 0;
+  margin: 0;
+}
+
+.cursor-trail {
+  width: 15px;
+  height: 15px;
+  margin: -7.5px 0 0 -7.5px;
+  opacity: 0;
+  background: radial-gradient(circle at 50% 50%, color-mix(in srgb, var(--cursor-accent, #2997ff) 85%, transparent), transparent 68%);
+  filter: blur(0.6px);
+}
+
+.cursor-ring {
+  width: 38px;
+  height: 38px;
+  margin: -19px 0 0 -19px;
+  opacity: 1;
+  display: grid;
+  place-items: center;
+  border: 1.6px solid color-mix(in srgb, var(--cursor-accent, #2997ff) 65%, transparent);
+  box-shadow: 0 0 0 1px color-mix(in srgb, var(--cursor-accent, #2997ff) 12%, transparent);
+  transition:
+    width 0.28s cubic-bezier(0.22, 0.7, 0.25, 1),
+    height 0.28s cubic-bezier(0.22, 0.7, 0.25, 1),
+    margin 0.28s cubic-bezier(0.22, 0.7, 0.25, 1),
+    background 0.25s ease,
+    border-color 0.25s ease;
+}
+
+.cursor-ring.hover {
+  width: 64px;
+  height: 64px;
+  margin: -32px 0 0 -32px;
+  border-color: var(--cursor-accent, #2997ff);
+  background: color-mix(in srgb, var(--cursor-accent, #2997ff) 13%, transparent);
+}
+
+.cursor-ring.down {
+  width: 30px;
+  height: 30px;
+  margin: -15px 0 0 -15px;
+  background: color-mix(in srgb, var(--cursor-accent, #2997ff) 22%, transparent);
+}
+
+.cursor-glyph {
+  color: var(--cursor-accent, #2997ff);
+  opacity: 0;
+  transform: scale(0.4) translateY(2px);
+  transition: opacity 0.22s ease, transform 0.3s cubic-bezier(0.2, 0.8, 0.3, 1.3);
+}
+
+.cursor-ring.hover .cursor-glyph {
+  opacity: 1;
+  transform: scale(1) translateY(0);
+}
+
+body.has-cursor,
+body.has-cursor * {
+  cursor: none !important;
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .cursor-trail {
+    display: none;
+  }
+  .cursor-ring {
+    transition: opacity 0.2s ease;
+  }
+}
+
+/* Explore-style hover for property/pro cards: lift + shadow + image zoom. */
+.card-hover {
+  transition: transform 0.2s ease, box-shadow 0.2s ease, border-color 0.2s ease;
+}
+
+.card-hover:hover {
+  transform: translateY(-4px);
+  box-shadow: 0 30px 60px -22px rgba(16, 28, 48, 0.26), 0 10px 24px -12px rgba(16, 28, 48, 0.12);
+  border-color: transparent;
+}
+
+.card-hover-img {
+  transition: transform 0.4s ease;
+}
+
+.card-hover:hover .card-hover-img {
+  transform: scale(1.05);
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .card-hover,
+  .card-hover-img {
+    transition: none;
+  }
+  .card-hover:hover {
+    transform: none;
+  }
 }
