@@ -84,6 +84,164 @@ body {
   }
 }
 
+/* Ambient scroll/background animation: drifting, morphing gradient blobs + panning
+   dot-grid used behind the whole page (AmbientBackground) and inside the hero
+   (HeroScene). Blobs morph their border-radius as they drift for an organic,
+   lava-lamp feel rather than plain circles sliding around. */
+@keyframes driftA {
+  0% { transform: translate3d(0, 0, 0) scale(1) rotate(0deg); border-radius: 42% 58% 65% 35% / 45% 45% 55% 55%; }
+  33% { transform: translate3d(54px, -46px, 0) scale(1.12) rotate(8deg); border-radius: 58% 42% 35% 65% / 55% 62% 38% 45%; }
+  66% { transform: translate3d(-38px, 30px, 0) scale(0.94) rotate(-6deg); border-radius: 35% 65% 55% 45% / 40% 55% 45% 60%; }
+  100% { transform: translate3d(0, 0, 0) scale(1) rotate(0deg); border-radius: 42% 58% 65% 35% / 45% 45% 55% 55%; }
+}
+
+@keyframes driftB {
+  0% { transform: translate3d(0, 0, 0) scale(1) rotate(0deg); border-radius: 55% 45% 40% 60% / 50% 40% 60% 50%; }
+  50% { transform: translate3d(-58px, 42px, 0) scale(1.14) rotate(-10deg); border-radius: 40% 60% 55% 45% / 60% 50% 50% 40%; }
+  100% { transform: translate3d(0, 0, 0) scale(1) rotate(0deg); border-radius: 55% 45% 40% 60% / 50% 40% 60% 50%; }
+}
+
+@keyframes driftC {
+  0%, 100% { transform: translate3d(0, 0, 0) scale(1) rotate(0deg); border-radius: 48% 52% 60% 40% / 55% 45% 55% 45%; }
+  50% { transform: translate3d(40px, 54px, 0) scale(0.9) rotate(7deg); border-radius: 60% 40% 45% 55% / 40% 55% 45% 60%; }
+}
+
+@keyframes gridPan {
+  0% { background-position: 0 0; }
+  100% { background-position: 64px 64px; }
+}
+
+@keyframes floatUp {
+  0% { transform: translate3d(0, 0, 0); opacity: 0; }
+  12% { opacity: var(--particle-opacity, 0.55); }
+  88% { opacity: var(--particle-opacity, 0.55); }
+  100% { transform: translate3d(var(--particle-drift, 12px), -160px, 0); opacity: 0; }
+}
+
+.ambient-layer {
+  position: fixed;
+  inset: 0;
+  overflow: hidden;
+  pointer-events: none;
+  z-index: -1;
+}
+
+.ambient-grid {
+  position: absolute;
+  inset: -10%;
+  background-image: radial-gradient(rgba(16, 28, 48, 0.07) 1px, transparent 1px);
+  background-size: 34px 34px;
+  animation: gridPan 44s linear infinite;
+  opacity: 0.55;
+}
+
+.ambient-blob,
+.hero-blob {
+  position: absolute;
+  border-radius: 50%;
+  will-change: transform;
+}
+
+.ambient-blob {
+  filter: blur(70px);
+}
+
+.hero-blob {
+  filter: blur(60px);
+}
+
+.ambient-blob-a,
+.hero-blob-a { animation: driftA 22s ease-in-out infinite; }
+.ambient-blob-b,
+.hero-blob-b { animation: driftB 27s ease-in-out infinite; }
+.ambient-blob-c,
+.hero-blob-c { animation: driftC 19s ease-in-out infinite; }
+
+.ambient-particle {
+  position: absolute;
+  border-radius: 50%;
+  animation-name: floatUp;
+  animation-timing-function: ease-in-out;
+  animation-iteration-count: infinite;
+  will-change: transform, opacity;
+}
+
+.hero-scene {
+  position: absolute;
+  inset: 0;
+  overflow: hidden;
+  pointer-events: none;
+}
+
+.hero-grid {
+  position: absolute;
+  inset: -20%;
+  background-image: radial-gradient(rgba(255, 255, 255, 0.16) 1px, transparent 1px);
+  background-size: 46px 46px;
+  animation: gridPan 50s linear infinite;
+  opacity: 0.4;
+  mask-image: radial-gradient(ellipse 70% 60% at 50% 40%, black, transparent 75%);
+  -webkit-mask-image: radial-gradient(ellipse 70% 60% at 50% 40%, black, transparent 75%);
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .ambient-grid,
+  .hero-grid,
+  .ambient-blob-a,
+  .ambient-blob-b,
+  .ambient-blob-c,
+  .hero-blob-a,
+  .hero-blob-b,
+  .hero-blob-c {
+    animation: none;
+  }
+  .ambient-particle {
+    display: none;
+  }
+}
+
+/* Scroll-triggered reveal, used by the Reveal component. */
+.reveal {
+  opacity: 0;
+  transform: translateY(28px);
+  transition: opacity 0.7s cubic-bezier(0.16, 1, 0.3, 1), transform 0.7s cubic-bezier(0.16, 1, 0.3, 1);
+  transition-delay: var(--reveal-delay, 0ms);
+}
+
+.reveal.in-view {
+  opacity: 1;
+  transform: translateY(0);
+}
+
+.reveal-stagger > * {
+  opacity: 0;
+  transform: translateY(24px);
+  transition: opacity 0.6s cubic-bezier(0.16, 1, 0.3, 1), transform 0.6s cubic-bezier(0.16, 1, 0.3, 1);
+}
+
+.reveal-stagger.in-view > * {
+  opacity: 1;
+  transform: translateY(0);
+}
+
+.reveal-stagger > *:nth-child(1) { transition-delay: 0ms; }
+.reveal-stagger > *:nth-child(2) { transition-delay: 80ms; }
+.reveal-stagger > *:nth-child(3) { transition-delay: 160ms; }
+.reveal-stagger > *:nth-child(4) { transition-delay: 240ms; }
+.reveal-stagger > *:nth-child(5) { transition-delay: 320ms; }
+.reveal-stagger > *:nth-child(6) { transition-delay: 400ms; }
+.reveal-stagger > *:nth-child(7) { transition-delay: 480ms; }
+.reveal-stagger > *:nth-child(n+8) { transition-delay: 560ms; }
+
+@media (prefers-reduced-motion: reduce) {
+  .reveal,
+  .reveal-stagger > * {
+    transition: none;
+    opacity: 1;
+    transform: none;
+  }
+}
+
 /* Explorer cursor: glowing core + comet trail + a ring that blooms into a house
    glyph over interactive elements. Desktop/fine-pointer only; see Cursor component. */
 .cursor-layer {
@@ -215,5 +373,186 @@ body.has-cursor * {
   }
   .card-hover:hover {
     transform: none;
+  }
+}
+
+/* Thin accent bar pinned to the top of the viewport, scaled by ScrollProgress to the
+   fraction of the page scrolled — a direct, always-visible readout of scroll. */
+.scroll-progress {
+  position: fixed;
+  top: 0;
+  left: 0;
+  width: 100%;
+  height: 3px;
+  z-index: 60;
+  pointer-events: none;
+}
+
+.scroll-progress-bar {
+  height: 100%;
+  width: 100%;
+  transform: scaleX(0);
+  transform-origin: 0 50%;
+  background: linear-gradient(90deg, #2997ff, #34a853, #f5a623);
+  will-change: transform;
+}
+
+/* Continuously-scrolling ticker strip (MarqueeStrip). Content is duplicated once in
+   the markup so the 50% translate loops seamlessly. */
+.marquee-row {
+  overflow: hidden;
+  width: 100%;
+}
+
+.marquee-track {
+  display: flex;
+  width: max-content;
+  animation: marquee 30s linear infinite;
+}
+
+@keyframes marquee {
+  0% { transform: translate3d(0, 0, 0); }
+  100% { transform: translate3d(-50%, 0, 0); }
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .marquee-track {
+    animation: none;
+  }
+  .scroll-progress-bar {
+    transition: none;
+  }
+}
+
+/* Scroll-scrubbed motion (ScrollScrub component): the --scrub custom property is
+   updated on every scroll frame to the element's own progress through the viewport,
+   so these transforms track the scroll continuously — forward and backward — instead
+   of firing once like .reveal does. This is the "moves exactly with your scroll"
+   feel (as opposed to "triggered by scroll"). */
+.scrub-rise {
+  opacity: var(--scrub, 0);
+  transform: translateY(calc((1 - var(--scrub, 0)) * 56px));
+  will-change: transform, opacity;
+}
+
+.scrub-zoom {
+  transform: scale(calc(1.16 - var(--scrub, 0) * 0.16));
+  will-change: transform;
+}
+
+.scrub-clip {
+  clip-path: inset(calc((1 - var(--scrub, 0)) * 100%) 0 0 0);
+  will-change: clip-path;
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .scrub-rise {
+    opacity: 1;
+    transform: none;
+  }
+  .scrub-zoom {
+    transform: none;
+  }
+  .scrub-clip {
+    clip-path: none;
+  }
+}
+
+/* Pinned/cinematic scroll section (ScrollPin component): the outer element is a tall
+   (multi-viewport) block; its child is position:sticky so it stays fixed on screen
+   while its --pin custom property sweeps 0→1 across the outer block's scroll range.
+   This is the "scroll to zoom/reveal a full-bleed scene" pattern from agency sites. */
+.scroll-pin-outer {
+  position: relative;
+}
+
+.scroll-pin-inner {
+  position: sticky;
+  top: 0;
+  height: 100vh;
+  overflow: hidden;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+}
+
+.pin-scale {
+  transform: scale(calc(1 + var(--pin, 0) * 0.24));
+  will-change: transform;
+}
+
+.pin-rise {
+  opacity: var(--pin, 0);
+  transform: translateY(calc((1 - var(--pin, 0)) * 44px));
+  will-change: transform, opacity;
+}
+
+/* Dissolves the pinned scene into the page background over the final stretch of its
+   scroll range (--pin 0.7→1), so unpinning hands off to the next section smoothly
+   instead of hard-cutting to an empty gap. */
+.pin-fade-out {
+  opacity: clamp(0, calc((var(--pin, 0) - 0.7) * 3.4), 1);
+  will-change: opacity;
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .pin-fade-out {
+    opacity: 0;
+  }
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .scroll-pin-outer {
+    height: auto !important;
+  }
+  .scroll-pin-inner {
+    position: relative;
+    height: auto;
+  }
+  .pin-scale {
+    transform: none;
+  }
+  .pin-rise {
+    opacity: 1;
+    transform: none;
+  }
+}
+
+/* Sticky header (NavShell): once scrolled past a small threshold, it shrinks,
+   its glass blur/opacity intensify and a shadow + border fade in — a subtle,
+   continuous "you're scrolling" cue on the one element that's always on screen. */
+.nav-shell {
+  position: sticky;
+  top: 0;
+  z-index: 50;
+  background: rgba(245, 245, 247, 0.72);
+  backdrop-filter: blur(14px) saturate(1.4);
+  -webkit-backdrop-filter: blur(14px) saturate(1.4);
+  border-bottom: 1px solid transparent;
+  box-shadow: 0 0 0 rgba(16, 28, 48, 0);
+  transition: background 0.35s ease, border-color 0.35s ease, box-shadow 0.35s ease;
+}
+
+.nav-shell.nav-scrolled {
+  background: rgba(245, 245, 247, 0.92);
+  backdrop-filter: blur(20px) saturate(1.5);
+  -webkit-backdrop-filter: blur(20px) saturate(1.5);
+  border-bottom-color: #d7d9de;
+  box-shadow: 0 10px 30px -18px rgba(16, 28, 48, 0.28);
+}
+
+.nav-inner {
+  height: 72px;
+  transition: height 0.35s cubic-bezier(0.16, 1, 0.3, 1);
+}
+
+.nav-scrolled .nav-inner {
+  height: 60px;
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .nav-shell,
+  .nav-inner {
+    transition: none;
   }
 }

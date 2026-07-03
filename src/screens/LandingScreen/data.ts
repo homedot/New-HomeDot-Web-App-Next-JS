@@ -118,3 +118,58 @@ export const steps: { n: string; title: string; text: string }[] = [
 
 export const heroImage = unsplash("1600585154340-be6161a56a0c", 1200);
 export const trustImage = unsplash("1600585154340-be6161a56a0c", 900);
+export const exploreImage = unsplash("1580587771525-78b9dba3b914", 1800);
+
+export const blogPosts: { id: string; image: string; author: string; date: string; title: string; excerpt: string }[] = [
+  {
+    id: "b1",
+    image: unsplash("1618221195710-dd6b41faaea6", 800),
+    author: "Navya Menon",
+    date: "02 Jul 2026",
+    title: "5 signs it's time to renovate your kitchen",
+    excerpt: "Small upgrades that make a big difference — and how to budget for them without blowing your timeline.",
+  },
+  {
+    id: "b2",
+    image: unsplash("1503387762-592deb58ef4e", 800),
+    author: "Johncy Thomas",
+    date: "18 Jun 2026",
+    title: "Hiring a contractor: what to ask before you sign",
+    excerpt: "The questions that separate a smooth build from a stressful one — straight from verified pros.",
+  },
+  {
+    id: "b3",
+    image: unsplash("1512917774080-9991f1c4c750", 800),
+    author: "HomeDot Team",
+    date: "03 Jun 2026",
+    title: "Inside Kerala's fastest-growing home styles",
+    excerpt: "From tropical modern to courtyard villas — what buyers are asking for in 2026.",
+  },
+];
+
+export const testimonials: { id: string; quote: string; author: string; role: string; avatar: string; rating: number }[] = [
+  {
+    id: "t1",
+    quote: "Found our architect within a week and the whole build stayed on budget. HomeDot's verification actually means something.",
+    author: "Anjali Pillai",
+    role: "Homeowner, Kochi",
+    avatar: unsplash("1494790108377-be9c29b29330", 200),
+    rating: 5,
+  },
+  {
+    id: "t2",
+    quote: "As a contractor, HomeDot brings me serious leads, not tyre-kickers. Best platform I've used in years.",
+    author: "Rejith Kumar",
+    role: "General Contractor",
+    avatar: unsplash("1568602471122-7832951cc4c5", 200),
+    rating: 5,
+  },
+  {
+    id: "t3",
+    quote: "The chat and quote tools saved us weeks of back-and-forth with interior designers. Genuinely useful.",
+    author: "Meera Nair",
+    role: "Homeowner, Thrissur",
+    avatar: unsplash("1500648767791-00dcc994a43e", 200),
+    rating: 4,
+  },
+];
