@@ -16,6 +16,7 @@ import ScrollScrub from "@/components/ScrollScrub";
 import ScrollPin from "@/components/ScrollPin";
 import Parallax from "@/components/Parallax";
 import NavShell from "@/components/NavShell";
+import LoginModal from "@/components/LoginModal";
 import appHomeImg from "@/assets/images/app-home.png";
 import {
   categories,
@@ -145,13 +146,7 @@ function Nav() {
               Add Property
             </Button>
           </span>
-          <Button
-            variant="primary"
-            size="sm"
-            icon={<Icon name="check" size={16} />}
-          >
-            Log in
-          </Button>
+          <LoginModal />
         </div>
       </div>
     </NavShell>

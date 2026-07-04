@@ -1,0 +1,813 @@
+"use client";
+
+import { useCallback, useEffect, useRef, useState, type CSSProperties } from "react";
+import { colors } from "@/constants/colors";
+import { spacing, radius, fontSize, shadow } from "@/utils/size";
+import Icon from "@/components/Icon";
+import Button from "@/components/Button";
+
+type Method = "phone" | "email";
+type Step = "method" | "otp" | "success";
+
+const COUNTRY_CODES = ["+91", "+971", "+966", "+65", "+44", "+1", "+61"];
+
+const PERKS: { icon: "verified" | "chat" | "heart"; title: string; subtitle: string }[] = [
+  { icon: "verified", title: "Verified pros & listings", subtitle: "Every profile manually checked" },
+  { icon: "chat", title: "Chat & book directly", subtitle: "Talk to agents and experts" },
+  { icon: "heart", title: "Save your favourites", subtitle: "Across every device" },
+];
+
+/** Login trigger button (Nav) + the phone/email → OTP → success modal. Self-contained
+ * client island so the rest of LandingScreen can stay a Server Component. */
+export default function LoginModal() {
+  const [open, setOpen] = useState(false);
+  const [loggedIn, setLoggedIn] = useState(false);
+  const [step, setStep] = useState<Step>("method");
+  const [method, setMethod] = useState<Method>("phone");
+  const [value, setValue] = useState("");
+  const [cc, setCc] = useState("+91");
+  const [otp, setOtp] = useState<string[]>(["", "", "", "", "", ""]);
+  const [secs, setSecs] = useState(0);
+  const [shake, setShake] = useState(false);
+  const otpRefs = useRef<(HTMLInputElement | null)[]>([]);
+
+  useEffect(() => {
+    if (step !== "otp") return;
+    const id = setInterval(() => setSecs((s) => (s > 0 ? s - 1 : 0)), 1000);
+    return () => clearInterval(id);
+  }, [step]);
+
+  const reset = useCallback(() => {
+    setStep("method");
+    setMethod("phone");
+    setValue("");
+    setOtp(["", "", "", "", "", ""]);
+  }, []);
+
+  const close = useCallback(() => {
+    setOpen(false);
+    setTimeout(reset, 250);
+  }, [reset]);
+
+  useEffect(() => {
+    if (!open) return;
+    const onKey = (e: KeyboardEvent) => {
+      if (e.key === "Escape") close();
+    };
+    window.addEventListener("keydown", onKey);
+    return () => window.removeEventListener("keydown", onKey);
+  }, [open, close]);
+
+  const digits = value.replace(/\D/g, "");
+  const valid = method === "phone" ? digits.length >= 10 : /\S+@\S+\.\S+/.test(value);
+  const otpFull = otp.every((d) => d !== "");
+
+  const doShake = () => {
+    setShake(true);
+    setTimeout(() => setShake(false), 500);
+  };
+
+  const sendOtp = () => {
+    if (!valid) return doShake();
+    setSecs(30);
+    setStep("otp");
+    setTimeout(() => otpRefs.current[0]?.focus(), 380);
+  };
+
+  const setDigit = (i: number, raw: string) => {
+    const v = raw.replace(/\D/g, "").slice(-1);
+    setOtp((o) => {
+      const next = [...o];
+      next[i] = v;
+      return next;
+    });
+    if (v && i < 5) otpRefs.current[i + 1]?.focus();
+  };
+
+  const onOtpKey = (i: number, e: React.KeyboardEvent<HTMLInputElement>) => {
+    if (e.key === "Backspace" && !otp[i] && i > 0) otpRefs.current[i - 1]?.focus();
+  };
+
+  const onOtpPaste = (e: React.ClipboardEvent<HTMLDivElement>) => {
+    const d = (e.clipboardData.getData("text") || "").replace(/\D/g, "").slice(0, 6).split("");
+    if (!d.length) return;
+    e.preventDefault();
+    const next = ["", "", "", "", "", ""];
+    d.forEach((x, i) => (next[i] = x));
+    setOtp(next);
+    otpRefs.current[Math.min(d.length, 5)]?.focus();
+  };
+
+  const verify = () => {
+    if (!otpFull) return doShake();
+    setStep("success");
+    setTimeout(() => {
+      setLoggedIn(true);
+      close();
+    }, 1500);
+  };
+
+  const masked =
+    method === "phone"
+      ? `${cc} ${digits.slice(-10).replace(/(\d{5})(\d{0,5})/, "$1 $2").trim()}`
+      : value;
+
+  return (
+    <>
+      {loggedIn ? (
+        <button
+          onClick={() => setOpen(true)}
+          aria-label="My account"
+          style={{
+            width: 40,
+            height: 40,
+            borderRadius: "50%",
+            background: colors.primarySoft,
+            color: colors.primary,
+            display: "grid",
+            placeItems: "center",
+            border: `1.5px solid ${colors.line}`,
+            flexShrink: 0,
+          }}
+        >
+          <Icon name="check" size={18} strokeWidth={2.4} />
+        </button>
+      ) : (
+        <Button
+          variant="primary"
+          size="sm"
+          icon={<Icon name="check" size={16} />}
+          onClick={() => setOpen(true)}
+        >
+          Log in
+        </Button>
+      )}
+
+      {open && (
+        <div
+          className="login-overlay"
+          onClick={close}
+          style={{
+            position: "fixed",
+            inset: 0,
+            zIndex: 1000,
+            background: colors.overlay,
+            backdropFilter: "blur(7px)",
+            display: "grid",
+            placeItems: "center",
+            padding: 20,
+          }}
+        >
+          <div
+            className="login-modal"
+            onClick={(e) => e.stopPropagation()}
+            style={{
+              position: "relative",
+              width: "min(880px, 100%)",
+              maxHeight: "94vh",
+              overflow: "hidden",
+              display: "grid",
+              gridTemplateColumns: "1fr 1.05fr",
+              background: colors.card,
+              borderRadius: 24,
+              boxShadow: "0 40px 90px -30px rgba(10,20,34,0.6)",
+            }}
+          >
+            <button
+              onClick={close}
+              aria-label="Close"
+              style={{
+                position: "absolute",
+                right: 16,
+                top: 16,
+                zIndex: 5,
+                width: 38,
+                height: 38,
+                borderRadius: "50%",
+                background: "rgba(255,255,255,0.16)",
+                color: colors.white,
+                display: "grid",
+                placeItems: "center",
+              }}
+            >
+              <Icon name="close" size={20} color={colors.white} />
+            </button>
+
+            <BrandPanel />
+
+            <div
+              style={{
+                padding: "38px 36px",
+                display: "flex",
+                flexDirection: "column",
+                justifyContent: "center",
+                overflowY: "auto",
+              }}
+            >
+              {step === "method" && (
+                <MethodStep
+                  method={method}
+                  setMethod={(m) => {
+                    setMethod(m);
+                    setValue("");
+                  }}
+                  value={value}
+                  setValue={setValue}
+                  cc={cc}
+                  setCc={setCc}
+                  valid={valid}
+                  shake={shake}
+                  onSubmit={sendOtp}
+                />
+              )}
+
+              {step === "otp" && (
+                <OtpStep
+                  masked={masked}
+                  otp={otp}
+                  otpRefs={otpRefs}
+                  setDigit={setDigit}
+                  onOtpKey={onOtpKey}
+                  onOtpPaste={onOtpPaste}
+                  shake={shake}
+                  otpFull={otpFull}
+                  secs={secs}
+                  onBack={() => setStep("method")}
+                  onVerify={verify}
+                  onResend={() => setSecs(30)}
+                />
+              )}
+
+              {step === "success" && <SuccessStep />}
+            </div>
+          </div>
+        </div>
+      )}
+    </>
+  );
+}
+
+function BrandPanel() {
+  return (
+    <div
+      className="login-brand-panel"
+      style={{
+        position: "relative",
+        overflow: "hidden",
+        background: `linear-gradient(155deg, ${colors.primaryDeep}, ${colors.primary})`,
+        color: colors.white,
+        padding: "34px 30px",
+        display: "flex",
+        flexDirection: "column",
+        gap: spacing.xxl - 10,
+      }}
+    >
+      <div
+        style={{
+          position: "absolute",
+          inset: 0,
+          background:
+            "radial-gradient(70% 50% at 100% 0, rgba(41,151,255,0.4), transparent 60%), radial-gradient(60% 50% at 0 100%, rgba(41,151,255,0.24), transparent 55%)",
+        }}
+      />
+
+      <span
+        style={{
+          position: "relative",
+          fontFamily: "var(--font-display)",
+          fontWeight: 700,
+          fontSize: fontSize.xl,
+          letterSpacing: "-0.03em",
+          display: "inline-flex",
+          alignItems: "center",
+          gap: 2,
+        }}
+      >
+        <span
+          style={{
+            width: 9,
+            height: 9,
+            borderRadius: "50%",
+            background: colors.accent,
+            marginRight: 8,
+            boxShadow: "0 0 0 4px rgba(41,151,255,0.22)",
+          }}
+        />
+        Home<span>Dot</span>
+      </span>
+
+      <div style={{ position: "relative" }}>
+        <h2
+          style={{
+            fontFamily: "var(--font-display)",
+            fontSize: 30,
+            letterSpacing: "-0.03em",
+            marginBottom: spacing.sm + 2,
+          }}
+        >
+          Welcome home.
+        </h2>
+        <p
+          style={{
+            color: "rgba(255,255,255,0.8)",
+            fontSize: fontSize.base,
+            lineHeight: 1.55,
+            maxWidth: 300,
+          }}
+        >
+          Sign in to explore verified properties and professionals across Kerala.
+        </p>
+
+        <ul
+          style={{
+            listStyle: "none",
+            display: "flex",
+            flexDirection: "column",
+            gap: spacing.lg - 2,
+            marginTop: spacing.xl,
+          }}
+        >
+          {PERKS.map((p) => (
+            <li
+              key={p.title}
+              className="login-perk"
+              style={{ display: "flex", alignItems: "center", gap: spacing.md }}
+            >
+              <span
+                style={{
+                  width: 38,
+                  height: 38,
+                  borderRadius: 11,
+                  background: "rgba(255,255,255,0.14)",
+                  display: "grid",
+                  placeItems: "center",
+                  flexShrink: 0,
+                }}
+              >
+                <Icon name={p.icon} size={17} strokeWidth={2} color={colors.white} />
+              </span>
+              <span>
+                <b style={{ display: "block", fontSize: fontSize.base, fontWeight: 600 }}>
+                  {p.title}
+                </b>
+                <em style={{ fontStyle: "normal", fontSize: fontSize.xs, color: "rgba(255,255,255,0.66)" }}>
+                  {p.subtitle}
+                </em>
+              </span>
+            </li>
+          ))}
+        </ul>
+      </div>
+
+      <div
+        style={{
+          position: "relative",
+          display: "flex",
+          alignItems: "center",
+          gap: spacing.sm,
+          marginTop: "auto",
+          fontSize: fontSize.xs,
+          color: "rgba(255,255,255,0.66)",
+        }}
+      >
+        <Icon name="shield" size={15} color="rgba(255,255,255,0.8)" /> Your details stay private &amp; secure
+      </div>
+    </div>
+  );
+}
+
+const inputWrap: CSSProperties = {
+  display: "flex",
+  alignItems: "center",
+  gap: spacing.sm + 2,
+  height: 54,
+  border: `1.5px solid ${colors.line}`,
+  borderRadius: radius.md,
+  padding: "0 16px",
+  background: colors.white,
+};
+
+function MethodStep({
+  method,
+  setMethod,
+  value,
+  setValue,
+  cc,
+  setCc,
+  valid,
+  shake,
+  onSubmit,
+}: {
+  method: Method;
+  setMethod: (m: Method) => void;
+  value: string;
+  setValue: (v: string) => void;
+  cc: string;
+  setCc: (c: string) => void;
+  valid: boolean;
+  shake: boolean;
+  onSubmit: () => void;
+}) {
+  return (
+    <div className="login-step">
+      <h1 style={{ fontFamily: "var(--font-display)", fontSize: 26, letterSpacing: "-0.02em", marginBottom: spacing.sm }}>
+        Log in or sign up
+      </h1>
+      <p style={{ fontSize: fontSize.base, color: colors.muted, lineHeight: 1.5, marginBottom: spacing.xl - 2 }}>
+        Enter your number or email — we&apos;ll send a one-time code.
+      </p>
+
+      <div
+        style={{
+          position: "relative",
+          display: "grid",
+          gridTemplateColumns: "1fr 1fr",
+          background: colors.bg,
+          border: `1px solid ${colors.line}`,
+          borderRadius: radius.full,
+          padding: 4,
+          marginBottom: spacing.lg + 2,
+        }}
+      >
+        <span
+          className="login-tab-thumb"
+          style={{
+            position: "absolute",
+            top: 4,
+            bottom: 4,
+            left: 4,
+            width: "calc(50% - 4px)",
+            borderRadius: radius.full,
+            background: colors.white,
+            boxShadow: shadow.sm,
+            transform: method === "email" ? "translateX(100%)" : "translateX(0)",
+          }}
+        />
+        {(["phone", "email"] as Method[]).map((m) => (
+          <button
+            key={m}
+            onClick={() => setMethod(m)}
+            style={{
+              position: "relative",
+              zIndex: 1,
+              display: "inline-flex",
+              alignItems: "center",
+              justifyContent: "center",
+              gap: 7,
+              padding: 10,
+              borderRadius: radius.full,
+              fontSize: fontSize.sm + 0.5,
+              fontWeight: 600,
+              color: method === m ? colors.primary : colors.muted,
+            }}
+          >
+            <Icon name={m === "phone" ? "phone" : "mail"} size={16} />
+            {m === "phone" ? "Phone" : "Email"}
+          </button>
+        ))}
+      </div>
+
+      <div className={shake ? "login-shake" : undefined} style={{ ...inputWrap, marginBottom: spacing.lg + 2 }}>
+        {method === "phone" ? (
+          <>
+            <span
+              style={{
+                position: "relative",
+                display: "inline-flex",
+                alignItems: "center",
+                flexShrink: 0,
+                borderRight: `1px solid ${colors.line}`,
+                paddingRight: 10,
+                marginRight: 2,
+              }}
+            >
+              <select
+                value={cc}
+                onChange={(e) => setCc(e.target.value)}
+                aria-label="Country code"
+                style={{
+                  appearance: "none",
+                  border: "none",
+                  outline: "none",
+                  background: "none",
+                  fontSize: fontSize.md,
+                  fontWeight: 600,
+                  color: colors.ink,
+                  paddingRight: 20,
+                }}
+              >
+                {COUNTRY_CODES.map((c) => (
+                  <option key={c} value={c}>
+                    {c}
+                  </option>
+                ))}
+              </select>
+              <Icon
+                name="chevronDown"
+                size={14}
+                color={colors.muted}
+                className="login-cc-chev"
+              />
+            </span>
+            <input
+              type="tel"
+              inputMode="numeric"
+              placeholder="98470 11223"
+              value={value}
+              onChange={(e) => setValue(e.target.value)}
+              onKeyDown={(e) => e.key === "Enter" && onSubmit()}
+              autoFocus
+              style={{ border: "none", outline: "none", background: "none", width: "100%", fontSize: fontSize.md - 0.5, color: colors.ink }}
+            />
+          </>
+        ) : (
+          <>
+            <Icon name="mail" size={18} color={colors.muted} />
+            <input
+              type="email"
+              inputMode="email"
+              placeholder="you@email.com"
+              value={value}
+              onChange={(e) => setValue(e.target.value)}
+              onKeyDown={(e) => e.key === "Enter" && onSubmit()}
+              autoFocus
+              style={{ border: "none", outline: "none", background: "none", width: "100%", fontSize: fontSize.md - 0.5, color: colors.ink }}
+            />
+          </>
+        )}
+      </div>
+
+      <button
+        onClick={onSubmit}
+        className={`login-cta${valid ? " is-ready" : ""}`}
+        style={{
+          display: "inline-flex",
+          alignItems: "center",
+          justifyContent: "center",
+          gap: 9,
+          width: "100%",
+          height: 52,
+          borderRadius: radius.md,
+          background: colors.primary,
+          color: colors.white,
+          fontWeight: 600,
+          fontSize: fontSize.md - 1,
+          opacity: valid ? 1 : 0.5,
+        }}
+      >
+        Send OTP <Icon name="arrow" size={18} color={colors.white} />
+      </button>
+
+      <div
+        style={{
+          display: "flex",
+          alignItems: "center",
+          gap: spacing.md,
+          margin: `${spacing.xl - 4}px 0`,
+          color: colors.muted,
+          fontSize: fontSize.xs + 0.5,
+        }}
+      >
+        <span style={{ flex: 1, height: 1, background: colors.line }} />
+        or continue with
+        <span style={{ flex: 1, height: 1, background: colors.line }} />
+      </div>
+
+      <div style={{ display: "grid", gridTemplateColumns: "1fr 1fr", gap: spacing.md }}>
+        <button
+          className="login-social-btn"
+          onClick={onSubmit}
+          style={{
+            display: "inline-flex",
+            alignItems: "center",
+            justifyContent: "center",
+            gap: 9,
+            height: 48,
+            border: `1.5px solid ${colors.line}`,
+            borderRadius: 13,
+            background: colors.white,
+            fontWeight: 600,
+            fontSize: fontSize.base,
+            color: colors.ink,
+          }}
+        >
+          <GoogleGlyph /> Google
+        </button>
+        <button
+          className="login-social-btn"
+          onClick={onSubmit}
+          style={{
+            display: "inline-flex",
+            alignItems: "center",
+            justifyContent: "center",
+            gap: 9,
+            height: 48,
+            border: `1.5px solid ${colors.line}`,
+            borderRadius: 13,
+            background: colors.white,
+            fontWeight: 600,
+            fontSize: fontSize.base,
+            color: colors.ink,
+          }}
+        >
+          <AppleGlyph /> Apple
+        </button>
+      </div>
+
+      <p style={{ fontSize: fontSize.xs - 1, color: colors.muted, textAlign: "center", marginTop: spacing.xl - 4, lineHeight: 1.5 }}>
+        By continuing you agree to HomeDot&apos;s{" "}
+        <a style={{ color: colors.primary, fontWeight: 600, cursor: "pointer" }}>Terms</a> &amp;{" "}
+        <a style={{ color: colors.primary, fontWeight: 600, cursor: "pointer" }}>Privacy Policy</a>.
+      </p>
+    </div>
+  );
+}
+
+function OtpStep({
+  masked,
+  otp,
+  otpRefs,
+  setDigit,
+  onOtpKey,
+  onOtpPaste,
+  shake,
+  otpFull,
+  secs,
+  onBack,
+  onVerify,
+  onResend,
+}: {
+  masked: string;
+  otp: string[];
+  otpRefs: React.MutableRefObject<(HTMLInputElement | null)[]>;
+  setDigit: (i: number, v: string) => void;
+  onOtpKey: (i: number, e: React.KeyboardEvent<HTMLInputElement>) => void;
+  onOtpPaste: (e: React.ClipboardEvent<HTMLDivElement>) => void;
+  shake: boolean;
+  otpFull: boolean;
+  secs: number;
+  onBack: () => void;
+  onVerify: () => void;
+  onResend: () => void;
+}) {
+  return (
+    <div className="login-step">
+      <button
+        onClick={onBack}
+        style={{
+          display: "inline-flex",
+          alignItems: "center",
+          gap: 6,
+          fontSize: fontSize.sm + 0.5,
+          fontWeight: 600,
+          color: colors.muted,
+          marginBottom: spacing.lg,
+        }}
+      >
+        <Icon name="arrowLeft" size={17} /> Back
+      </button>
+
+      <span
+        style={{
+          width: 58,
+          height: 58,
+          borderRadius: 17,
+          background: colors.primarySoft,
+          color: colors.primary,
+          display: "grid",
+          placeItems: "center",
+          marginBottom: spacing.lg,
+        }}
+      >
+        <Icon name="chat" size={26} />
+      </span>
+
+      <h1 style={{ fontFamily: "var(--font-display)", fontSize: 26, letterSpacing: "-0.02em", marginBottom: spacing.sm }}>
+        Enter the code
+      </h1>
+      <p style={{ fontSize: fontSize.base, color: colors.muted, lineHeight: 1.5, marginBottom: spacing.lg }}>
+        We sent a 6-digit code to <b style={{ color: colors.ink }}>{masked}</b>
+      </p>
+
+      <div
+        onPaste={onOtpPaste}
+        className={shake ? "login-shake" : undefined}
+        style={{ display: "flex", gap: 9, marginBottom: spacing.md, maxWidth: 330 }}
+      >
+        {otp.map((d, i) => (
+          <input
+            key={i}
+            ref={(el) => {
+              otpRefs.current[i] = el;
+            }}
+            className="login-otp-box"
+            inputMode="numeric"
+            maxLength={1}
+            value={d}
+            onChange={(e) => setDigit(i, e.target.value)}
+            onKeyDown={(e) => onOtpKey(i, e)}
+            style={{
+              flex: 1,
+              minWidth: 0,
+              width: 46,
+              height: 52,
+              textAlign: "center",
+              fontSize: 21,
+              fontWeight: 700,
+              color: colors.ink,
+              border: `1.5px solid ${d ? colors.primary : colors.line}`,
+              borderRadius: 12,
+              background: d ? colors.primarySoft : colors.white,
+              outline: "none",
+            }}
+          />
+        ))}
+      </div>
+
+      <button
+        onClick={onVerify}
+        className={`login-cta${otpFull ? " is-ready" : ""}`}
+        style={{
+          display: "inline-flex",
+          alignItems: "center",
+          justifyContent: "center",
+          gap: 9,
+          width: "100%",
+          height: 52,
+          marginTop: spacing.md,
+          borderRadius: radius.md,
+          background: colors.primary,
+          color: colors.white,
+          fontWeight: 600,
+          fontSize: fontSize.md - 1,
+          opacity: otpFull ? 1 : 0.5,
+        }}
+      >
+        Verify &amp; continue <Icon name="check" size={18} color={colors.white} />
+      </button>
+
+      <p style={{ fontSize: fontSize.sm, color: colors.muted, marginTop: spacing.lg, textAlign: "center" }}>
+        {secs > 0 ? (
+          <>
+            Resend code in <b style={{ color: colors.ink }}>0:{String(secs).padStart(2, "0")}</b>
+          </>
+        ) : (
+          <>
+            Didn&apos;t get it?{" "}
+            <a onClick={onResend} style={{ color: colors.primary, fontWeight: 600, cursor: "pointer" }}>
+              Resend OTP
+            </a>
+          </>
+        )}
+      </p>
+      <p style={{ fontSize: fontSize.xs - 1, color: colors.muted, textAlign: "center", marginTop: spacing.sm, opacity: 0.7 }}>
+        Demo: enter any 6 digits to continue.
+      </p>
+    </div>
+  );
+}
+
+function SuccessStep() {
+  return (
+    <div className="login-step" style={{ textAlign: "center", display: "flex", flexDirection: "column", alignItems: "center" }}>
+      <span
+        className="login-check-ring"
+        style={{
+          width: 88,
+          height: 88,
+          borderRadius: "50%",
+          background: "rgba(31,138,91,0.13)",
+          color: "#1F8A5B",
+          display: "grid",
+          placeItems: "center",
+          marginBottom: spacing.xl - 4,
+        }}
+      >
+        <Icon name="check" size={44} strokeWidth={2.4} />
+      </span>
+      <h1 style={{ fontFamily: "var(--font-display)", fontSize: 26, letterSpacing: "-0.02em", marginBottom: spacing.sm }}>
+        You&apos;re in!
+      </h1>
+      <p style={{ fontSize: fontSize.base, color: colors.muted }}>Welcome to HomeDot. Taking you in…</p>
+    </div>
+  );
+}
+
+function GoogleGlyph() {
+  return (
+    <svg viewBox="0 0 24 24" width="18" height="18" aria-hidden="true">
+      <path fill="#4285F4" d="M21.6 12.2c0-.7-.06-1.4-.18-2H12v3.8h5.4a4.6 4.6 0 0 1-2 3v2.5h3.2c1.9-1.7 3-4.3 3-7.3z" />
+      <path fill="#34A853" d="M12 22c2.7 0 5-.9 6.6-2.4l-3.2-2.5c-.9.6-2 1-3.4 1-2.6 0-4.8-1.7-5.6-4.1H3.1v2.6A10 10 0 0 0 12 22z" />
+      <path fill="#FBBC05" d="M6.4 14c-.2-.6-.3-1.3-.3-2s.1-1.4.3-2V7.4H3.1a10 10 0 0 0 0 9.2L6.4 14z" />
+      <path fill="#EA4335" d="M12 5.9c1.5 0 2.8.5 3.8 1.5l2.8-2.8A10 10 0 0 0 3.1 7.4L6.4 10c.8-2.4 3-4.1 5.6-4.1z" />
+    </svg>
+  );
+}
+
+function AppleGlyph() {
+  return (
+    <svg viewBox="0 0 24 24" width="17" height="17" fill="currentColor" aria-hidden="true">
+      <path d="M17.05 12.04c-.03-3.09 2.52-4.57 2.64-4.64-1.44-2.11-3.68-2.4-4.48-2.43-1.91-.19-3.72 1.12-4.69 1.12-.96 0-2.45-1.09-4.03-1.06-2.07.03-3.98 1.2-5.05 3.06-2.15 3.73-.55 9.25 1.55 12.28 1.03 1.48 2.25 3.14 3.86 3.08 1.55-.06 2.13-1 4-1 1.86 0 2.4 1 4.03.97 1.66-.03 2.72-1.51 3.74-3 1.18-1.72 1.66-3.38 1.69-3.47-.04-.02-3.24-1.25-3.27-4.91M14.13 3.5c.85-1.04 1.43-2.48 1.27-3.92-1.23.05-2.72.82-3.6 1.85-.79.92-1.49 2.39-1.3 3.8 1.37.11 2.78-.7 3.63-1.73" />
+    </svg>
+  );
+}

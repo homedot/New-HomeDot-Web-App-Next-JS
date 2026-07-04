@@ -22,7 +22,12 @@ type IconName =
   | "sparkle"
   | "verified"
   | "menu"
-  | "close";
+  | "close"
+  | "phone"
+  | "mail"
+  | "chevronDown"
+  | "arrowLeft"
+  | "chat";
 
 const PATHS: Record<IconName, React.ReactNode> = {
   search: (
@@ -130,6 +135,23 @@ const PATHS: Record<IconName, React.ReactNode> = {
   ),
   menu: <path d="M4 7h16M4 12h16M4 17h16" />,
   close: <path d="M6 6l12 12M18 6L6 18" />,
+  phone: (
+    <path d="M6 3h3l1.5 5L8 9.5a12 12 0 0 0 6.5 6.5L16 14l5 1.5V19a2 2 0 0 1-2.2 2A16 16 0 0 1 5 7.2 2 2 0 0 1 7 5z" />
+  ),
+  mail: (
+    <>
+      <rect x="3" y="5.5" width="18" height="13" rx="2" />
+      <path d="M4 7l8 6 8-6" />
+    </>
+  ),
+  chevronDown: <path d="M6 9l6 6 6-6" />,
+  arrowLeft: (
+    <>
+      <path d="M19 12H5" />
+      <path d="M11 6l-6 6 6 6" />
+    </>
+  ),
+  chat: <path d="M5 5h14v10H9l-4 4z" />,
 };
 
 export type { IconName };

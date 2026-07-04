@@ -556,3 +556,134 @@ body.has-cursor * {
     transition: none;
   }
 }
+
+/* Login modal (LoginModal component): overlay + two-panel dialog with a
+   phone/email step, a 6-digit OTP step and a success step. */
+@keyframes loginFade {
+  from { opacity: 0; }
+}
+
+@keyframes loginPop {
+  from { opacity: 0; transform: translateY(28px) scale(0.96); }
+}
+
+@keyframes loginStepIn {
+  from { opacity: 0; transform: translateX(16px); }
+}
+
+@keyframes loginShake {
+  0%, 100% { transform: translateX(0); }
+  20%, 60% { transform: translateX(-7px); }
+  40%, 80% { transform: translateX(7px); }
+}
+
+@keyframes loginPerkIn {
+  from { opacity: 0; transform: translateX(-14px); }
+}
+
+@keyframes loginCheckPop {
+  from { opacity: 0; transform: scale(0.3); }
+}
+
+.login-overlay {
+  animation: loginFade 0.25s ease both;
+}
+
+.login-modal {
+  animation: loginPop 0.45s cubic-bezier(0.2, 0.9, 0.3, 1.15) both;
+}
+
+.login-step {
+  animation: loginStepIn 0.35s cubic-bezier(0.2, 0.8, 0.3, 1) both;
+}
+
+.login-shake {
+  animation: loginShake 0.45s;
+}
+
+.login-perk {
+  opacity: 0;
+  animation: loginPerkIn 0.5s cubic-bezier(0.2, 0.8, 0.3, 1) both;
+}
+
+.login-perk:nth-child(1) { animation-delay: 0.18s; }
+.login-perk:nth-child(2) { animation-delay: 0.28s; }
+.login-perk:nth-child(3) { animation-delay: 0.38s; }
+
+.login-check-ring {
+  animation: loginPop 0.5s cubic-bezier(0.2, 0.9, 0.3, 1.4) both;
+}
+
+.login-check-ring svg {
+  animation: loginCheckPop 0.5s cubic-bezier(0.2, 0.8, 0.3, 1) 0.15s both;
+}
+
+.login-tab-thumb {
+  transition: transform 0.28s cubic-bezier(0.3, 0.9, 0.3, 1.1);
+}
+
+.login-otp-box {
+  transition: border-color 0.15s ease, box-shadow 0.15s ease, transform 0.12s ease;
+}
+
+.login-otp-box:focus {
+  border-color: #101c30;
+  box-shadow: 0 0 0 3px rgba(16, 28, 48, 0.12);
+  transform: translateY(-2px);
+}
+
+.login-cta {
+  transition: opacity 0.2s ease, transform 0.12s ease, filter 0.15s ease;
+}
+
+.login-cta:active {
+  transform: translateY(1px);
+}
+
+.login-cta.is-ready:hover {
+  filter: brightness(1.08);
+}
+
+.login-social-btn {
+  transition: border-color 0.15s ease, background 0.15s ease, transform 0.12s ease;
+}
+
+.login-social-btn:hover {
+  border-color: #101c30;
+  background: #f5f5f7;
+}
+
+.login-social-btn:active {
+  transform: translateY(1px);
+}
+
+@media (max-width: 720px) {
+  .login-modal {
+    grid-template-columns: 1fr !important;
+    max-width: 440px;
+  }
+  .login-brand-panel {
+    display: none !important;
+  }
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .login-overlay,
+  .login-modal,
+  .login-step,
+  .login-shake,
+  .login-perk,
+  .login-check-ring,
+  .login-check-ring svg {
+    animation: none;
+  }
+  .login-perk {
+    opacity: 1;
+  }
+  .login-tab-thumb,
+  .login-otp-box,
+  .login-cta,
+  .login-social-btn {
+    transition: none;
+  }
+}
