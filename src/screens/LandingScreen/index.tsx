@@ -1,4 +1,6 @@
-import type { CSSProperties } from "react";
+"use client";
+
+import { useEffect, type CSSProperties } from "react";
 import { colors } from "@/constants/colors";
 import { spacing, radius, fontSize, shadow, maxWidth } from "@/utils/size";
 import Icon from "@/components/Icon";
@@ -17,6 +19,7 @@ import ScrollPin from "@/components/ScrollPin";
 import Parallax from "@/components/Parallax";
 import SiteNav from "@/components/SiteNav";
 import SiteFooter from "@/components/SiteFooter";
+import LandingScreenService from "@/services/LandingScreenService";
 import appHomeImg from "@/assets/images/app-home.png";
 import {
   categories,
@@ -37,6 +40,19 @@ const wrap: CSSProperties = {
 };
 
 export default function LandingScreen() {
+  useEffect(() => {
+    // Sample API call — every request goes through LandingScreenService,
+    // which delegates to the shared ApiService instead of calling fetch directly.
+    LandingScreenService.getFeaturedProperties().then((response) => {
+      console.log("Featured properties status code:", response.statusCode);
+      if (response.success) {
+        console.log("Featured properties data:", response.data);
+      } else {
+        console.warn("Featured properties request failed:", response.message);
+      }
+    });
+  }, []);
+
   return (
     <div
       style={{
