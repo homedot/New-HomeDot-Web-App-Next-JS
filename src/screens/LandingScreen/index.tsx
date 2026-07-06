@@ -15,8 +15,8 @@ import ScrollProgress from "@/components/ScrollProgress";
 import ScrollScrub from "@/components/ScrollScrub";
 import ScrollPin from "@/components/ScrollPin";
 import Parallax from "@/components/Parallax";
-import NavShell from "@/components/NavShell";
-import LoginModal from "@/components/LoginModal";
+import SiteNav from "@/components/SiteNav";
+import SiteFooter from "@/components/SiteFooter";
 import appHomeImg from "@/assets/images/app-home.png";
 import {
   categories,
@@ -49,7 +49,7 @@ export default function LandingScreen() {
       <AmbientBackground />
       <ScrollProgress />
       <Cursor />
-      <Nav />
+      <SiteNav />
       <Hero />
       <MarqueeStrip />
       <FeaturedProperties />
@@ -63,93 +63,8 @@ export default function LandingScreen() {
       <ProCta />
       <LatestInsights />
       <Testimonials />
-      <Footer />
+      <SiteFooter />
     </div>
-  );
-}
-
-function Brand({ light }: { light?: boolean }) {
-  return (
-    <span
-      style={{
-        fontFamily: "var(--font-display)",
-        fontWeight: 700,
-        fontSize: fontSize.xl,
-        letterSpacing: "-0.03em",
-        color: light ? colors.white : colors.ink,
-        display: "inline-flex",
-        alignItems: "center",
-        gap: 2,
-      }}
-    >
-      <span
-        style={{
-          width: 9,
-          height: 9,
-          borderRadius: "50%",
-          background: colors.accent,
-          marginRight: 8,
-          boxShadow: `0 0 0 4px rgba(41,151,255,0.22)`,
-        }}
-      />
-      Home
-      <span style={{ color: light ? colors.white : colors.primary }}>Dot</span>
-    </span>
-  );
-}
-
-function Nav() {
-  const links = ["Home", "Professionals", "Blogs", "Marketplace", "Contact"];
-  return (
-    <NavShell className="nav-shell">
-      <div
-        className="nav-inner"
-        style={{
-          ...wrap,
-          display: "flex",
-          alignItems: "center",
-          gap: spacing.xxl,
-        }}
-      >
-        <Brand />
-        <nav className="hidden md:flex" style={{ gap: 2, marginRight: "auto" }}>
-          {links.map((l) => (
-            <a
-              key={l}
-              style={{
-                fontSize: fontSize.sm + 0.5,
-                fontWeight: 500,
-                color: colors.ink2,
-                padding: "9px 14px",
-                borderRadius: 10,
-                cursor: "pointer",
-              }}
-            >
-              {l}
-            </a>
-          ))}
-        </nav>
-        <div
-          style={{
-            marginLeft: "auto",
-            display: "flex",
-            alignItems: "center",
-            gap: spacing.sm + 1,
-          }}
-        >
-          <span className="hidden sm:inline-flex">
-            <Button
-              variant="outline"
-              size="sm"
-              icon={<Icon name="house" size={16} />}
-            >
-              Add Property
-            </Button>
-          </span>
-          <LoginModal />
-        </div>
-      </div>
-    </NavShell>
   );
 }
 
@@ -1567,114 +1482,5 @@ function Testimonials() {
         </Reveal>
       </div>
     </section>
-  );
-}
-
-function Footer() {
-  const cols: { h: string; links: string[] }[] = [
-    {
-      h: "Properties",
-      links: ["Buy a home", "Rent a home", "New projects", "Add your property"],
-    },
-    {
-      h: "Professionals",
-      links: [
-        "Architects",
-        "Interior Designers",
-        "Contractors",
-        "Household Services",
-      ],
-    },
-    { h: "Company", links: ["About HomeDot", "Blogs", "Careers", "Contact"] },
-    {
-      h: "Support",
-      links: ["Help center", "Safety & trust", "Terms", "Privacy"],
-    },
-  ];
-  return (
-    <footer
-      style={{
-        background: colors.ink,
-        color: colors.white,
-        marginTop: spacing.xl,
-      }}
-    >
-      <div
-        className="grid grid-cols-2 lg:grid-cols-5"
-        style={{
-          ...wrap,
-          padding: `${spacing.huge - 8}px ${spacing.xl}px ${spacing.xxl}px`,
-          gap: spacing.xxl,
-        }}
-      >
-        <div className="col-span-2 lg:col-span-1">
-          <Brand light />
-          <p
-            style={{
-              color: "rgba(255,255,255,0.6)",
-              fontSize: fontSize.sm + 1,
-              lineHeight: 1.6,
-              margin: `${spacing.md}px 0 ${spacing.lg}px`,
-              maxWidth: 280,
-            }}
-          >
-            Plan, design, build and maintain your dream home — with verified
-            professionals near you.
-          </p>
-          <StoreButtons size="sm" />
-        </div>
-        {cols.map((c) => (
-          <div key={c.h}>
-            <h4
-              style={{
-                fontSize: fontSize.xs,
-                textTransform: "uppercase",
-                letterSpacing: "0.08em",
-                color: "rgba(255,255,255,0.5)",
-                marginBottom: spacing.md,
-                fontWeight: 700,
-              }}
-            >
-              {c.h}
-            </h4>
-            <div style={{ display: "flex", flexDirection: "column" }}>
-              {c.links.map((l) => (
-                <a
-                  key={l}
-                  style={{
-                    color: "rgba(255,255,255,0.78)",
-                    fontSize: fontSize.sm + 1,
-                    padding: "6px 0",
-                    cursor: "pointer",
-                  }}
-                >
-                  {l}
-                </a>
-              ))}
-            </div>
-          </div>
-        ))}
-      </div>
-      <div
-        style={{
-          ...wrap,
-          padding: `${spacing.lg}px ${spacing.xl}px`,
-          borderTop: "1px solid rgba(255,255,255,0.1)",
-          display: "flex",
-          justifyContent: "space-between",
-          flexWrap: "wrap",
-          gap: spacing.md,
-          fontSize: fontSize.sm,
-          color: "rgba(255,255,255,0.55)",
-        }}
-      >
-        <span>© 2026 HomeDot · Made in Kerala, India</span>
-        <span style={{ display: "flex", gap: spacing.lg }}>
-          <a style={{ cursor: "pointer" }}>Terms</a>
-          <a style={{ cursor: "pointer" }}>Privacy</a>
-          <a style={{ cursor: "pointer" }}>Cookies</a>
-        </span>
-      </div>
-    </footer>
   );
 }

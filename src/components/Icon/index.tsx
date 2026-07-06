@@ -27,7 +27,8 @@ type IconName =
   | "mail"
   | "chevronDown"
   | "arrowLeft"
-  | "chat";
+  | "chat"
+  | "grid";
 
 const PATHS: Record<IconName, React.ReactNode> = {
   search: (
@@ -152,6 +153,14 @@ const PATHS: Record<IconName, React.ReactNode> = {
     </>
   ),
   chat: <path d="M5 5h14v10H9l-4 4z" />,
+  grid: (
+    <>
+      <rect x="4" y="4" width="7" height="7" rx="1.5" />
+      <rect x="13" y="4" width="7" height="7" rx="1.5" />
+      <rect x="4" y="13" width="7" height="7" rx="1.5" />
+      <rect x="13" y="13" width="7" height="7" rx="1.5" />
+    </>
+  ),
 };
 
 export type { IconName };

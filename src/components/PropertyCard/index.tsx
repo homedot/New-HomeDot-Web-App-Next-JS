@@ -1,3 +1,5 @@
+"use client";
+
 import { colors } from "@/constants/colors";
 import { radius, shadow, spacing, fontSize } from "@/utils/size";
 import Icon from "@/components/Icon";
@@ -14,12 +16,26 @@ export type Property = {
   price: string;
   img: string;
   featured?: boolean;
+  purpose?: "Buy" | "Rent";
+  priceUnit?: string;
+  amenities?: string[];
 };
 
-export default function PropertyCard({ property }: { property: Property }) {
+export default function PropertyCard({
+  property,
+  onOpen,
+  saved,
+  onSave,
+}: {
+  property: Property;
+  onOpen?: () => void;
+  saved?: boolean;
+  onSave?: (id: string) => void;
+}) {
   return (
     <article
       className="card-hover"
+      onClick={onOpen}
       style={{
         background: colors.card,
         border: `1px solid ${colors.line}`,
@@ -28,7 +44,7 @@ export default function PropertyCard({ property }: { property: Property }) {
         boxShadow: shadow.sm,
         display: "flex",
         flexDirection: "column",
-        cursor: "pointer",
+        cursor: onOpen ? "pointer" : "default",
       }}
     >
       <div style={{ position: "relative", aspectRatio: "16/11", background: colors.primarySoft, overflow: "hidden" }}>
@@ -75,6 +91,30 @@ export default function PropertyCard({ property }: { property: Property }) {
             <Icon name="sparkle" size={12} filled color={colors.white} />
             Featured
           </span>
+        )}
+        {onSave && (
+          <button
+            aria-label={saved ? "Remove from saved" : "Save property"}
+            onClick={(e) => {
+              e.stopPropagation();
+              onSave(property.id);
+            }}
+            style={{
+              position: "absolute",
+              right: spacing.md,
+              top: spacing.md,
+              width: 38,
+              height: 38,
+              borderRadius: "50%",
+              background: colors.white,
+              display: "grid",
+              placeItems: "center",
+              color: saved ? "#E5484D" : colors.ink2,
+              boxShadow: shadow.sm,
+            }}
+          >
+            <Icon name="heart" size={18} filled={saved} />
+          </button>
         )}
       </div>
       <div style={{ padding: "16px 18px 18px", display: "flex", flexDirection: "column", gap: spacing.sm + 1, flex: 1 }}>
@@ -134,8 +174,17 @@ export default function PropertyCard({ property }: { property: Property }) {
         >
           <span>
             <b style={{ fontFamily: "var(--font-display)", fontSize: fontSize.xl, fontWeight: 700, color: colors.price }}>{property.price}</b>
+            {property.priceUnit && (
+              <em style={{ fontStyle: "normal", fontSize: fontSize.xs, color: colors.muted, marginLeft: 4 }}>
+                /{property.priceUnit}
+              </em>
+            )}
           </span>
           <button
+            onClick={(e) => {
+              e.stopPropagation();
+              onOpen?.();
+            }}
             style={{
               background: colors.primary,
               color: colors.white,
