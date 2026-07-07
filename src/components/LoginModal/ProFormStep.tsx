@@ -6,7 +6,8 @@ import { spacing, radius, fontSize } from "@/utils/size";
 import Icon from "@/components/Icon";
 import { categories, homeServices } from "@/screens/LandingScreen/data";
 import type { LocationValue } from "@/components/LocationMapPicker";
-import { inputWrap, fieldInputStyle, Field, COUNTRY_CODES, type Method } from "./shared";
+import CountryCodeSelect from "./CountryCodeSelect";
+import { inputWrap, fieldInputStyle, Field, digitLimitFor, type Method } from "./shared";
 
 export type ProfessionalType = "design" | "household";
 
@@ -60,7 +61,8 @@ export default function ProFormStep({
   const [experience, setExperience] = useState("");
   const [description, setDescription] = useState("");
 
-  const mobileValid = mobile.replace(/\D/g, "").length >= 10;
+  const digitLimit = digitLimitFor(cc);
+  const mobileValid = mobile.replace(/\D/g, "").length === digitLimit;
   const emailValid = /\S+@\S+\.\S+/.test(email);
   const valid =
     !!professionalType &&
@@ -135,29 +137,24 @@ export default function ProFormStep({
 
         <Field label="Mobile Number">
           <div style={inputWrap}>
-            <select
-              value={cc}
-              onChange={(e) => setCc(e.target.value)}
-              disabled={method === "phone"}
-              aria-label="Country code"
-              style={ccSelectStyle}
-            >
-              {COUNTRY_CODES.map((c) => (
-                <option key={c} value={c}>
-                  {c}
-                </option>
-              ))}
-            </select>
+            <CountryCodeSelect value={cc} onChange={setCc} disabled={method === "phone"} />
             <input
               type="tel"
               inputMode="numeric"
               placeholder="98470 11223"
               value={mobile}
               readOnly={method === "phone"}
-              onChange={(e) => setMobile(e.target.value)}
+              onChange={(e) =>
+                setMobile(e.target.value.replace(/\D/g, "").slice(0, digitLimit))
+              }
               style={{ ...fieldInputStyle, opacity: method === "phone" ? 0.7 : 1 }}
             />
           </div>
+          {method === "email" && (
+            <span style={{ fontSize: fontSize.xs, color: colors.muted }}>
+              {mobile.length}/{digitLimit} digits
+            </span>
+          )}
         </Field>
 
         <Field label="Email">
@@ -287,20 +284,6 @@ export default function ProFormStep({
     </div>
   );
 }
-
-const ccSelectStyle = {
-  appearance: "none",
-  border: "none",
-  outline: "none",
-  background: "none",
-  fontSize: fontSize.md,
-  fontWeight: 600,
-  color: colors.ink,
-  flexShrink: 0,
-  paddingRight: 10,
-  borderRight: `1px solid ${colors.line}`,
-  marginRight: 2,
-} as const;
 
 function SelectField({
   label,

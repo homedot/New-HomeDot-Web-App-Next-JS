@@ -1,10 +1,19 @@
 import type { CSSProperties, ReactNode } from "react";
 import { colors } from "@/constants/colors";
 import { radius, spacing, fontSize } from "@/utils/size";
+import countryCodes from "@/utils/CountryCode";
 
 export type Method = "phone" | "email";
 
-export const COUNTRY_CODES = ["+91", "+971", "+966", "+65", "+44", "+1", "+61"];
+export const COUNTRIES = countryCodes.filter(
+  (c): c is typeof countryCodes[number] & { dial_code: string } => !!c.dial_code,
+);
+
+const DEFAULT_DIGIT_LIMIT = 10;
+
+export function digitLimitFor(dialCode: string): number {
+  return COUNTRIES.find((c) => c.dial_code === dialCode)?.no_of_digit || DEFAULT_DIGIT_LIMIT;
+}
 
 export const inputWrap: CSSProperties = {
   display: "flex",

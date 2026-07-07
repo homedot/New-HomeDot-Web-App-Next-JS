@@ -23,7 +23,7 @@ import LandingScreenService from "@/services/LandingScreenService";
 import appHomeImg from "@/assets/images/app-home.png";
 import {
   categories,
-  homeServices,
+  propertyCategories,
   properties,
   professionals,
   steps,
@@ -70,7 +70,7 @@ export default function LandingScreen() {
       <MarqueeStrip />
       <FeaturedProperties />
       <Categories />
-      <HouseholdServices />
+      <PropertyCategories />
       <TopProfessionals />
       <HowItWorks />
       <ExploreScroll />
@@ -629,7 +629,7 @@ function Categories() {
   );
 }
 
-function HouseholdServices() {
+function PropertyCategories() {
   return (
     <section
       style={{
@@ -639,8 +639,8 @@ function HouseholdServices() {
     >
       <ScrollScrub className="scrub-rise">
         <SectionHead
-          title="Household & maintenance services"
-          subtitle="Quick, reliable help for everyday home needs."
+          title="Browse by property category"
+          subtitle="Find the right space, from villas to office units."
         />
       </ScrollScrub>
       <Reveal
@@ -648,7 +648,7 @@ function HouseholdServices() {
         className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3"
         style={{ gap: spacing.md }}
       >
-        {homeServices.map((s) => (
+        {propertyCategories.map((s) => (
           <button
             key={s.id}
             className="card-hover"
@@ -694,7 +694,7 @@ function HouseholdServices() {
                   color: colors.muted,
                 }}
               >
-                {s.count.toLocaleString()} pros
+                {s.count.toLocaleString()} listings
               </em>
             </span>
           </button>

@@ -24,6 +24,14 @@ export const homeServices: { id: string; name: string; icon: IconName; count: nu
   { id: "masons", name: "Masons", icon: "hardhat", count: 890 },
 ];
 
+export const propertyCategories: { id: string; name: string; icon: IconName; count: number }[] = [
+  { id: "villa", name: "Villa", icon: "villa", count: 420 },
+  { id: "house", name: "House", icon: "house", count: 980 },
+  { id: "flat-apartment", name: "Flat & Apartment", icon: "apartment", count: 2150 },
+  { id: "plot", name: "Plot", icon: "plot", count: 640 },
+  { id: "office", name: "Office Space", icon: "office", count: 310 },
+];
+
 export const properties: Property[] = [
   {
     id: "h1",

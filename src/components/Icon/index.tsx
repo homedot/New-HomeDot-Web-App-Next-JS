@@ -28,7 +28,11 @@ type IconName =
   | "chevronDown"
   | "arrowLeft"
   | "chat"
-  | "grid";
+  | "grid"
+  | "villa"
+  | "apartment"
+  | "plot"
+  | "office";
 
 const PATHS: Record<IconName, React.ReactNode> = {
   search: (
@@ -159,6 +163,33 @@ const PATHS: Record<IconName, React.ReactNode> = {
       <rect x="13" y="4" width="7" height="7" rx="1.5" />
       <rect x="4" y="13" width="7" height="7" rx="1.5" />
       <rect x="13" y="13" width="7" height="7" rx="1.5" />
+    </>
+  ),
+  villa: (
+    <>
+      <path d="M3 12l6-4.5L15 12" />
+      <path d="M5 11v7a1 1 0 0 0 1 1h4v-4h2v4h2a1 1 0 0 0 1-1v-4" />
+      <path d="M15 12h5v6a1 1 0 0 1-1 1h-4" />
+    </>
+  ),
+  apartment: (
+    <>
+      <rect x="6" y="3.5" width="12" height="17" rx="1" />
+      <path d="M9 7h1.5M13.5 7H15M9 10.5h1.5M13.5 10.5H15M9 14h1.5M13.5 14H15" />
+      <path d="M10 20.5V17h4v3.5" />
+    </>
+  ),
+  plot: (
+    <>
+      <path d="M3 8l9-4.5L21 8v9l-9 4.5L3 17z" />
+      <path d="M3 8l9 4.5M12 12.5 21 8M12 12.5V21" />
+    </>
+  ),
+  office: (
+    <>
+      <rect x="5" y="3" width="10" height="18" rx="1" />
+      <path d="M8 6.5h1M11 6.5h1M8 9.5h1M11 9.5h1M8 12.5h1M11 12.5h1M8 15.5h1M11 15.5h1" />
+      <path d="M15 9v12h5V13h-5" />
     </>
   ),
 };

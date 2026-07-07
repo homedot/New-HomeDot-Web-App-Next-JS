@@ -11,7 +11,8 @@ import RoleStep from "./RoleStep";
 import UserFormStep, { type UserFormValues } from "./UserFormStep";
 import ProLocationStep from "./ProLocationStep";
 import ProFormStep, { type ProFormValues } from "./ProFormStep";
-import { inputWrap, COUNTRY_CODES, type Method } from "./shared";
+import CountryCodeSelect from "./CountryCodeSelect";
+import { inputWrap, digitLimitFor, type Method } from "./shared";
 
 type Step =
   | "method"
@@ -95,9 +96,12 @@ export default function LoginModal() {
     return () => window.removeEventListener("keydown", onKey);
   }, [open, close]);
 
+  const digitLimit = digitLimitFor(cc);
   const digits = value.replace(/\D/g, "");
   const valid =
-    method === "phone" ? digits.length >= 10 : /\S+@\S+\.\S+/.test(value);
+    method === "phone"
+      ? digits.length === digitLimit
+      : /\S+@\S+\.\S+/.test(value);
   const otpFull = otp.every((d) => d !== "");
 
   const doShake = () => {
@@ -142,7 +146,7 @@ export default function LoginModal() {
     setIsNewUser(
       otpRes.data.data[0]?.newUser ?? checkRes.data.data[0]?.newUser ?? true,
     );
-    setSecs(30);
+    setSecs(120);
     setStep("otp");
     setTimeout(() => otpRefs.current[0]?.focus(), 380);
   };
@@ -210,7 +214,7 @@ export default function LoginModal() {
       );
       return;
     }
-    setSecs(30);
+    setSecs(120);
   };
 
   const finishSuccess = () => {
@@ -359,6 +363,7 @@ export default function LoginModal() {
                   setValue={setValue}
                   cc={cc}
                   setCc={setCc}
+                  digitLimit={digitLimit}
                   valid={valid}
                   shake={shake}
                   checking={checking}
@@ -598,6 +603,7 @@ function MethodStep({
   setValue,
   cc,
   setCc,
+  digitLimit,
   valid,
   shake,
   checking,
@@ -610,12 +616,14 @@ function MethodStep({
   setValue: (v: string) => void;
   cc: string;
   setCc: (c: string) => void;
+  digitLimit: number;
   valid: boolean;
   shake: boolean;
   checking: boolean;
   error: string | null;
   onSubmit: () => void;
 }) {
+  const digits = value.replace(/\D/g, "");
   return (
     <div className="login-step">
       <h1
@@ -696,51 +704,15 @@ function MethodStep({
       >
         {method === "phone" ? (
           <>
-            <span
-              style={{
-                position: "relative",
-                display: "inline-flex",
-                alignItems: "center",
-                flexShrink: 0,
-                borderRight: `1px solid ${colors.line}`,
-                paddingRight: 10,
-                marginRight: 2,
-              }}
-            >
-              <select
-                value={cc}
-                onChange={(e) => setCc(e.target.value)}
-                aria-label="Country code"
-                style={{
-                  appearance: "none",
-                  border: "none",
-                  outline: "none",
-                  background: "none",
-                  fontSize: fontSize.md,
-                  fontWeight: 600,
-                  color: colors.ink,
-                  paddingRight: 20,
-                }}
-              >
-                {COUNTRY_CODES.map((c) => (
-                  <option key={c} value={c}>
-                    {c}
-                  </option>
-                ))}
-              </select>
-              <Icon
-                name="chevronDown"
-                size={14}
-                color={colors.muted}
-                className="login-cc-chev"
-              />
-            </span>
+            <CountryCodeSelect value={cc} onChange={setCc} />
             <input
               type="tel"
               inputMode="numeric"
               placeholder="98470 11223"
               value={value}
-              onChange={(e) => setValue(e.target.value)}
+              onChange={(e) =>
+                setValue(e.target.value.replace(/\D/g, "").slice(0, digitLimit))
+              }
               onKeyDown={(e) => e.key === "Enter" && onSubmit()}
               autoFocus
               style={{
@@ -776,6 +748,19 @@ function MethodStep({
           </>
         )}
       </div>
+
+      {method === "phone" && !error && (
+        <p
+          style={{
+            fontSize: fontSize.xs,
+            color: colors.muted,
+            marginBottom: spacing.md,
+            marginTop: -spacing.sm,
+          }}
+        >
+          Enter a {digitLimit}-digit number ({digits.length}/{digitLimit})
+        </p>
+      )}
 
       {error && (
         <p
