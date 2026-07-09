@@ -17,10 +17,10 @@ import MarketplaceScreenService, {
   toMarketplaceProperty,
   toMarketplacePropertyDetail,
   type PropertiesFilterPayload,
+  type PropertyTypeRecord,
 } from "@/services/MarketplaceScreenService";
 import {
   properties,
-  propertyTypes,
   bedOptions,
   bathOptions,
   priceOptions,
@@ -34,7 +34,8 @@ const wrap: CSSProperties = { maxWidth, margin: "0 auto", padding: `0 ${spacing.
 
 export default function MarketplaceScreen() {
   const [purpose, setPurpose] = useState<"Buy" | "Rent">("Buy");
-  const [types, setTypes] = useState<string[]>([]);
+  const [propertyTypeOptions, setPropertyTypeOptions] = useState<PropertyTypeRecord[]>([]);
+  const [selectedPropertyType, setSelectedPropertyType] = useState<PropertyTypeRecord | null>(null);
   const [beds, setBeds] = useState("");
   const [baths, setBaths] = useState("");
   const [budget, setBudget] = useState("");
@@ -51,6 +52,14 @@ export default function MarketplaceScreen() {
   const [totalPages, setTotalPages] = useState(1);
   const [loading, setLoading] = useState(false);
 
+  useEffect(() => {
+    MarketplaceScreenService.getPropertyTypes().then((res) => {
+      if (res.success && res.data?.status) setPropertyTypeOptions(res.data.data);
+    });
+  }, []);
+
+  // "5+" has no exact BHK value server-side — the real API's enum tops out
+  // at 4_PLUS_BHK (matches the mobile app's filter payload).
   const filterPayload = useMemo((): PropertiesFilterPayload => {
     const range = budget ? budgetRanges[budget] : undefined;
     const max = range?.[1];
@@ -59,11 +68,12 @@ export default function MarketplaceScreen() {
       max: max === undefined || max === Infinity ? null : max,
       address: null,
       featured: false,
-      bedrooms: beds && beds !== "5+" ? `${beds}_BHK` : null,
+      bedrooms: beds ? (beds === "5+" ? "4_PLUS_BHK" : `${beds}_BHK`) : null,
       bathrooms: baths ? parseInt(baths, 10) : null,
       cities: null,
+      propertyType: selectedPropertyType?._id ?? null,
     };
-  }, [budget, beds, baths]);
+  }, [budget, beds, baths, selectedPropertyType]);
 
   useEffect(() => {
     let cancelled = false;
@@ -105,7 +115,9 @@ export default function MarketplaceScreen() {
 
   const list = useMemo(() => {
     let out = apiProperties.filter((p) => p.purpose === purpose);
-    if (types.length) out = out.filter((p) => types.includes(p.category));
+    // propertyType is already applied server-side via filterPayload; this is
+    // just a client-side safety net for whatever page(s) are currently loaded.
+    if (selectedPropertyType) out = out.filter((p) => p.category === selectedPropertyType.propertyType);
     if (beds) out = out.filter((p) => (beds === "5+" ? p.beds >= 5 : p.beds === parseInt(beds)));
     if (baths) out = out.filter((p) => p.baths >= parseInt(baths));
     if (budget && budgetRanges[budget]) {
@@ -120,11 +132,11 @@ export default function MarketplaceScreen() {
     if (sort === "high") out = [...out].sort((a, b) => parsePrice(b.price) - parsePrice(a.price));
     if (sort === "area") out = [...out].sort((a, b) => b.area - a.area);
     return out;
-  }, [apiProperties, purpose, types, beds, baths, budget, amenities, sort]);
+  }, [apiProperties, purpose, selectedPropertyType, beds, baths, budget, amenities, sort]);
 
-  const activeCount = types.length + amenities.length + (beds ? 1 : 0) + (baths ? 1 : 0) + (budget ? 1 : 0);
+  const activeCount = (selectedPropertyType ? 1 : 0) + amenities.length + (beds ? 1 : 0) + (baths ? 1 : 0) + (budget ? 1 : 0);
   const clearAll = () => {
-    setTypes([]);
+    setSelectedPropertyType(null);
     setBeds("");
     setBaths("");
     setBudget("");
@@ -292,14 +304,18 @@ export default function MarketplaceScreen() {
               >
                 <Icon name="house" size={18} />
                 <select
-                  value={types[0] ?? ""}
-                  onChange={(e) => setTypes(e.target.value ? [e.target.value] : [])}
+                  value={selectedPropertyType?._id ?? ""}
+                  onChange={(e) =>
+                    setSelectedPropertyType(
+                      propertyTypeOptions.find((t) => t._id === e.target.value) ?? null,
+                    )
+                  }
                   style={{ border: "none", outline: "none", background: "none", fontSize: fontSize.base - 0.5, color: colors.ink }}
                 >
                   <option value="">All property types</option>
-                  {propertyTypes.map((t) => (
-                    <option key={t} value={t}>
-                      {t}
+                  {propertyTypeOptions.map((t) => (
+                    <option key={t._id} value={t._id}>
+                      {t.propertyType}
                     </option>
                   ))}
                 </select>
@@ -351,8 +367,15 @@ export default function MarketplaceScreen() {
                 </div>
 
                 <FilterGroup title="Property type">
-                  {propertyTypes.map((t) => (
-                    <CheckRow key={t} label={t} checked={types.includes(t)} onChange={() => toggle(types, setTypes, t)} />
+                  {propertyTypeOptions.map((t) => (
+                    <RadioRow
+                      key={t._id}
+                      label={t.propertyCount != null ? `${t.propertyType} (${t.propertyCount})` : t.propertyType}
+                      checked={selectedPropertyType?._id === t._id}
+                      onChange={() =>
+                        setSelectedPropertyType(selectedPropertyType?._id === t._id ? null : t)
+                      }
+                    />
                   ))}
                 </FilterGroup>
 
@@ -451,9 +474,12 @@ export default function MarketplaceScreen() {
 
                 {activeCount > 0 && (
                   <div style={{ display: "flex", flexWrap: "wrap", gap: 8, marginBottom: spacing.lg }}>
-                    {types.map((t) => (
-                      <Chip key={t} label={t} onRemove={() => toggle(types, setTypes, t)} />
-                    ))}
+                    {selectedPropertyType && (
+                      <Chip
+                        label={selectedPropertyType.propertyType}
+                        onRemove={() => setSelectedPropertyType(null)}
+                      />
+                    )}
                     {beds && <Chip label={`${beds} BHK`} onRemove={() => setBeds("")} />}
                     {baths && <Chip label={`${baths}+ Bath`} onRemove={() => setBaths("")} />}
                     {budget && <Chip label={budget} onRemove={() => setBudget("")} />}

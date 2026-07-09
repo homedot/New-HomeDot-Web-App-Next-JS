@@ -10,6 +10,21 @@ export interface PropertiesFilterPayload {
   bedrooms: string | null;
   bathrooms: number | null;
   cities: string[] | null;
+  propertyType: string | null;
+}
+
+export interface PropertyTypeRecord {
+  _id: string;
+  propertyType: string;
+  propertyTypeSlug?: string;
+  propertyTypeCategory?: string;
+  propertyCount?: number;
+}
+
+export interface PropertyTypesBody {
+  status: boolean;
+  message: string;
+  data: PropertyTypeRecord[];
 }
 
 export interface PropertyImageRecord {
@@ -113,6 +128,10 @@ export const MarketplaceScreenService = {
   // Guest-accessible — no auth required.
   getPropertyBySlug: (slug: string): Promise<ApiResponse<PropertyDetailBody>> =>
     ApiService.get<PropertyDetailBody>(API_ENDPOINTS.MARKETPLACE.PROPERTY_BY_SLUG(slug)),
+
+  // Guest-accessible — no auth required.
+  getPropertyTypes: (): Promise<ApiResponse<PropertyTypesBody>> =>
+    ApiService.get<PropertyTypesBody>(API_ENDPOINTS.MARKETPLACE.PROPERTY_TYPES),
 };
 
 interface AmenityLike {
