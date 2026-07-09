@@ -79,10 +79,12 @@ export interface PropertyDetailRecord {
   propertySubLocation: string;
   propertyCity: string;
   propertyCountry: string;
-  bedrooms: string;
+  // Absent on Plots (no bedrooms/bathrooms/buildUpArea at all — see plotArea
+  // /length/breadth instead).
+  bedrooms?: string;
   price: number;
   propertyImages: PropertyImageRecord[];
-  buildUpArea: number;
+  buildUpArea?: number;
   carpetArea?: number;
   noOfFloors?: number;
   roadWidth?: number;
@@ -91,7 +93,10 @@ export interface PropertyDetailRecord {
   balcony?: number;
   furnished?: string;
   listedBy?: string;
-  bathrooms: number;
+  plotArea?: number;
+  length?: number;
+  breadth?: number;
+  bathrooms?: number;
   // Inconsistent across records — sometimes a double-JSON-encoded string
   // (with or without a `checked` flag), sometimes a plain array of
   // { amenityId, title, _id } objects, sometimes just []. See parseAmenities.
@@ -228,7 +233,8 @@ export function toMarketplacePropertyDetail(record: PropertyDetailRecord): Marke
     city: titleCase(record.propertyCity || ""),
     beds: parseBeds(record.bedrooms),
     baths: record.bathrooms ?? 0,
-    area: record.buildUpArea ?? 0,
+    area: record.buildUpArea ?? record.plotArea ?? 0,
+    areaUnit: record.buildUpArea == null && record.plotArea != null ? "sqft plot" : undefined,
     price: formatPriceINR(record.price ?? 0),
     img: gallery[0],
     gallery,
@@ -242,6 +248,9 @@ export function toMarketplacePropertyDetail(record: PropertyDetailRecord): Marke
     balcony: record.balcony,
     furnished: record.furnished,
     listedBy: record.listedBy,
+    plotArea: record.plotArea,
+    length: record.length,
+    breadth: record.breadth,
   };
 }
 

@@ -18,6 +18,9 @@ export type MarketplaceProperty = Property & {
   balcony?: number;
   furnished?: string;
   listedBy?: string;
+  plotArea?: number;
+  length?: number;
+  breadth?: number;
 };
 
 export const properties: MarketplaceProperty[] = [
@@ -226,7 +229,6 @@ export const properties: MarketplaceProperty[] = [
   },
 ];
 
-export const propertyTypes = ["Flat & Apartment", "Villa", "House", "Plot / Land", "Penthouse", "Commercial"];
 export const purposes: ("Buy" | "Rent")[] = ["Buy", "Rent"];
 export const bedOptions = ["1", "2", "3", "4", "5+"];
 export const bathOptions = ["1", "2", "3", "4"];

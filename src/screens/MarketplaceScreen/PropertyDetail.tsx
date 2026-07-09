@@ -6,6 +6,7 @@ import { spacing, radius, fontSize, shadow } from "@/utils/size";
 import Icon, { type IconName } from "@/components/Icon";
 import Button from "@/components/Button";
 import PropertyCard from "@/components/PropertyCard";
+import Reveal from "@/components/Reveal";
 import { agent, parsePrice, type MarketplaceProperty } from "./data";
 
 const AMENITY_ICON: Record<string, IconName> = {
@@ -20,6 +21,46 @@ const AMENITY_ICON: Record<string, IconName> = {
   "Clear Title": "check",
   "Road Frontage": "location",
   "Near Highway": "location",
+};
+
+// Villas / Flat & Apartment / House share the residential layout (bedrooms,
+// bathrooms, furnishing…); Office Space and Plots each have their own field
+// set from the API and get a distinct look — accent color, icon and key
+// facts — so the page actually reads differently per listing type.
+type PropertyKind = "residential" | "office" | "plot";
+
+function getPropertyKind(category: string): PropertyKind {
+  const c = category.toLowerCase();
+  if (c.includes("plot") || c.includes("land")) return "plot";
+  if (c.includes("office") || c.includes("commercial")) return "office";
+  return "residential";
+}
+
+const KIND_STYLE: Record<PropertyKind, { icon: IconName; accent: string; soft: string }> = {
+  residential: { icon: "house", accent: colors.primary, soft: colors.primarySoft },
+  office: { icon: "office", accent: colors.price, soft: "rgba(14,124,138,0.12)" },
+  plot: { icon: "plot", accent: "#1F8A5B", soft: "rgba(31,138,91,0.12)" },
+};
+
+const KIND_HIGHLIGHTS: Record<PropertyKind, { icon: IconName; label: string }[]> = {
+  residential: [
+    { icon: "shield", label: "RERA registered" },
+    { icon: "verified", label: "HomeDot verified" },
+    { icon: "location", label: "Prime location" },
+    { icon: "sparkle", label: "Move-in ready" },
+  ],
+  office: [
+    { icon: "verified", label: "HomeDot verified" },
+    { icon: "office", label: "Business ready" },
+    { icon: "location", label: "Prime location" },
+    { icon: "shield", label: "Verified listing" },
+  ],
+  plot: [
+    { icon: "verified", label: "HomeDot verified" },
+    { icon: "shield", label: "Clear title" },
+    { icon: "location", label: "Prime location" },
+    { icon: "plot", label: "Ready to build" },
+  ],
 };
 
 export default function PropertyDetail({
@@ -42,14 +83,37 @@ export default function PropertyDetail({
   const isSaved = saved.includes(prop.id);
   const isRent = prop.purpose === "Rent";
   const priceVal = parsePrice(prop.price);
-  const psf = prop.area && prop.beds > 0 ? Math.round(priceVal / prop.area).toLocaleString() : null;
+  const psf = prop.area > 0 ? Math.round(priceVal / prop.area).toLocaleString() : null;
 
-  const keyFacts: { icon: IconName; label: string; value: string }[] = [
-    { icon: "house", label: "Bedrooms", value: prop.beds > 0 ? `${prop.beds} BHK` : "—" },
-    { icon: "drop", label: "Bathrooms", value: prop.baths > 0 ? String(prop.baths) : "—" },
-    { icon: "cube", label: prop.areaUnit ? "Plot area" : "Built-up area", value: `${prop.area.toLocaleString()} sqft` },
-    { icon: "sparkle", label: "Price / sqft", value: psf ? `₹${psf}` : "On request" },
-  ];
+  const kind = getPropertyKind(prop.category);
+  const kindStyle = KIND_STYLE[kind];
+  const highlights = KIND_HIGHLIGHTS[kind];
+
+  const keyFacts: { icon: IconName; label: string; value: string }[] =
+    kind === "plot"
+      ? [
+          { icon: "plot", label: "Plot area", value: prop.plotArea ? `${prop.plotArea.toLocaleString()} sqft` : "—" },
+          {
+            icon: "ruler",
+            label: "Dimensions",
+            value: prop.length && prop.breadth ? `${prop.length} × ${prop.breadth} ft` : "—",
+          },
+          { icon: "compass", label: "Road width", value: prop.roadWidth ? `${prop.roadWidth} ft` : "—" },
+          { icon: "sparkle", label: "Price / sqft", value: psf ? `₹${psf}` : "On request" },
+        ]
+      : kind === "office"
+        ? [
+            { icon: "office", label: "Built-up area", value: prop.area ? `${prop.area.toLocaleString()} sqft` : "—" },
+            { icon: "cube", label: "Carpet area", value: prop.carpetArea ? `${prop.carpetArea.toLocaleString()} sqft` : "—" },
+            { icon: "ruler", label: "Floors", value: prop.noOfFloors ? String(prop.noOfFloors) : "—" },
+            { icon: "sparkle", label: "Price / sqft", value: psf ? `₹${psf}` : "On request" },
+          ]
+        : [
+            { icon: "house", label: "Bedrooms", value: prop.beds > 0 ? `${prop.beds} BHK` : "—" },
+            { icon: "drop", label: "Bathrooms", value: prop.baths > 0 ? String(prop.baths) : "—" },
+            { icon: "cube", label: "Built-up area", value: prop.area ? `${prop.area.toLocaleString()} sqft` : "—" },
+            { icon: "sparkle", label: "Price / sqft", value: psf ? `₹${psf}` : "On request" },
+          ];
 
   const details: [string, string][] = [
     ["Property type", prop.category],
@@ -57,8 +121,10 @@ export default function PropertyDetail({
   ];
   if (prop.beds > 0) details.push(["Bedrooms", `${prop.beds} BHK`]);
   if (prop.baths > 0) details.push(["Bathrooms", String(prop.baths)]);
-  if (prop.area > 0) details.push([prop.areaUnit ? "Plot area" : "Built-up area", `${prop.area.toLocaleString()} sqft`]);
+  if (kind !== "plot" && prop.area > 0) details.push(["Built-up area", `${prop.area.toLocaleString()} sqft`]);
   if (prop.carpetArea) details.push(["Carpet area", `${prop.carpetArea.toLocaleString()} sqft`]);
+  if (prop.plotArea) details.push(["Plot area", `${prop.plotArea.toLocaleString()} sqft`]);
+  if (prop.length && prop.breadth) details.push(["Dimensions", `${prop.length} × ${prop.breadth} ft`]);
   if (prop.noOfFloors) details.push(["No. of floors", String(prop.noOfFloors)]);
   if (prop.roadWidth) details.push(["Road width", `${prop.roadWidth} ft`]);
   if (prop.maintenanceCharge) details.push(["Maintenance charge", `₹${prop.maintenanceCharge.toLocaleString("en-IN")} / month`]);
@@ -66,13 +132,6 @@ export default function PropertyDetail({
   if (prop.balcony) details.push(["Balcony", String(prop.balcony)]);
   if (prop.furnished) details.push(["Furnishing", prop.furnished]);
   if (prop.listedBy) details.push(["Listed by", prop.listedBy.charAt(0).toUpperCase() + prop.listedBy.slice(1)]);
-
-  const highlights: { icon: IconName; label: string }[] = [
-    { icon: "shield", label: "RERA registered" },
-    { icon: "verified", label: "HomeDot verified" },
-    { icon: "location", label: "Prime location" },
-    { icon: "sparkle", label: "Move-in ready" },
-  ];
 
   return (
     <section style={{ padding: `${spacing.xl}px ${spacing.xl}px ${spacing.huge}px` }}>
@@ -137,22 +196,36 @@ export default function PropertyDetail({
         </div>
 
         {/* gallery */}
-        <div
+        <Reveal
           className={prop.gallery.length > 1 ? "grid grid-cols-1 lg:grid-cols-[1.55fr_1fr]" : "grid grid-cols-1"}
           style={{ gap: 10, height: "clamp(320px, 42vw, 470px)" }}
         >
           <button
             onClick={() => setLightbox(0)}
+            className="card-hover"
             style={{ position: "relative", borderRadius: radius.lg, overflow: "hidden", cursor: "zoom-in", background: colors.primarySoft }}
           >
             {/* eslint-disable-next-line @next/next/no-img-element */}
-            <img src={prop.gallery[0]} alt={prop.title} style={{ width: "100%", height: "100%", objectFit: "cover" }} />
+            <img
+              src={prop.gallery[0]}
+              alt={prop.title}
+              className="card-hover-img"
+              style={{ width: "100%", height: "100%", objectFit: "cover" }}
+            />
+            <div
+              style={{
+                position: "absolute",
+                inset: 0,
+                background: "linear-gradient(180deg, transparent 55%, rgba(10,20,34,0.45) 100%)",
+                pointerEvents: "none",
+              }}
+            />
             <span
               style={{
                 position: "absolute",
                 left: 14,
                 bottom: 14,
-                background: colors.primary,
+                background: kindStyle.accent,
                 color: colors.white,
                 fontSize: fontSize.xs,
                 fontWeight: 600,
@@ -162,6 +235,26 @@ export default function PropertyDetail({
             >
               {prop.status}
             </span>
+            {prop.gallery.length > 1 && (
+              <span
+                style={{
+                  position: "absolute",
+                  right: 14,
+                  bottom: 14,
+                  display: "inline-flex",
+                  alignItems: "center",
+                  gap: 5,
+                  background: "rgba(10,20,34,0.55)",
+                  color: colors.white,
+                  fontSize: fontSize.xs,
+                  fontWeight: 600,
+                  padding: "6px 12px",
+                  borderRadius: radius.full,
+                }}
+              >
+                <Icon name="grid" size={12} color={colors.white} /> {prop.gallery.length} photos
+              </span>
+            )}
           </button>
           {prop.gallery.length > 1 && (
             <div className="hidden lg:grid" style={{ gridTemplateColumns: "1fr 1fr", gridTemplateRows: "1fr 1fr", gap: 10 }}>
@@ -169,18 +262,24 @@ export default function PropertyDetail({
                 <button
                   key={i}
                   onClick={() => setLightbox(i + 1)}
+                  className="card-hover"
                   style={{ position: "relative", borderRadius: radius.md, overflow: "hidden", cursor: "zoom-in", background: colors.primarySoft }}
                 >
                   {/* eslint-disable-next-line @next/next/no-img-element */}
-                  <img src={g} alt={`View ${i + 2}`} style={{ width: "100%", height: "100%", objectFit: "cover" }} />
+                  <img
+                    src={g}
+                    alt={`View ${i + 2}`}
+                    className="card-hover-img"
+                    style={{ width: "100%", height: "100%", objectFit: "cover" }}
+                  />
                 </button>
               ))}
             </div>
           )}
-        </div>
+        </Reveal>
 
         {/* header: title + price */}
-        <div
+        <Reveal
           style={{
             display: "flex",
             justifyContent: "space-between",
@@ -196,15 +295,18 @@ export default function PropertyDetail({
             <div style={{ display: "flex", flexWrap: "wrap", gap: spacing.sm, marginBottom: spacing.md }}>
               <span
                 style={{
+                  display: "inline-flex",
+                  alignItems: "center",
+                  gap: 6,
                   fontSize: fontSize.xs,
                   fontWeight: 600,
-                  color: colors.accent,
-                  background: "rgba(41,151,255,0.12)",
+                  color: kindStyle.accent,
+                  background: kindStyle.soft,
                   padding: "5px 12px",
                   borderRadius: 8,
                 }}
               >
-                {prop.category}
+                <Icon name={kindStyle.icon} size={13} /> {prop.category}
               </span>
               {highlights.slice(0, 2).map((h) => (
                 <span
@@ -248,13 +350,14 @@ export default function PropertyDetail({
               {prop.priceUnit ? `/ ${prop.priceUnit}` : "onwards*"}
             </div>
           </div>
-        </div>
+        </Reveal>
 
         {/* key facts */}
-        <div className="grid grid-cols-2 lg:grid-cols-4" style={{ gap: spacing.md, margin: `${spacing.xl}px 0 4px` }}>
+        <Reveal stagger className="grid grid-cols-2 lg:grid-cols-4" style={{ gap: spacing.md, margin: `${spacing.xl}px 0 4px` }}>
           {keyFacts.map((k) => (
             <div
               key={k.label}
+              className="card-hover"
               style={{
                 display: "flex",
                 alignItems: "center",
@@ -271,8 +374,8 @@ export default function PropertyDetail({
                   width: 44,
                   height: 44,
                   borderRadius: 12,
-                  background: colors.primarySoft,
-                  color: colors.primary,
+                  background: kindStyle.soft,
+                  color: kindStyle.accent,
                   display: "grid",
                   placeItems: "center",
                   flexShrink: 0,
@@ -286,13 +389,24 @@ export default function PropertyDetail({
               </div>
             </div>
           ))}
-        </div>
+        </Reveal>
 
         <div className="grid grid-cols-1 lg:grid-cols-[1fr_350px]" style={{ gap: spacing.xxl, marginTop: spacing.md, alignItems: "start" }}>
           {/* main column */}
           <div>
-            <div style={{ padding: `${spacing.xl}px 0`, borderBottom: `1px solid ${colors.line}` }}>
-              <h2 style={{ fontSize: fontSize.lg + 2, marginBottom: spacing.md }}>About this property</h2>
+            <Reveal style={{ padding: `${spacing.xl}px 0`, borderBottom: `1px solid ${colors.line}` }}>
+              <h2 style={{ display: "flex", alignItems: "center", gap: spacing.sm, fontSize: fontSize.lg + 2, marginBottom: spacing.md }}>
+                <span
+                  style={{
+                    width: 8,
+                    height: 8,
+                    borderRadius: "50%",
+                    background: kindStyle.accent,
+                    display: "inline-block",
+                  }}
+                />
+                About this property
+              </h2>
               <p style={{ color: colors.ink2, fontSize: fontSize.base, lineHeight: 1.7, marginBottom: spacing.lg }}>{prop.desc}</p>
               <div style={{ display: "flex", flexWrap: "wrap", gap: spacing.sm + 2 }}>
                 {highlights.map((h) => (
@@ -315,10 +429,13 @@ export default function PropertyDetail({
                   </div>
                 ))}
               </div>
-            </div>
+            </Reveal>
 
-            <div style={{ padding: `${spacing.xl}px 0`, borderBottom: `1px solid ${colors.line}` }}>
-              <h2 style={{ fontSize: fontSize.lg + 2, marginBottom: spacing.md }}>Property details</h2>
+            <Reveal style={{ padding: `${spacing.xl}px 0`, borderBottom: prop.amenities.length > 0 ? `1px solid ${colors.line}` : "none" }}>
+              <h2 style={{ display: "flex", alignItems: "center", gap: spacing.sm, fontSize: fontSize.lg + 2, marginBottom: spacing.md }}>
+                <span style={{ width: 8, height: 8, borderRadius: "50%", background: kindStyle.accent, display: "inline-block" }} />
+                Property details
+              </h2>
               <div className="grid grid-cols-1 sm:grid-cols-2" style={{ columnGap: spacing.xxl }}>
                 {details.map(([k, v]) => (
                   <div
@@ -337,49 +454,58 @@ export default function PropertyDetail({
                   </div>
                 ))}
               </div>
-            </div>
+            </Reveal>
 
-            <div style={{ padding: `${spacing.xl}px 0` }}>
-              <h2 style={{ fontSize: fontSize.lg + 2, marginBottom: spacing.md }}>Amenities</h2>
-              <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3" style={{ gap: spacing.md }}>
-                {prop.amenities.map((a) => (
-                  <span
-                    key={a}
-                    style={{
-                      display: "flex",
-                      alignItems: "center",
-                      gap: spacing.md - 1,
-                      fontSize: fontSize.base - 1,
-                      color: colors.ink2,
-                      background: colors.card,
-                      border: `1px solid ${colors.line}`,
-                      borderRadius: radius.md,
-                      padding: "12px 14px",
-                    }}
-                  >
+            {prop.amenities.length > 0 && (
+              <Reveal style={{ padding: `${spacing.xl}px 0` }}>
+                <h2 style={{ display: "flex", alignItems: "center", gap: spacing.sm, fontSize: fontSize.lg + 2, marginBottom: spacing.md }}>
+                  <span style={{ width: 8, height: 8, borderRadius: "50%", background: kindStyle.accent, display: "inline-block" }} />
+                  Amenities
+                </h2>
+                <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3" style={{ gap: spacing.md }}>
+                  {prop.amenities.map((a) => (
                     <span
+                      key={a}
+                      className="card-hover"
                       style={{
-                        width: 34,
-                        height: 34,
-                        borderRadius: 9,
-                        background: colors.primarySoft,
-                        color: colors.primary,
-                        display: "grid",
-                        placeItems: "center",
-                        flexShrink: 0,
+                        display: "flex",
+                        alignItems: "center",
+                        gap: spacing.md - 1,
+                        fontSize: fontSize.base - 1,
+                        color: colors.ink2,
+                        background: colors.card,
+                        border: `1px solid ${colors.line}`,
+                        borderRadius: radius.md,
+                        padding: "12px 14px",
                       }}
                     >
-                      <Icon name={AMENITY_ICON[a] ?? "check"} size={16} />
+                      <span
+                        style={{
+                          width: 34,
+                          height: 34,
+                          borderRadius: 9,
+                          background: kindStyle.soft,
+                          color: kindStyle.accent,
+                          display: "grid",
+                          placeItems: "center",
+                          flexShrink: 0,
+                        }}
+                      >
+                        <Icon name={AMENITY_ICON[a] ?? "check"} size={16} />
+                      </span>
+                      {a}
                     </span>
-                    {a}
-                  </span>
-                ))}
-              </div>
-            </div>
+                  ))}
+                </div>
+              </Reveal>
+            )}
           </div>
 
           {/* sidebar */}
-          <aside style={{ display: "flex", flexDirection: "column", gap: spacing.lg, position: "sticky", top: 100 }}>
+          <Reveal
+            delay={100}
+            style={{ display: "flex", flexDirection: "column", gap: spacing.lg, position: "sticky", top: 100 }}
+          >
             <div
               style={{
                 background: colors.card,
@@ -502,7 +628,7 @@ export default function PropertyDetail({
                 </span>
               </div>
             </div>
-          </aside>
+          </Reveal>
         </div>
 
         {/* similar properties */}
@@ -516,11 +642,11 @@ export default function PropertyDetail({
                 </p>
               </div>
             </div>
-            <div className="grid grid-cols-1 md:grid-cols-3" style={{ gap: spacing.xl }}>
+            <Reveal stagger className="grid grid-cols-1 md:grid-cols-3" style={{ gap: spacing.xl }}>
               {similar.map((p) => (
                 <PropertyCard key={p.id} property={p} saved={saved.includes(p.id)} onSave={onSave} onOpen={() => onOpen(p)} />
               ))}
-            </div>
+            </Reveal>
           </div>
         )}
       </div>
