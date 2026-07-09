@@ -37,10 +37,17 @@ export interface VerifyLoginOtpPayload {
   deviceType: string;
 }
 
+export interface VerifyLoginOtpRecord {
+  newUser: boolean;
+  userType: string;
+  token: string;
+  reToken: string;
+}
+
 export interface VerifyLoginOtpBody {
   status: boolean;
   message: string;
-  data?: unknown;
+  data: VerifyLoginOtpRecord[];
 }
 
 // All auth API calls live here. Screens/components only ever import this

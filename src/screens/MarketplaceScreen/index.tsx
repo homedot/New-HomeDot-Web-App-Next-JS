@@ -1,6 +1,6 @@
 "use client";
 
-import { useMemo, useState, type CSSProperties, type ReactNode } from "react";
+import { useEffect, useMemo, useRef, useState, type CSSProperties, type ReactNode } from "react";
 import { colors } from "@/constants/colors";
 import { spacing, radius, fontSize, shadow, maxWidth } from "@/utils/size";
 import Icon from "@/components/Icon";
@@ -13,6 +13,11 @@ import ScrollProgress from "@/components/ScrollProgress";
 import Cursor from "@/components/Cursor";
 import Reveal from "@/components/Reveal";
 import PropertyDetail from "./PropertyDetail";
+import MarketplaceScreenService, {
+  toMarketplaceProperty,
+  toMarketplacePropertyDetail,
+  type PropertiesFilterPayload,
+} from "@/services/MarketplaceScreenService";
 import {
   properties,
   propertyTypes,
@@ -26,7 +31,6 @@ import {
 } from "./data";
 
 const wrap: CSSProperties = { maxWidth, margin: "0 auto", padding: `0 ${spacing.xl}px` };
-const PAGE_SIZE = 6;
 
 export default function MarketplaceScreen() {
   const [purpose, setPurpose] = useState<"Buy" | "Rent">("Buy");
@@ -38,8 +42,61 @@ export default function MarketplaceScreen() {
   const [sort, setSort] = useState<"recommended" | "low" | "high" | "area">("recommended");
   const [view, setView] = useState<"grid" | "list">("grid");
   const [saved, setSaved] = useState<string[]>([]);
-  const [visible, setVisible] = useState(PAGE_SIZE);
   const [detail, setDetail] = useState<MarketplaceProperty | null>(null);
+  const [detailSimilar, setDetailSimilar] = useState<MarketplaceProperty[] | null>(null);
+  const detailRequestId = useRef(0);
+
+  const [apiProperties, setApiProperties] = useState<MarketplaceProperty[]>(properties);
+  const [page, setPage] = useState(1);
+  const [totalPages, setTotalPages] = useState(1);
+  const [loading, setLoading] = useState(false);
+
+  const filterPayload = useMemo((): PropertiesFilterPayload => {
+    const range = budget ? budgetRanges[budget] : undefined;
+    const max = range?.[1];
+    return {
+      min: range?.[0] ?? null,
+      max: max === undefined || max === Infinity ? null : max,
+      address: null,
+      featured: false,
+      bedrooms: beds && beds !== "5+" ? `${beds}_BHK` : null,
+      bathrooms: baths ? parseInt(baths, 10) : null,
+      cities: null,
+    };
+  }, [budget, beds, baths]);
+
+  useEffect(() => {
+    let cancelled = false;
+    const load = async () => {
+      setLoading(true);
+      const res = await MarketplaceScreenService.getPropertiesFilter(1, filterPayload);
+      if (cancelled) return;
+      setLoading(false);
+      const result = res.data?.data?.[0];
+      if (res.success && res.data?.status && result) {
+        setApiProperties(result.data.map(toMarketplaceProperty));
+        setPage(result.currentPage);
+        setTotalPages(result.totalPages);
+      }
+    };
+    load();
+    return () => {
+      cancelled = true;
+    };
+  }, [filterPayload]);
+
+  const loadMore = async () => {
+    if (loading || page >= totalPages) return;
+    setLoading(true);
+    const res = await MarketplaceScreenService.getPropertiesFilter(page + 1, filterPayload);
+    setLoading(false);
+    const result = res.data?.data?.[0];
+    if (res.success && res.data?.status && result) {
+      setApiProperties((prev) => [...prev, ...result.data.map(toMarketplaceProperty)]);
+      setPage(result.currentPage);
+      setTotalPages(result.totalPages);
+    }
+  };
 
   const toggle = (arr: string[], set: (v: string[]) => void, v: string) =>
     set(arr.includes(v) ? arr.filter((x) => x !== v) : [...arr, v]);
@@ -47,7 +104,7 @@ export default function MarketplaceScreen() {
   const toggleSave = (id: string) => setSaved((s) => (s.includes(id) ? s.filter((x) => x !== id) : [...s, id]));
 
   const list = useMemo(() => {
-    let out = properties.filter((p) => p.purpose === purpose);
+    let out = apiProperties.filter((p) => p.purpose === purpose);
     if (types.length) out = out.filter((p) => types.includes(p.category));
     if (beds) out = out.filter((p) => (beds === "5+" ? p.beds >= 5 : p.beds === parseInt(beds)));
     if (baths) out = out.filter((p) => p.baths >= parseInt(baths));
@@ -63,7 +120,7 @@ export default function MarketplaceScreen() {
     if (sort === "high") out = [...out].sort((a, b) => parsePrice(b.price) - parsePrice(a.price));
     if (sort === "area") out = [...out].sort((a, b) => b.area - a.area);
     return out;
-  }, [purpose, types, beds, baths, budget, amenities, sort]);
+  }, [apiProperties, purpose, types, beds, baths, budget, amenities, sort]);
 
   const activeCount = types.length + amenities.length + (beds ? 1 : 0) + (baths ? 1 : 0) + (budget ? 1 : 0);
   const clearAll = () => {
@@ -76,20 +133,36 @@ export default function MarketplaceScreen() {
 
   const openDetail = (p: MarketplaceProperty) => {
     setDetail(p);
+    setDetailSimilar(null);
     window.scrollTo(0, 0);
+
+    const slug = p.propertySlug;
+    if (!slug) return;
+    const requestId = ++detailRequestId.current;
+    MarketplaceScreenService.getPropertyBySlug(slug).then((res) => {
+      if (detailRequestId.current !== requestId) return; // superseded by a newer click
+      const entry = res.data?.data?.[0];
+      const record = entry?.propertyDetails?.[0];
+      if (record) setDetail(toMarketplacePropertyDetail(record));
+      if (entry?.similarProperties?.length) {
+        setDetailSimilar(entry.similarProperties.map(toMarketplaceProperty));
+      }
+    });
   };
 
   const closeDetail = () => {
     setDetail(null);
+    setDetailSimilar(null);
     window.scrollTo(0, 0);
   };
 
   const similar = useMemo(() => {
     if (!detail) return [];
-    const sameCat = properties.filter((p) => p.id !== detail.id && p.category === detail.category);
-    const fallback = properties.filter((p) => p.id !== detail.id);
+    if (detailSimilar) return detailSimilar.filter((p) => p.id !== detail.id).slice(0, 3);
+    const sameCat = apiProperties.filter((p) => p.id !== detail.id && p.category === detail.category);
+    const fallback = apiProperties.filter((p) => p.id !== detail.id);
     return (sameCat.length >= 3 ? sameCat : fallback).slice(0, 3);
-  }, [detail]);
+  }, [detail, detailSimilar, apiProperties]);
 
   return (
     <div style={{ background: colors.bg, color: colors.ink, position: "relative", zIndex: 0 }}>
@@ -427,22 +500,22 @@ export default function MarketplaceScreen() {
                   <>
                     {view === "grid" ? (
                       <Reveal stagger className="grid grid-cols-1 sm:grid-cols-2 xl:grid-cols-3" style={{ gap: spacing.xl }}>
-                        {list.slice(0, visible).map((p) => (
+                        {list.map((p) => (
                           <PropertyCard key={p.id} property={p} saved={saved.includes(p.id)} onSave={toggleSave} onOpen={() => openDetail(p)} />
                         ))}
                       </Reveal>
                     ) : (
                       <Reveal stagger style={{ display: "flex", flexDirection: "column", gap: spacing.lg }}>
-                        {list.slice(0, visible).map((p) => (
+                        {list.map((p) => (
                           <PropertyRow key={p.id} property={p} saved={saved.includes(p.id)} onSave={toggleSave} onOpen={() => openDetail(p)} />
                         ))}
                       </Reveal>
                     )}
 
-                    {visible < list.length && (
+                    {page < totalPages && (
                       <div style={{ display: "flex", justifyContent: "center", marginTop: spacing.xxl }}>
-                        <Button variant="outline" size="lg" onClick={() => setVisible((v) => v + PAGE_SIZE)}>
-                          Load more properties
+                        <Button variant="outline" size="lg" onClick={loadMore}>
+                          {loading ? "Loading…" : "Load more properties"}
                         </Button>
                       </div>
                     )}

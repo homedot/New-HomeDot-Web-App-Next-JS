@@ -376,6 +376,45 @@ body.has-cursor * {
   }
 }
 
+/* Brand poster cards (PosterShowcase): an ambient accent-colored glow blooms in the
+   corner and the icon badge floats, so each poster feels alive at rest, not just on
+   hover. Both reuse the floaty/glowPulse keyframes already defined above. */
+.poster-card {
+  isolation: isolate;
+}
+
+.poster-glow {
+  position: absolute;
+  top: -60px;
+  right: -60px;
+  width: 180px;
+  height: 180px;
+  border-radius: 50%;
+  filter: blur(60px);
+  opacity: 0.35;
+  z-index: -1;
+  animation: glowPulse 5s ease-in-out infinite;
+}
+
+.poster-icon {
+  animation: floaty 4.5s ease-in-out infinite;
+}
+
+.poster-cta {
+  transition: gap 0.2s ease;
+}
+
+.poster-card:hover .poster-cta {
+  gap: 12px;
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .poster-glow,
+  .poster-icon {
+    animation: none;
+  }
+}
+
 /* Thin accent bar pinned to the top of the viewport, scaled by ScrollProgress to the
    fraction of the page scrolled — a direct, always-visible readout of scroll. */
 .scroll-progress {

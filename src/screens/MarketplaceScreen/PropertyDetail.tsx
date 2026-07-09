@@ -54,11 +54,18 @@ export default function PropertyDetail({
   const details: [string, string][] = [
     ["Property type", prop.category],
     ["Listing", isRent ? "For Rent" : "For Sale"],
-    ["Possession", isRent ? "Immediate" : "Ready to move"],
-    ["Furnishing", isRent ? "Furnished" : "Semi-furnished"],
-    ["Facing", "East"],
-    ["Age of property", "New construction"],
   ];
+  if (prop.beds > 0) details.push(["Bedrooms", `${prop.beds} BHK`]);
+  if (prop.baths > 0) details.push(["Bathrooms", String(prop.baths)]);
+  if (prop.area > 0) details.push([prop.areaUnit ? "Plot area" : "Built-up area", `${prop.area.toLocaleString()} sqft`]);
+  if (prop.carpetArea) details.push(["Carpet area", `${prop.carpetArea.toLocaleString()} sqft`]);
+  if (prop.noOfFloors) details.push(["No. of floors", String(prop.noOfFloors)]);
+  if (prop.roadWidth) details.push(["Road width", `${prop.roadWidth} ft`]);
+  if (prop.maintenanceCharge) details.push(["Maintenance charge", `₹${prop.maintenanceCharge.toLocaleString("en-IN")} / month`]);
+  if (prop.garage) details.push(["Garage", String(prop.garage)]);
+  if (prop.balcony) details.push(["Balcony", String(prop.balcony)]);
+  if (prop.furnished) details.push(["Furnishing", prop.furnished]);
+  if (prop.listedBy) details.push(["Listed by", prop.listedBy.charAt(0).toUpperCase() + prop.listedBy.slice(1)]);
 
   const highlights: { icon: IconName; label: string }[] = [
     { icon: "shield", label: "RERA registered" },
@@ -70,7 +77,7 @@ export default function PropertyDetail({
   return (
     <section style={{ padding: `${spacing.xl}px ${spacing.xl}px ${spacing.huge}px` }}>
       <div style={{ maxWidth: 1200, margin: "0 auto" }}>
-        {/* breadcrumb + actions */}
+        {/* back + breadcrumb + actions */}
         <div
           style={{
             display: "flex",
@@ -81,12 +88,32 @@ export default function PropertyDetail({
             flexWrap: "wrap",
           }}
         >
-          <div style={{ display: "flex", alignItems: "center", gap: 6, fontSize: fontSize.sm, color: colors.muted }}>
-            <button onClick={onBack} style={{ color: colors.muted, cursor: "pointer" }}>
-              Marketplace
+          <div style={{ display: "flex", alignItems: "center", gap: spacing.lg, flexWrap: "wrap" }}>
+            <button
+              onClick={onBack}
+              style={{
+                display: "inline-flex",
+                alignItems: "center",
+                gap: 6,
+                fontSize: fontSize.sm,
+                fontWeight: 600,
+                color: colors.ink2,
+                background: colors.card,
+                border: `1px solid ${colors.line}`,
+                padding: "9px 15px",
+                borderRadius: radius.full,
+                cursor: "pointer",
+              }}
+            >
+              <Icon name="arrowLeft" size={16} /> Back
             </button>
-            <Icon name="arrow" size={13} />
-            <span style={{ color: colors.ink, fontWeight: 600 }}>{prop.category}</span>
+            <div style={{ display: "flex", alignItems: "center", gap: 6, fontSize: fontSize.sm, color: colors.muted }}>
+              <button onClick={onBack} style={{ color: colors.muted, cursor: "pointer" }}>
+                Marketplace
+              </button>
+              <Icon name="arrow" size={13} />
+              <span style={{ color: colors.ink, fontWeight: 600 }}>{prop.category}</span>
+            </div>
           </div>
           <div style={{ display: "flex", gap: spacing.sm }}>
             <button
@@ -111,7 +138,7 @@ export default function PropertyDetail({
 
         {/* gallery */}
         <div
-          className="grid grid-cols-1 lg:grid-cols-[1.55fr_1fr]"
+          className={prop.gallery.length > 1 ? "grid grid-cols-1 lg:grid-cols-[1.55fr_1fr]" : "grid grid-cols-1"}
           style={{ gap: 10, height: "clamp(320px, 42vw, 470px)" }}
         >
           <button
@@ -136,18 +163,20 @@ export default function PropertyDetail({
               {prop.status}
             </span>
           </button>
-          <div className="hidden lg:grid" style={{ gridTemplateColumns: "1fr 1fr", gridTemplateRows: "1fr 1fr", gap: 10 }}>
-            {prop.gallery.slice(1, 4).map((g, i) => (
-              <button
-                key={i}
-                onClick={() => setLightbox(i + 1)}
-                style={{ position: "relative", borderRadius: radius.md, overflow: "hidden", cursor: "zoom-in", background: colors.primarySoft }}
-              >
-                {/* eslint-disable-next-line @next/next/no-img-element */}
-                <img src={g} alt={`View ${i + 2}`} style={{ width: "100%", height: "100%", objectFit: "cover" }} />
-              </button>
-            ))}
-          </div>
+          {prop.gallery.length > 1 && (
+            <div className="hidden lg:grid" style={{ gridTemplateColumns: "1fr 1fr", gridTemplateRows: "1fr 1fr", gap: 10 }}>
+              {prop.gallery.slice(1, 4).map((g, i) => (
+                <button
+                  key={i}
+                  onClick={() => setLightbox(i + 1)}
+                  style={{ position: "relative", borderRadius: radius.md, overflow: "hidden", cursor: "zoom-in", background: colors.primarySoft }}
+                >
+                  {/* eslint-disable-next-line @next/next/no-img-element */}
+                  <img src={g} alt={`View ${i + 2}`} style={{ width: "100%", height: "100%", objectFit: "cover" }} />
+                </button>
+              ))}
+            </div>
+          )}
         </div>
 
         {/* header: title + price */}

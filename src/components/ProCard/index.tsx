@@ -7,8 +7,8 @@ export type Professional = {
   name: string;
   profession: string;
   location: string;
-  cover: string;
-  avatar: string;
+  cover?: string;
+  avatar?: string;
   rating: number;
   reviews: number;
   verified?: boolean;
@@ -18,6 +18,7 @@ export type Professional = {
 };
 
 export default function ProCard({ pro }: { pro: Professional }) {
+  const initial = pro.name.trim().charAt(0).toUpperCase() || "?";
   return (
     <article
       className="card-hover"
@@ -33,14 +34,20 @@ export default function ProCard({ pro }: { pro: Professional }) {
       }}
     >
       <div style={{ position: "relative", aspectRatio: "16/10", background: colors.primarySoft, overflow: "hidden" }}>
-        {/* eslint-disable-next-line @next/next/no-img-element */}
-        <img
-          src={pro.cover}
-          alt={pro.name}
-          loading="lazy"
-          className="card-hover-img"
-          style={{ width: "100%", height: "100%", objectFit: "cover" }}
-        />
+        {pro.cover ? (
+          // eslint-disable-next-line @next/next/no-img-element
+          <img
+            src={pro.cover}
+            alt={pro.name}
+            loading="lazy"
+            className="card-hover-img"
+            style={{ width: "100%", height: "100%", objectFit: "cover" }}
+          />
+        ) : (
+          <div style={{ width: "100%", height: "100%", display: "grid", placeItems: "center" }}>
+            <Icon name="hardhat" size={40} color={colors.primary} />
+          </div>
+        )}
         {pro.verified && (
           <span
             style={{
@@ -65,12 +72,33 @@ export default function ProCard({ pro }: { pro: Professional }) {
       </div>
       <div style={{ padding: spacing.xl, display: "flex", flexDirection: "column", gap: spacing.md, flex: 1 }}>
         <div style={{ display: "flex", gap: spacing.md, alignItems: "center" }}>
-          {/* eslint-disable-next-line @next/next/no-img-element */}
-          <img
-            src={pro.avatar}
-            alt={pro.name}
-            style={{ width: 46, height: 46, borderRadius: "50%", objectFit: "cover", border: `2px solid ${colors.white}`, boxShadow: `0 0 0 1px ${colors.line}` }}
-          />
+          {pro.avatar ? (
+            // eslint-disable-next-line @next/next/no-img-element
+            <img
+              src={pro.avatar}
+              alt={pro.name}
+              style={{ width: 46, height: 46, borderRadius: "50%", objectFit: "cover", border: `2px solid ${colors.white}`, boxShadow: `0 0 0 1px ${colors.line}` }}
+            />
+          ) : (
+            <div
+              style={{
+                width: 46,
+                height: 46,
+                borderRadius: "50%",
+                display: "grid",
+                placeItems: "center",
+                background: `linear-gradient(135deg, ${colors.primary}, ${colors.accent})`,
+                color: colors.white,
+                fontWeight: 700,
+                fontSize: fontSize.md,
+                border: `2px solid ${colors.white}`,
+                boxShadow: `0 0 0 1px ${colors.line}`,
+                flexShrink: 0,
+              }}
+            >
+              {initial}
+            </div>
+          )}
           <div>
             <h3 style={{ fontSize: fontSize.lg - 1.5, fontWeight: 700 }}>{pro.name}</h3>
             <p style={{ fontSize: fontSize.xs, color: colors.muted, marginTop: 2 }}>

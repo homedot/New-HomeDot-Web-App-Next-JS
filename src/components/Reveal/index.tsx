@@ -33,7 +33,10 @@ export default function Reveal({
           observer.disconnect();
         }
       },
-      { threshold: 0.15, rootMargin: "0px 0px -10% 0px" }
+      // threshold: 0 so reveal fires as soon as any part of the target is
+      // visible — a percentage-based threshold (e.g. 0.15) never satisfies
+      // for targets taller than the viewport (e.g. long card grids).
+      { threshold: 0, rootMargin: "0px 0px -10% 0px" }
     );
     observer.observe(el);
     return () => observer.disconnect();

@@ -1,12 +1,12 @@
 "use client";
 
-import { useEffect, type CSSProperties } from "react";
+import { useEffect, useState, type CSSProperties } from "react";
 import { colors } from "@/constants/colors";
 import { spacing, radius, fontSize, shadow, maxWidth } from "@/utils/size";
-import Icon from "@/components/Icon";
+import Icon, { type IconName } from "@/components/Icon";
 import Button from "@/components/Button";
 import PropertyCard from "@/components/PropertyCard";
-import ProCard from "@/components/ProCard";
+import ProCard, { type Professional } from "@/components/ProCard";
 import PhoneFrame, { PhoneChip } from "@/components/PhoneFrame";
 import StoreButtons from "@/components/StoreButtons";
 import Cursor from "@/components/Cursor";
@@ -19,7 +19,10 @@ import ScrollPin from "@/components/ScrollPin";
 import Parallax from "@/components/Parallax";
 import SiteNav from "@/components/SiteNav";
 import SiteFooter from "@/components/SiteFooter";
-import LandingScreenService from "@/services/LandingScreenService";
+import LandingScreenService, {
+  toProCardProfessional,
+} from "@/services/LandingScreenService";
+import { getAuthToken, getRefreshToken } from "@/utils/authStorage";
 import appHomeImg from "@/assets/images/app-home.png";
 import {
   categories,
@@ -41,6 +44,8 @@ const wrap: CSSProperties = {
 
 export default function LandingScreen() {
   useEffect(() => {
+    console.log("Stored auth token:", getAuthToken());
+    console.log("Stored refresh token:", getRefreshToken());
     // Sample API call — every request goes through LandingScreenService,
     // which delegates to the shared ApiService instead of calling fetch directly.
     LandingScreenService.getFeaturedProperties().then((response) => {
@@ -71,6 +76,7 @@ export default function LandingScreen() {
       <FeaturedProperties />
       <Categories />
       <PropertyCategories />
+      <PosterShowcase />
       <TopProfessionals />
       <HowItWorks />
       <ExploreScroll />
@@ -704,7 +710,187 @@ function PropertyCategories() {
   );
 }
 
+const posterBrands: {
+  id: string;
+  eyebrow: string;
+  title: string;
+  description: string;
+  icon: IconName;
+  bg: string;
+  ink: string;
+  muted: string;
+  accent: string;
+  url: string;
+}[] = [
+  {
+    id: "greatnature",
+    eyebrow: "Villa Builders · Kochi",
+    title: "Unlock nature-friendly villas",
+    description:
+      "Constructing legacy — luxury villas designed around Kerala's landscape.",
+    icon: "villa",
+    bg: "linear-gradient(160deg, #1B1B1B 0%, #31353D 100%)",
+    ink: "#FFFFFF",
+    muted: "rgba(255,255,255,0.7)",
+    accent: "#ED8438",
+    url: "https://greatnature.in/",
+  },
+  {
+    id: "homware",
+    eyebrow: "Bathroom Renovation",
+    title: "Luxurious bathroom makeovers",
+    description:
+      "Style, functionality and long-lasting performance for every basin, WC and shower space.",
+    icon: "drop",
+    bg: "linear-gradient(160deg, #e6cfa7 0%, #d5b47f 100%)",
+    ink: "#391a09",
+    muted: "rgba(57,26,9,0.72)",
+    accent: "#11221d",
+    url: "https://homware.in/",
+  },
+  {
+    id: "crafthome",
+    eyebrow: "Interior Design · Kochi",
+    title: "Designing with passion, crafting with care",
+    description:
+      "Modular kitchens, turnkey interiors and custom furniture — made in-house.",
+    icon: "sofa",
+    bg: "linear-gradient(160deg, #1f1f1f 0%, #303030 100%)",
+    ink: "#FFFFFF",
+    muted: "rgba(255,255,255,0.7)",
+    accent: "#D4AF6A",
+    url: "https://crafthomeinteriors.com/",
+  },
+];
+
+function PosterShowcase() {
+  return (
+    <section
+      style={{
+        ...wrap,
+        padding: `0 ${spacing.xl}px ${spacing.xxl}px`,
+      }}
+    >
+      <ScrollScrub className="scrub-rise">
+        <SectionHead
+          title="Studios we love working with"
+          subtitle="A closer look at the builders and designers shaping homes across Kerala."
+        />
+      </ScrollScrub>
+      <Reveal
+        stagger
+        className="grid grid-cols-1 md:grid-cols-3"
+        style={{ gap: spacing.md }}
+      >
+        {posterBrands.map((p) => (
+          <a
+            key={p.id}
+            href={p.url}
+            target="_blank"
+            rel="noopener noreferrer"
+            className="card-hover poster-card"
+            style={{
+              position: "relative",
+              overflow: "hidden",
+              borderRadius: radius.lg,
+              padding: "clamp(24px, 3vw, 30px)",
+              minHeight: 320,
+              background: p.bg,
+              color: p.ink,
+              textAlign: "left",
+              display: "flex",
+              flexDirection: "column",
+              justifyContent: "space-between",
+            }}
+          >
+            <span
+              className="poster-glow"
+              style={{ background: p.accent }}
+              aria-hidden="true"
+            />
+            <div>
+              <span
+                className="poster-icon"
+                style={{
+                  width: 52,
+                  height: 52,
+                  borderRadius: 16,
+                  display: "grid",
+                  placeItems: "center",
+                  background: `${p.accent}26`,
+                  color: p.accent,
+                  marginBottom: spacing.md,
+                }}
+              >
+                <Icon name={p.icon} size={26} />
+              </span>
+              <span
+                style={{
+                  display: "block",
+                  fontSize: fontSize.xs,
+                  fontWeight: 700,
+                  letterSpacing: "0.06em",
+                  textTransform: "uppercase",
+                  color: p.muted,
+                  marginBottom: spacing.sm,
+                }}
+              >
+                {p.eyebrow}
+              </span>
+              <b
+                style={{
+                  display: "block",
+                  fontFamily: "var(--font-display)",
+                  fontSize: fontSize.lg,
+                  lineHeight: 1.25,
+                  marginBottom: spacing.sm,
+                }}
+              >
+                {p.title}
+              </b>
+              <span
+                style={{
+                  display: "block",
+                  fontSize: fontSize.sm,
+                  color: p.muted,
+                  lineHeight: 1.55,
+                }}
+              >
+                {p.description}
+              </span>
+            </div>
+            <span
+              className="poster-cta"
+              style={{
+                display: "inline-flex",
+                alignItems: "center",
+                gap: 8,
+                marginTop: spacing.lg,
+                fontWeight: 700,
+                fontSize: fontSize.sm,
+                color: p.accent,
+              }}
+            >
+              Explore <Icon name="arrow" size={16} color={p.accent} />
+            </span>
+          </a>
+        ))}
+      </Reveal>
+    </section>
+  );
+}
+
 function TopProfessionals() {
+  const [pros, setPros] = useState<Professional[]>(professionals);
+
+  useEffect(() => {
+    LandingScreenService.getFeaturedProfessionals().then((res) => {
+      if (res.success && res.data?.status && res.data.data.length > 0) {
+        setPros(res.data.data.slice(0, 3).map(toProCardProfessional));
+      }
+    });
+  }, []);
+
   return (
     <section
       style={{
@@ -763,7 +949,7 @@ function TopProfessionals() {
           className="grid grid-cols-1 md:grid-cols-3"
           style={{ gap: spacing.xl }}
         >
-          {professionals.map((p) => (
+          {pros.map((p) => (
             <ProCard key={p.id} pro={p} />
           ))}
         </Reveal>

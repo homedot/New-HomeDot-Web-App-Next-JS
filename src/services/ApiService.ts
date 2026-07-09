@@ -1,4 +1,5 @@
 import { BASE_URL } from "@/constants/ApiConstants";
+import { getAuthToken } from "@/utils/authStorage";
 
 export type HttpMethod = "GET" | "POST" | "PUT" | "PATCH" | "DELETE";
 
@@ -42,18 +43,21 @@ export async function apiCall<T = unknown>(
   options: ApiRequestOptions = {},
 ): Promise<ApiResponse<T>> {
   const { method = "GET", headers = {}, body, params } = options;
+  const token = getAuthToken();
 
   try {
     const response = await fetch(buildUrl(endpoint, params), {
       method,
       headers: {
         "Content-Type": "application/json",
+        ...(token ? { Authorization: `Bearer ${token}` } : {}),
         ...headers,
       },
       body: body !== undefined ? JSON.stringify(body) : undefined,
     });
 
     const statusCode = response.status;
+    console.log(`API [${method}] ${endpoint} -> status code ${statusCode}`);
     let data: T | null = null;
     try {
       data = (await response.json()) as T;
@@ -70,6 +74,7 @@ export async function apiCall<T = unknown>(
         : response.statusText || "Request failed",
     };
   } catch (error) {
+    console.log(`API [${method}] ${endpoint} -> status code 0 (network error)`);
     return {
       success: false,
       statusCode: 0,

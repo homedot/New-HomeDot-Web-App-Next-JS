@@ -9,6 +9,15 @@ export type MarketplaceProperty = Property & {
   amenities: string[];
   gallery: string[];
   desc: string;
+  propertySlug?: string;
+  carpetArea?: number;
+  noOfFloors?: number;
+  roadWidth?: number;
+  maintenanceCharge?: number;
+  garage?: number;
+  balcony?: number;
+  furnished?: string;
+  listedBy?: string;
 };
 
 export const properties: MarketplaceProperty[] = [
