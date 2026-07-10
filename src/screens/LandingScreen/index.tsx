@@ -23,8 +23,10 @@ import LandingScreenService, {
   toProCardProfessional,
   pickTestimonials,
   toBlogPost,
+  toServiceCategoryCard,
   type Testimonial,
   type BlogPost,
+  type ServiceCategoryCard,
 } from "@/services/LandingScreenService";
 import { getAuthToken, getRefreshToken } from "@/utils/authStorage";
 import appHomeImg from "@/assets/images/app-home.png";
@@ -577,6 +579,16 @@ function FeaturedProperties() {
 }
 
 function Categories() {
+  const [items, setItems] = useState<ServiceCategoryCard[]>(categories);
+
+  useEffect(() => {
+    LandingScreenService.getServiceCategories().then((res) => {
+      if (res.success && res.data?.status && res.data.data.length > 0) {
+        setItems(res.data.data.map(toServiceCategoryCard));
+      }
+    });
+  }, []);
+
   return (
     <section style={{ ...wrap, padding: `${spacing.xxl}px ${spacing.xl}px` }}>
       <ScrollScrub className="scrub-rise">
@@ -590,7 +602,7 @@ function Categories() {
         className="grid grid-cols-2 sm:grid-cols-3 lg:grid-cols-4"
         style={{ gap: spacing.lg }}
       >
-        {categories.map((c) => (
+        {items.map((c) => (
           <button
             key={c.id}
             className="card-hover"

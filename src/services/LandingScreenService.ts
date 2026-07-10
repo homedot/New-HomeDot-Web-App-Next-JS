@@ -1,6 +1,7 @@
 import ApiService, { type ApiResponse } from "./ApiService";
 import { API_ENDPOINTS } from "@/constants/ApiConstants";
 import type { Professional } from "@/components/ProCard";
+import type { IconName } from "@/components/Icon";
 
 export interface FeaturedProperty {
   id: string;
@@ -9,10 +10,26 @@ export interface FeaturedProperty {
   image: string;
 }
 
-export interface LandingCategory {
+export interface ServiceCategoryCard {
   id: string;
   name: string;
+  icon: IconName;
   count: number;
+}
+
+export interface ServiceCategoryRecord {
+  _id: string;
+  categoryName: string;
+  categorySlug: string;
+  categoryDescription?: string;
+  categoryImg?: string;
+  professionalsCount: number;
+}
+
+export interface ServiceCategoriesBody {
+  status: boolean;
+  message: string;
+  data: ServiceCategoryRecord[];
 }
 
 export interface Testimonial {
@@ -118,8 +135,10 @@ export const LandingScreenService = {
       API_ENDPOINTS.LANDING.FEATURED_PROPERTIES,
     ),
 
-  getCategories: (): Promise<ApiResponse<LandingCategory[]>> =>
-    ApiService.get<LandingCategory[]>(API_ENDPOINTS.LANDING.CATEGORIES),
+  // Guest-accessible — no auth required. Note: mobile calls this with POST
+  // and no body.
+  getServiceCategories: (): Promise<ApiResponse<ServiceCategoriesBody>> =>
+    ApiService.post<ServiceCategoriesBody>(API_ENDPOINTS.COMMON.CATEGORY_LIST),
 
   // Guest-accessible — no auth required.
   getFeaturedProfessionals: (): Promise<ApiResponse<FeaturedProfessionalsBody>> =>
@@ -214,6 +233,38 @@ export function toBlogPost(record: StoryRecord): BlogPost {
     date: formatBlogDate(record.publishDate),
     title: record.title.trim(),
     excerpt: record.description ? truncate(record.description, 140) : "",
+  };
+}
+
+// The category API returns a photo, not an icon token — pick the closest
+// existing icon by keyword so cards keep the site's established look.
+function iconForCategory(name: string): IconName {
+  const n = name.toLowerCase();
+  if (n.includes("interior")) return "sofa";
+  if (n.includes("architect")) return "compass";
+  if (n.includes("engineer")) return "ruler";
+  if (n.includes("vaastu") || n.includes("vastu")) return "compass";
+  if (n.includes("contractor")) return "hardhat";
+  if (n.includes("landscap")) return "leaf";
+  if (n.includes("electric") || n.includes("automation")) return "bolt";
+  if (n.includes("carpentry") || n.includes("carpenter")) return "saw";
+  if (n.includes("plumb")) return "drop";
+  if (n.includes("paint")) return "brush";
+  if (n.includes("clean")) return "spray";
+  if (n.includes("legal")) return "shield";
+  if (n.includes("financ")) return "sparkle";
+  if (n.includes("household") || n.includes("maintenance")) return "house";
+  if (n.includes("product")) return "cube";
+  return "grid";
+}
+
+// Maps a raw /common/category-list record onto the category card shape.
+export function toServiceCategoryCard(record: ServiceCategoryRecord): ServiceCategoryCard {
+  return {
+    id: record._id,
+    name: record.categoryName.trim(),
+    icon: iconForCategory(record.categoryName),
+    count: record.professionalsCount ?? 0,
   };
 }
 

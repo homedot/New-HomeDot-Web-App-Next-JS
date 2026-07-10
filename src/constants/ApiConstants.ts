@@ -9,7 +9,11 @@ export const API_ENDPOINTS = {
   },
   LANDING: {
     FEATURED_PROPERTIES: "/landing/featured-properties",
-    CATEGORIES: "/landing/categories",
+  },
+  COMMON: {
+    // Guest-accessible — no auth required. Full professional-services
+    // category taxonomy (id, name, image, professionalsCount).
+    CATEGORY_LIST: "common/category-list",
   },
   DATA: {
     FEATURED_PROFESSIONALS: "data/get-featured-professionals",
