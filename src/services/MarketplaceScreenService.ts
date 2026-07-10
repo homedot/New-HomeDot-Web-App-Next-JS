@@ -1,5 +1,6 @@
 import ApiService, { type ApiResponse } from "./ApiService";
 import { API_ENDPOINTS } from "@/constants/ApiConstants";
+import { getAuthToken } from "@/utils/authStorage";
 import type { MarketplaceProperty } from "@/screens/MarketplaceScreen/data";
 
 export interface PropertiesFilterPayload {
@@ -120,19 +121,23 @@ export interface PropertyDetailBody {
 // All Marketplace screen API calls live here. The screen only ever imports
 // this file — never ApiService or fetch directly.
 export const MarketplaceScreenService = {
-  // Guest-accessible — no auth required.
+  // Signed-in users hit the auth-scoped endpoint (personalized results);
+  // guests fall back to the public one. Same payload/response shape either way.
   getPropertiesFilter: (
     page: number,
     filters: PropertiesFilterPayload,
-  ): Promise<ApiResponse<PropertiesFilterBody>> =>
-    ApiService.post<PropertiesFilterBody>(
-      API_ENDPOINTS.MARKETPLACE.PROPERTIES_FILTER(page),
-      filters,
-    ),
+  ): Promise<ApiResponse<PropertiesFilterBody>> => {
+    const endpoint = getAuthToken()
+      ? API_ENDPOINTS.MARKETPLACE.FILTER_SELL_PROPERTY(page)
+      : API_ENDPOINTS.MARKETPLACE.PROPERTIES_FILTER(page);
+    return ApiService.post<PropertiesFilterBody>(endpoint, filters);
+  },
 
   // Guest-accessible — no auth required.
   getPropertyBySlug: (slug: string): Promise<ApiResponse<PropertyDetailBody>> =>
-    ApiService.get<PropertyDetailBody>(API_ENDPOINTS.MARKETPLACE.PROPERTY_BY_SLUG(slug)),
+    ApiService.get<PropertyDetailBody>(
+      API_ENDPOINTS.MARKETPLACE.PROPERTY_BY_SLUG(slug),
+    ),
 
   // Guest-accessible — no auth required.
   getPropertyTypes: (): Promise<ApiResponse<PropertyTypesBody>> =>
@@ -166,20 +171,27 @@ function parseAmenities(raw: unknown[] | undefined): string[] {
 
   // Only exclude entries explicitly marked unchecked — most shapes don't
   // carry a `checked` flag at all, and absence should mean "included".
-  return items.filter((a) => a.checked !== false && a.title).map((a) => a.title as string);
+  return items
+    .filter((a) => a.checked !== false && a.title)
+    .map((a) => a.title as string);
 }
 
 const FALLBACK_IMAGE =
   "https://images.unsplash.com/photo-1522708323590-d24dbb6b0267?auto=format&fit=crop&w=1000&q=80";
 
 function formatPriceINR(amount: number): string {
-  if (amount >= 1e7) return `₹${(amount / 1e7).toFixed(amount % 1e7 === 0 ? 0 : 2)} Cr`;
-  if (amount >= 1e5) return `₹${(amount / 1e5).toFixed(amount % 1e5 === 0 ? 0 : 2)} L`;
+  if (amount >= 1e7)
+    return `₹${(amount / 1e7).toFixed(amount % 1e7 === 0 ? 0 : 2)} Cr`;
+  if (amount >= 1e5)
+    return `₹${(amount / 1e5).toFixed(amount % 1e5 === 0 ? 0 : 2)} L`;
   return `₹${amount.toLocaleString("en-IN")}`;
 }
 
 function titleCase(text: string): string {
-  return text.replace(/\w\S*/g, (w) => w.charAt(0).toUpperCase() + w.slice(1).toLowerCase());
+  return text.replace(
+    /\w\S*/g,
+    (w) => w.charAt(0).toUpperCase() + w.slice(1).toLowerCase(),
+  );
 }
 
 function parseBeds(bedrooms: string | undefined): number {
@@ -194,7 +206,9 @@ function extractImages(images: PropertyImageRecord[] | undefined): string[] {
 
 // Maps a raw /property/properties-filter (or similarProperties) record onto
 // the MarketplaceProperty shape the screen already renders.
-export function toMarketplaceProperty(record: PropertyRecord): MarketplaceProperty {
+export function toMarketplaceProperty(
+  record: PropertyRecord,
+): MarketplaceProperty {
   const gallery = extractImages(record.propertyImages);
   return {
     id: record._id,
@@ -203,7 +217,11 @@ export function toMarketplaceProperty(record: PropertyRecord): MarketplaceProper
     purpose: "Buy",
     category: record.propertyType || "Property",
     title: record.propertyAdTitle.trim(),
-    location: (record.propertySubLocation || record.propertyLocation || "").trim(),
+    location: (
+      record.propertySubLocation ||
+      record.propertyLocation ||
+      ""
+    ).trim(),
     city: titleCase(record.propertyCity || ""),
     beds: parseBeds(record.bedrooms),
     baths: record.bathrooms ?? 0,
@@ -220,7 +238,9 @@ export function toMarketplaceProperty(record: PropertyRecord): MarketplaceProper
 // than the list shape: real description, parsed amenities, and the readable
 // category name (nested under propertyTypeDetails, since propertyType here
 // is just an id).
-export function toMarketplacePropertyDetail(record: PropertyDetailRecord): MarketplaceProperty {
+export function toMarketplacePropertyDetail(
+  record: PropertyDetailRecord,
+): MarketplaceProperty {
   const gallery = extractImages(record.propertyImages);
   return {
     id: record._id,
@@ -229,12 +249,19 @@ export function toMarketplacePropertyDetail(record: PropertyDetailRecord): Marke
     purpose: "Buy",
     category: record.propertyTypeDetails?.[0]?.propertyType || "Property",
     title: record.propertyAdTitle.trim(),
-    location: (record.propertySubLocation || record.propertyLocation || "").trim(),
+    location: (
+      record.propertySubLocation ||
+      record.propertyLocation ||
+      ""
+    ).trim(),
     city: titleCase(record.propertyCity || ""),
     beds: parseBeds(record.bedrooms),
     baths: record.bathrooms ?? 0,
     area: record.buildUpArea ?? record.plotArea ?? 0,
-    areaUnit: record.buildUpArea == null && record.plotArea != null ? "sqft plot" : undefined,
+    areaUnit:
+      record.buildUpArea == null && record.plotArea != null
+        ? "sqft plot"
+        : undefined,
     price: formatPriceINR(record.price ?? 0),
     img: gallery[0],
     gallery,

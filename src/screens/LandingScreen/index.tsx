@@ -1,6 +1,7 @@
 "use client";
 
 import { useEffect, useState, type CSSProperties } from "react";
+import Link from "next/link";
 import { colors } from "@/constants/colors";
 import { spacing, radius, fontSize, shadow, maxWidth } from "@/utils/size";
 import Icon, { type IconName } from "@/components/Icon";
@@ -24,9 +25,11 @@ import LandingScreenService, {
   pickTestimonials,
   toBlogPost,
   toServiceCategoryCard,
+  toPropertyCategoryCard,
   type Testimonial,
   type BlogPost,
   type ServiceCategoryCard,
+  type PropertyCategoryCard,
 } from "@/services/LandingScreenService";
 import { getAuthToken, getRefreshToken } from "@/utils/authStorage";
 import appHomeImg from "@/assets/images/app-home.png";
@@ -652,6 +655,17 @@ function Categories() {
 }
 
 function PropertyCategories() {
+  const [items, setItems] =
+    useState<PropertyCategoryCard[]>(propertyCategories);
+
+  useEffect(() => {
+    LandingScreenService.getPropertyCategories().then((res) => {
+      if (res.success && res.data?.status && res.data.data.length > 0) {
+        setItems(res.data.data.map(toPropertyCategoryCard));
+      }
+    });
+  }, []);
+
   return (
     <section
       style={{
@@ -670,9 +684,10 @@ function PropertyCategories() {
         className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3"
         style={{ gap: spacing.md }}
       >
-        {propertyCategories.map((s) => (
-          <button
+        {items.map((s) => (
+          <Link
             key={s.id}
+            href={`/marketplace?propertyType=${encodeURIComponent(s.id)}`}
             className="card-hover"
             style={{
               display: "flex",
@@ -683,6 +698,8 @@ function PropertyCategories() {
               borderRadius: radius.md,
               padding: "14px 16px",
               textAlign: "left",
+              textDecoration: "none",
+              color: "inherit",
             }}
           >
             <span
@@ -719,7 +736,7 @@ function PropertyCategories() {
                 {s.count.toLocaleString()} listings
               </em>
             </span>
-          </button>
+          </Link>
         ))}
       </Reveal>
     </section>

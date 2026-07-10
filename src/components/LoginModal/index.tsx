@@ -1,6 +1,13 @@
 "use client";
 
-import { useCallback, useEffect, useRef, useState } from "react";
+import {
+  forwardRef,
+  useCallback,
+  useEffect,
+  useImperativeHandle,
+  useRef,
+  useState,
+} from "react";
 import { colors } from "@/constants/colors";
 import { spacing, radius, fontSize, shadow } from "@/utils/size";
 import Icon from "@/components/Icon";
@@ -46,9 +53,15 @@ const PERKS: {
   },
 ];
 
+export interface LoginModalHandle {
+  /** Opens the modal imperatively — used by callers like SiteNav's "Add Property"
+   * button that need to prompt login from outside this component's own trigger. */
+  open: () => void;
+}
+
 /** Login trigger button (Nav) + the phone/email → OTP → success modal. Self-contained
  * client island so the rest of LandingScreen can stay a Server Component. */
-export default function LoginModal() {
+const LoginModal = forwardRef<LoginModalHandle>(function LoginModal(_props, ref) {
   const [open, setOpen] = useState(false);
   const [loggedIn, setLoggedIn] = useState(false);
   const [step, setStep] = useState<Step>("method");
@@ -65,6 +78,10 @@ export default function LoginModal() {
   const [isNewUser, setIsNewUser] = useState(true);
   const [proLocation, setProLocation] = useState<LocationValue | null>(null);
   const otpRefs = useRef<(HTMLInputElement | null)[]>([]);
+
+  useImperativeHandle(ref, () => ({
+    open: () => setOpen(true),
+  }));
 
   useEffect(() => {
     if (step !== "otp") return;
@@ -451,7 +468,9 @@ export default function LoginModal() {
       )}
     </>
   );
-}
+});
+
+export default LoginModal;
 
 function BrandPanel() {
   return (

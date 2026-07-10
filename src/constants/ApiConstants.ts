@@ -30,6 +30,12 @@ export const API_ENDPOINTS = {
     PROPERTY_DETAIL: (id: string) => `/marketplace/properties/${id}`,
     // Guest-accessible — no auth required.
     PROPERTIES_FILTER: (page: number) => `property/properties-filter?page=${page}`,
+    // Requires a stored auth token (ApiService attaches it automatically).
+    // Mirrors homedot-mobile-app's FILTER_SELL_PROPERTY ("v1/property/properties-filter-auth")
+    // — the "v1/" there is relative to the mobile app's own base URL, which
+    // doesn't already end in /api/v1 the way BASE_URL here does, so it's
+    // dropped to avoid a double /v1/v1/ segment.
+    FILTER_SELL_PROPERTY: (page: number) => `property/properties-filter-auth?page=${page}`,
     // Guest-accessible — no auth required.
     PROPERTY_BY_SLUG: (slug: string) =>
       `property/guest/get-property/${encodeURIComponent(slug)}`,

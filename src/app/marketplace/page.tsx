@@ -1,4 +1,5 @@
 import type { Metadata } from "next";
+import { Suspense } from "react";
 import MarketplaceScreen from "@/screens/MarketplaceScreen";
 
 export const metadata: Metadata = {
@@ -7,5 +8,9 @@ export const metadata: Metadata = {
 };
 
 export default function MarketplacePage() {
-  return <MarketplaceScreen />;
+  return (
+    <Suspense fallback={null}>
+      <MarketplaceScreen />
+    </Suspense>
+  );
 }

@@ -1,15 +1,16 @@
 "use client";
 
-import type { CSSProperties } from "react";
+import { useRef, type CSSProperties } from "react";
 import Link from "next/link";
-import { usePathname } from "next/navigation";
+import { usePathname, useRouter } from "next/navigation";
 import { colors } from "@/constants/colors";
 import { spacing, fontSize, maxWidth } from "@/utils/size";
 import Icon from "@/components/Icon";
 import Button from "@/components/Button";
 import Brand from "@/components/Brand";
-import LoginModal from "@/components/LoginModal";
+import LoginModal, { type LoginModalHandle } from "@/components/LoginModal";
 import NavShell from "@/components/NavShell";
+import { getAuthToken } from "@/utils/authStorage";
 
 const wrap: CSSProperties = {
   maxWidth,
@@ -27,6 +28,19 @@ const LINKS: { label: string; href?: string }[] = [
 
 export default function SiteNav() {
   const pathname = usePathname();
+  const router = useRouter();
+  const loginModalRef = useRef<LoginModalHandle>(null);
+
+  const onAddProperty = () => {
+    const token = getAuthToken();
+    console.log("Stored auth token:", token);
+    if (token) {
+      router.push("/property/add");
+    } else {
+      loginModalRef.current?.open();
+    }
+  };
+
   return (
     <NavShell className="nav-shell">
       <div
@@ -73,11 +87,16 @@ export default function SiteNav() {
           }}
         >
           <span className="hidden sm:inline-flex">
-            <Button variant="outline" size="sm" icon={<Icon name="house" size={16} />}>
+            <Button
+              variant="outline"
+              size="sm"
+              icon={<Icon name="house" size={16} />}
+              onClick={onAddProperty}
+            >
               Add Property
             </Button>
           </span>
-          <LoginModal />
+          <LoginModal ref={loginModalRef} />
         </div>
       </div>
     </NavShell>

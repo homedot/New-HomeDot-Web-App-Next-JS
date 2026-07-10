@@ -1,5 +1,9 @@
 import ApiService, { type ApiResponse } from "./ApiService";
 import { API_ENDPOINTS } from "@/constants/ApiConstants";
+import MarketplaceScreenService, {
+  type PropertyTypeRecord,
+  type PropertyTypesBody,
+} from "./MarketplaceScreenService";
 import type { Professional } from "@/components/ProCard";
 import type { IconName } from "@/components/Icon";
 
@@ -30,6 +34,13 @@ export interface ServiceCategoriesBody {
   status: boolean;
   message: string;
   data: ServiceCategoryRecord[];
+}
+
+export interface PropertyCategoryCard {
+  id: string;
+  name: string;
+  icon: IconName;
+  count: number;
 }
 
 export interface Testimonial {
@@ -139,6 +150,12 @@ export const LandingScreenService = {
   // and no body.
   getServiceCategories: (): Promise<ApiResponse<ServiceCategoriesBody>> =>
     ApiService.post<ServiceCategoriesBody>(API_ENDPOINTS.COMMON.CATEGORY_LIST),
+
+  // Guest-accessible — no auth required. Same property/get-property-types
+  // endpoint the Marketplace filter already uses (mobile's HomeScreen calls
+  // it as fetchPropertyTypes → MarketPlaceServices.property_Type).
+  getPropertyCategories: (): Promise<ApiResponse<PropertyTypesBody>> =>
+    MarketplaceScreenService.getPropertyTypes(),
 
   // Guest-accessible — no auth required.
   getFeaturedProfessionals: (): Promise<ApiResponse<FeaturedProfessionalsBody>> =>
@@ -265,6 +282,29 @@ export function toServiceCategoryCard(record: ServiceCategoryRecord): ServiceCat
     name: record.categoryName.trim(),
     icon: iconForCategory(record.categoryName),
     count: record.professionalsCount ?? 0,
+  };
+}
+
+// The 5 real property types map cleanly onto existing icons; anything new
+// from the API falls back to a generic grid glyph.
+function iconForPropertyType(name: string): IconName {
+  const n = name.toLowerCase();
+  if (n.includes("villa")) return "villa";
+  if (n.includes("apartment") || n.includes("flat")) return "apartment";
+  if (n.includes("office") || n.includes("commercial")) return "office";
+  if (n.includes("plot") || n.includes("land")) return "plot";
+  if (n.includes("house") || n.includes("home")) return "house";
+  return "grid";
+}
+
+// Maps a raw /property/get-property-types record onto the property category
+// card shape used by the "Browse by property category" section.
+export function toPropertyCategoryCard(record: PropertyTypeRecord): PropertyCategoryCard {
+  return {
+    id: record._id,
+    name: record.propertyType.trim(),
+    icon: iconForPropertyType(record.propertyType),
+    count: record.propertyCount ?? 0,
   };
 }
 
