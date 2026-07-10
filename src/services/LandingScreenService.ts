@@ -17,10 +17,36 @@ export interface LandingCategory {
 
 export interface Testimonial {
   id: string;
+  quote: string;
   author: string;
   role: string;
-  quote: string;
+  avatar?: string;
   rating: number;
+}
+
+export interface ReviewAuthorRecord {
+  name?: string;
+  profileImage?: string;
+}
+
+// The API returns two shapes under the same endpoint: real in-app ratings
+// (authorType "user", name/photo under authorData) and admin-curated
+// testimonials (authorType "admin", name/photo under customer/customerImage).
+export interface ReviewRecord {
+  _id: string;
+  authorType: string;
+  rating: number;
+  reviews: string;
+  deleted?: boolean;
+  customer?: string;
+  customerImage?: string;
+  authorData?: ReviewAuthorRecord[];
+}
+
+export interface ReviewsBody {
+  status: boolean;
+  message: string;
+  data: ReviewRecord[];
 }
 
 export interface FeaturedProfessionalInfo {
@@ -62,14 +88,15 @@ export const LandingScreenService = {
   getCategories: (): Promise<ApiResponse<LandingCategory[]>> =>
     ApiService.get<LandingCategory[]>(API_ENDPOINTS.LANDING.CATEGORIES),
 
-  getTestimonials: (): Promise<ApiResponse<Testimonial[]>> =>
-    ApiService.get<Testimonial[]>(API_ENDPOINTS.LANDING.TESTIMONIALS),
-
   // Guest-accessible — no auth required.
   getFeaturedProfessionals: (): Promise<ApiResponse<FeaturedProfessionalsBody>> =>
     ApiService.get<FeaturedProfessionalsBody>(
       API_ENDPOINTS.DATA.FEATURED_PROFESSIONALS,
     ),
+
+  // Guest-accessible — no auth required.
+  getReviews: (): Promise<ApiResponse<ReviewsBody>> =>
+    ApiService.get<ReviewsBody>(API_ENDPOINTS.REVIEW.GET_REVIEWS),
 };
 
 function truncate(text: string, max: number): string {
@@ -97,6 +124,38 @@ export function toProCardProfessional(record: FeaturedProfessionalRecord): Profe
     priceUnit: rate ? "sq.ft" : "for pricing",
     tagline: info?.description ? truncate(info.description, 110) : "",
   };
+}
+
+function toTestimonial(record: ReviewRecord): Testimonial {
+  const isCurated = record.authorType === "admin";
+  const author = (isCurated ? record.customer : record.authorData?.[0]?.name) || "HomeDot user";
+  const avatar = isCurated ? record.customerImage : record.authorData?.[0]?.profileImage;
+  return {
+    id: record._id,
+    quote: truncate(record.reviews || "", 220),
+    author,
+    role: "HomeDot customer",
+    avatar: avatar || undefined,
+    rating: record.rating ?? 5,
+  };
+}
+
+// Picks the best `count` reviews for the landing page: drops low ratings and
+// empty/filler text, favors longer (more substantive) quotes, and dedupes by
+// author so the same tester's one-word ratings don't crowd out real quotes.
+export function pickTestimonials(records: ReviewRecord[], count = 3): Testimonial[] {
+  const seenAuthors = new Set<string>();
+  return records
+    .filter((r) => !r.deleted && r.rating >= 4 && r.reviews?.trim().replace(/\.+/g, "").length)
+    .sort((a, b) => b.reviews.trim().length - a.reviews.trim().length)
+    .filter((r) => {
+      const key = ((r.authorType === "admin" ? r.customer : r.authorData?.[0]?.name) || r._id).toLowerCase();
+      if (seenAuthors.has(key)) return false;
+      seenAuthors.add(key);
+      return true;
+    })
+    .slice(0, count)
+    .map(toTestimonial);
 }
 
 export default LandingScreenService;

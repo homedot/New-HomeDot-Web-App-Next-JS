@@ -10,10 +10,13 @@ export const API_ENDPOINTS = {
   LANDING: {
     FEATURED_PROPERTIES: "/landing/featured-properties",
     CATEGORIES: "/landing/categories",
-    TESTIMONIALS: "/landing/testimonials",
   },
   DATA: {
     FEATURED_PROFESSIONALS: "data/get-featured-professionals",
+  },
+  REVIEW: {
+    // Guest-accessible — no auth required.
+    GET_REVIEWS: "review/get-reviews",
   },
   MARKETPLACE: {
     PROPERTIES: "/marketplace/properties",

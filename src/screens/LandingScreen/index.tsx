@@ -21,6 +21,8 @@ import SiteNav from "@/components/SiteNav";
 import SiteFooter from "@/components/SiteFooter";
 import LandingScreenService, {
   toProCardProfessional,
+  pickTestimonials,
+  type Testimonial,
 } from "@/services/LandingScreenService";
 import { getAuthToken, getRefreshToken } from "@/utils/authStorage";
 import appHomeImg from "@/assets/images/app-home.png";
@@ -1563,6 +1565,17 @@ function LatestInsights() {
 }
 
 function Testimonials() {
+  const [items, setItems] = useState<Testimonial[]>(testimonials);
+
+  useEffect(() => {
+    LandingScreenService.getReviews().then((res) => {
+      if (res.success && res.data?.status && res.data.data.length > 0) {
+        const picked = pickTestimonials(res.data.data);
+        if (picked.length > 0) setItems(picked);
+      }
+    });
+  }, []);
+
   return (
     <section
       style={{
@@ -1584,7 +1597,7 @@ function Testimonials() {
           className="grid grid-cols-1 md:grid-cols-3"
           style={{ gap: spacing.xl }}
         >
-          {testimonials.map((t) => (
+          {items.map((t) => (
             <div
               key={t.id}
               style={{
@@ -1635,17 +1648,36 @@ function Testimonials() {
                   borderTop: `1px solid ${colors.line}`,
                 }}
               >
-                {/* eslint-disable-next-line @next/next/no-img-element */}
-                <img
-                  src={t.avatar}
-                  alt={t.author}
-                  style={{
-                    width: 44,
-                    height: 44,
-                    borderRadius: "50%",
-                    objectFit: "cover",
-                  }}
-                />
+                {t.avatar ? (
+                  // eslint-disable-next-line @next/next/no-img-element
+                  <img
+                    src={t.avatar}
+                    alt={t.author}
+                    style={{
+                      width: 44,
+                      height: 44,
+                      borderRadius: "50%",
+                      objectFit: "cover",
+                    }}
+                  />
+                ) : (
+                  <span
+                    style={{
+                      width: 44,
+                      height: 44,
+                      borderRadius: "50%",
+                      background: `linear-gradient(135deg, ${colors.primary}, ${colors.accent})`,
+                      color: colors.white,
+                      display: "grid",
+                      placeItems: "center",
+                      fontWeight: 700,
+                      fontSize: fontSize.md,
+                      flexShrink: 0,
+                    }}
+                  >
+                    {t.author.trim().charAt(0).toUpperCase() || "?"}
+                  </span>
+                )}
                 <div>
                   <b
                     style={{
