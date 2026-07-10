@@ -77,6 +77,39 @@ export interface FeaturedProfessionalsBody {
   data: FeaturedProfessionalRecord[];
 }
 
+export interface BlogPost {
+  id: string;
+  image: string;
+  author: string;
+  date: string;
+  title: string;
+  excerpt: string;
+}
+
+export interface StoryAuthorRecord {
+  name?: string;
+}
+
+export interface StoryRecord {
+  _id: string;
+  title: string;
+  slug: string;
+  description?: string;
+  blogImage?: string;
+  publishDate?: string;
+  authorData?: StoryAuthorRecord[];
+}
+
+export interface HomeDataEntry {
+  stories: StoryRecord[];
+}
+
+export interface HomeDataBody {
+  status: boolean;
+  message: string;
+  data: HomeDataEntry[];
+}
+
 // All Landing screen API calls live here. The screen only ever imports
 // this file — never ApiService or fetch directly.
 export const LandingScreenService = {
@@ -97,6 +130,10 @@ export const LandingScreenService = {
   // Guest-accessible — no auth required.
   getReviews: (): Promise<ApiResponse<ReviewsBody>> =>
     ApiService.get<ReviewsBody>(API_ENDPOINTS.REVIEW.GET_REVIEWS),
+
+  // Guest-accessible — no auth required.
+  getHomeData: (): Promise<ApiResponse<HomeDataBody>> =>
+    ApiService.get<HomeDataBody>(API_ENDPOINTS.DATA.HOME),
 };
 
 function truncate(text: string, max: number): string {
@@ -156,6 +193,28 @@ export function pickTestimonials(records: ReviewRecord[], count = 3): Testimonia
     })
     .slice(0, count)
     .map(toTestimonial);
+}
+
+const FALLBACK_BLOG_IMAGE =
+  "https://images.unsplash.com/photo-1618221195710-dd6b41faaea6?auto=format&fit=crop&w=800&q=80";
+
+function formatBlogDate(iso: string | undefined): string {
+  if (!iso) return "";
+  const d = new Date(iso);
+  if (Number.isNaN(d.getTime())) return "";
+  return d.toLocaleDateString("en-GB", { day: "2-digit", month: "short", year: "numeric" });
+}
+
+// Maps a raw /data/home `stories[]` record onto the blog card shape.
+export function toBlogPost(record: StoryRecord): BlogPost {
+  return {
+    id: record._id,
+    image: record.blogImage || FALLBACK_BLOG_IMAGE,
+    author: record.authorData?.[0]?.name?.trim() || "HomeDot",
+    date: formatBlogDate(record.publishDate),
+    title: record.title.trim(),
+    excerpt: record.description ? truncate(record.description, 140) : "",
+  };
 }
 
 export default LandingScreenService;

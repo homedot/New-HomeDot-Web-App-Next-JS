@@ -22,7 +22,9 @@ import SiteFooter from "@/components/SiteFooter";
 import LandingScreenService, {
   toProCardProfessional,
   pickTestimonials,
+  toBlogPost,
   type Testimonial,
+  type BlogPost,
 } from "@/services/LandingScreenService";
 import { getAuthToken, getRefreshToken } from "@/utils/authStorage";
 import appHomeImg from "@/assets/images/app-home.png";
@@ -1453,6 +1455,17 @@ function ProCta() {
 }
 
 function LatestInsights() {
+  const [posts, setPosts] = useState<BlogPost[]>(blogPosts);
+
+  useEffect(() => {
+    LandingScreenService.getHomeData().then((res) => {
+      const stories = res.data?.data?.[0]?.stories;
+      if (res.success && res.data?.status && stories?.length) {
+        setPosts(stories.slice(0, 3).map(toBlogPost));
+      }
+    });
+  }, []);
+
   return (
     <section
       style={{ ...wrap, padding: `0 ${spacing.xl}px ${spacing.huge}px` }}
@@ -1469,7 +1482,7 @@ function LatestInsights() {
         className="grid grid-cols-1 md:grid-cols-3"
         style={{ gap: spacing.xl }}
       >
-        {blogPosts.map((post) => (
+        {posts.map((post) => (
           <article
             key={post.id}
             className="card-hover"

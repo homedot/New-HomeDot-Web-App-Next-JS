@@ -13,6 +13,9 @@ export const API_ENDPOINTS = {
   },
   DATA: {
     FEATURED_PROFESSIONALS: "data/get-featured-professionals",
+    // Guest-accessible — no auth required. Full home payload (services,
+    // stories/blog posts, ads); we only use `stories` for now.
+    HOME: "data/home",
   },
   REVIEW: {
     // Guest-accessible — no auth required.
