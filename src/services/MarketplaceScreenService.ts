@@ -182,14 +182,22 @@ export interface CreatePropertyBody {
 // this file — never ApiService or fetch directly.
 export const MarketplaceScreenService = {
   // Signed-in users hit the auth-scoped endpoint (personalized results);
-  // guests fall back to the public one. Same payload/response shape either way.
+  // guests fall back to the public one. "Buy" and "Rent" are separate APIs
+  // server-side, but share the exact same request body/response shape.
   getPropertiesFilter: (
     page: number,
     filters: PropertiesFilterPayload,
+    purpose: "Buy" | "Rent" = "Buy",
   ): Promise<ApiResponse<PropertiesFilterBody>> => {
-    const endpoint = getAuthToken()
-      ? API_ENDPOINTS.MARKETPLACE.FILTER_SELL_PROPERTY(page)
-      : API_ENDPOINTS.MARKETPLACE.PROPERTIES_FILTER(page);
+    const authed = !!getAuthToken();
+    const endpoint =
+      purpose === "Rent"
+        ? authed
+          ? API_ENDPOINTS.MARKETPLACE.FILTER_RENT_PROPERTY(page)
+          : API_ENDPOINTS.MARKETPLACE.RENT_PROPERTIES_FILTER(page)
+        : authed
+          ? API_ENDPOINTS.MARKETPLACE.FILTER_SELL_PROPERTY(page)
+          : API_ENDPOINTS.MARKETPLACE.PROPERTIES_FILTER(page);
     return ApiService.post<PropertiesFilterBody>(endpoint, filters);
   },
 
@@ -278,17 +286,24 @@ function extractImages(images: PropertyImageRecord[] | undefined): string[] {
   return urls.length ? urls : [FALLBACK_IMAGE];
 }
 
-// Maps a raw /property/properties-filter (or similarProperties) record onto
-// the MarketplaceProperty shape the screen already renders.
+// Maps a raw /property/properties-filter (or /rent/properties-filter, or
+// similarProperties) record onto the MarketplaceProperty shape the screen
+// already renders.
 export function toMarketplaceProperty(
   record: PropertyRecord,
+  purpose: "Buy" | "Rent" = "Buy",
 ): MarketplaceProperty {
   const gallery = extractImages(record.propertyImages);
   return {
     id: record._id,
     propertySlug: record.propertySlug,
-    status: record.status === "Listed" ? "For Sale" : record.status,
-    purpose: "Buy",
+    status:
+      record.status === "Listed"
+        ? purpose === "Rent"
+          ? "For Rent"
+          : "For Sale"
+        : record.status,
+    purpose,
     category: record.propertyType || "Property",
     title: record.propertyAdTitle.trim(),
     location: (

@@ -120,12 +120,13 @@ export default function MarketplaceScreen() {
       const res = await MarketplaceScreenService.getPropertiesFilter(
         1,
         filterPayload,
+        purpose,
       );
       if (cancelled) return;
       setLoading(false);
       const result = res.data?.data?.[0];
       if (res.success && res.data?.status && result) {
-        setApiProperties(result.data.map(toMarketplaceProperty));
+        setApiProperties(result.data.map((r) => toMarketplaceProperty(r, purpose)));
         setPage(result.currentPage);
         setTotalPages(result.totalPages);
       }
@@ -134,7 +135,7 @@ export default function MarketplaceScreen() {
     return () => {
       cancelled = true;
     };
-  }, [filterPayload]);
+  }, [filterPayload, purpose]);
 
   const loadMore = async () => {
     if (loading || page >= totalPages) return;
@@ -142,13 +143,14 @@ export default function MarketplaceScreen() {
     const res = await MarketplaceScreenService.getPropertiesFilter(
       page + 1,
       filterPayload,
+      purpose,
     );
     setLoading(false);
     const result = res.data?.data?.[0];
     if (res.success && res.data?.status && result) {
       setApiProperties((prev) => [
         ...prev,
-        ...result.data.map(toMarketplaceProperty),
+        ...result.data.map((r) => toMarketplaceProperty(r, purpose)),
       ]);
       setPage(result.currentPage);
       setTotalPages(result.totalPages);
@@ -226,7 +228,9 @@ export default function MarketplaceScreen() {
       const record = entry?.propertyDetails?.[0];
       if (record) setDetail(toMarketplacePropertyDetail(record));
       if (entry?.similarProperties?.length) {
-        setDetailSimilar(entry.similarProperties.map(toMarketplaceProperty));
+        setDetailSimilar(
+          entry.similarProperties.map((r) => toMarketplaceProperty(r, p.purpose)),
+        );
       }
     });
   };

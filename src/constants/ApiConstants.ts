@@ -43,6 +43,12 @@ export const API_ENDPOINTS = {
     // doesn't already end in /api/v1 the way BASE_URL here does, so it's
     // dropped to avoid a double /v1/v1/ segment.
     FILTER_SELL_PROPERTY: (page: number) => `property/properties-filter-auth?page=${page}`,
+    // Guest-accessible — no auth required. Same request body/response shape
+    // as PROPERTIES_FILTER, just the "rent" listings instead of "sell".
+    RENT_PROPERTIES_FILTER: (page: number) => `rent/properties-filter?page=${page}`,
+    // Requires a stored auth token. Same shape as FILTER_SELL_PROPERTY, for
+    // rent listings.
+    FILTER_RENT_PROPERTY: (page: number) => `rent/properties-filter-auth?page=${page}`,
     // Guest-accessible — no auth required.
     PROPERTY_BY_SLUG: (slug: string) =>
       `property/guest/get-property/${encodeURIComponent(slug)}`,
