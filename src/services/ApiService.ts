@@ -1,5 +1,6 @@
-import { BASE_URL } from "@/constants/ApiConstants";
-import { getAuthToken } from "@/utils/authStorage";
+import { BASE_URL, API_ENDPOINTS } from "@/constants/ApiConstants";
+import { getAuthToken, getRefreshToken } from "@/utils/authStorage";
+import { useAuthStore } from "@/store/useAuthStore";
 
 export type HttpMethod = "GET" | "POST" | "PUT" | "PATCH" | "DELETE";
 
@@ -34,6 +35,47 @@ function buildUrl(
   return url.toString();
 }
 
+interface RefreshTokenBody {
+  status: boolean;
+  message: string;
+  data: { token: string }[];
+}
+
+// Dedupes concurrent 401s so a burst of requests triggers exactly one
+// refresh call instead of one per request.
+let refreshPromise: Promise<string | null> | null = null;
+
+async function refreshAccessToken(): Promise<string | null> {
+  if (!refreshPromise) {
+    refreshPromise = (async () => {
+      const refreshToken = getRefreshToken();
+      if (!refreshToken) return null;
+      try {
+        const response = await fetch(buildUrl(API_ENDPOINTS.AUTH.REFRESH_TOKEN), {
+          method: "POST",
+          headers: { "Content-Type": "application/json" },
+          body: JSON.stringify({ refreshToken }),
+        });
+        if (!response.ok) return null;
+        const responseBody = (await response.json()) as RefreshTokenBody;
+        const newToken = responseBody.status ? responseBody.data?.[0]?.token : null;
+        if (!newToken) return null;
+        // Refresh only returns a new access token — the refresh token itself
+        // is unchanged, so it's carried over as-is.
+        useAuthStore.getState().setTokens({ token: newToken, refreshToken });
+        return newToken;
+      } catch {
+        return null;
+      }
+    })();
+  }
+  try {
+    return await refreshPromise;
+  } finally {
+    refreshPromise = null;
+  }
+}
+
 // Single place every API call in the app goes through. Screens/components
 // must never call `fetch` directly — always go through this function (or
 // the get/post/put/patch/del helpers below) so status codes and errors are
@@ -44,17 +86,36 @@ export async function apiCall<T = unknown>(
 ): Promise<ApiResponse<T>> {
   const { method = "GET", headers = {}, body, params } = options;
   const token = getAuthToken();
+  // FormData (file uploads) must be sent as-is with no Content-Type — the
+  // browser sets the multipart boundary itself. Everything else is JSON.
+  const isFormData = typeof FormData !== "undefined" && body instanceof FormData;
+  const url = buildUrl(endpoint, params);
 
-  try {
-    const response = await fetch(buildUrl(endpoint, params), {
+  const doFetch = (authToken: string | null) =>
+    fetch(url, {
       method,
       headers: {
-        "Content-Type": "application/json",
-        ...(token ? { Authorization: `Bearer ${token}` } : {}),
+        ...(isFormData ? {} : { "Content-Type": "application/json" }),
+        ...(authToken ? { Authorization: `Bearer ${authToken}` } : {}),
         ...headers,
       },
-      body: body !== undefined ? JSON.stringify(body) : undefined,
+      body: isFormData ? body : body !== undefined ? JSON.stringify(body) : undefined,
     });
+
+  try {
+    let response = await doFetch(token);
+
+    // Access token expired — refresh once and retry the original request
+    // before giving up. Only applies to requests that were actually
+    // authenticated to begin with; guest calls 401 for other reasons.
+    if (response.status === 401 && token && !endpoint.includes(API_ENDPOINTS.AUTH.REFRESH_TOKEN)) {
+      const newToken = await refreshAccessToken();
+      if (newToken) {
+        response = await doFetch(newToken);
+      } else {
+        useAuthStore.getState().clearTokens();
+      }
+    }
 
     const statusCode = response.status;
     console.log(`API [${method}] ${endpoint} -> status code ${statusCode}`);

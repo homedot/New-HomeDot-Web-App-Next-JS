@@ -31,7 +31,7 @@ import LandingScreenService, {
   type ServiceCategoryCard,
   type PropertyCategoryCard,
 } from "@/services/LandingScreenService";
-import { getAuthToken, getRefreshToken } from "@/utils/authStorage";
+import { useAuthStore } from "@/store/useAuthStore";
 import appHomeImg from "@/assets/images/app-home.png";
 import {
   categories,
@@ -52,9 +52,16 @@ const wrap: CSSProperties = {
 };
 
 export default function LandingScreen() {
+  const token = useAuthStore((s) => s.token);
+  const refreshToken = useAuthStore((s) => s.refreshToken);
+  console.log("Stored auth token zustand:", token);
+  console.log("Stored refresh token zustand:", refreshToken);
+  // useEffect(() => {
+  // console.log("Stored auth token:", token);
+  // console.log("Stored refresh token:", refreshToken);
+  // }, [token, refreshToken]);
+
   useEffect(() => {
-    console.log("Stored auth token:", getAuthToken());
-    console.log("Stored refresh token:", getRefreshToken());
     // Sample API call — every request goes through LandingScreenService,
     // which delegates to the shared ApiService instead of calling fetch directly.
     LandingScreenService.getFeaturedProperties().then((response) => {

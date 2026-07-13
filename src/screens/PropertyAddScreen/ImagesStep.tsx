@@ -1,0 +1,244 @@
+"use client";
+
+import { useRef, useState } from "react";
+import { colors } from "@/constants/colors";
+import { spacing, radius, fontSize } from "@/utils/size";
+import Icon from "@/components/Icon";
+import MarketplaceScreenService from "@/services/MarketplaceScreenService";
+
+interface ImageItem {
+  key: string;
+  file: File;
+  previewUrl: string;
+  status: "uploading" | "done" | "error";
+  imageId?: string;
+}
+
+export default function ImagesStep({
+  imageIds,
+  setImageIds,
+  onBack,
+  onContinue,
+}: {
+  imageIds: string[];
+  setImageIds: (ids: string[]) => void;
+  onBack: () => void;
+  onContinue: () => void;
+}) {
+  const [items, setItems] = useState<ImageItem[]>([]);
+  const inputRef = useRef<HTMLInputElement | null>(null);
+
+  const syncImageIds = (list: ImageItem[]) =>
+    setImageIds(list.filter((i) => i.status === "done" && i.imageId).map((i) => i.imageId as string));
+
+  const uploadOne = async (item: ImageItem) => {
+    const res = await MarketplaceScreenService.uploadPropertyImage(item.file);
+    setItems((prev) => {
+      const next = prev.map((i) =>
+        i.key === item.key
+          ? res.success && res.data?.status && res.data.data?._id
+            ? { ...i, status: "done" as const, imageId: res.data.data._id }
+            : { ...i, status: "error" as const }
+          : i,
+      );
+      syncImageIds(next);
+      return next;
+    });
+  };
+
+  const onFiles = (files: FileList | null) => {
+    if (!files || files.length === 0) return;
+    const newItems: ImageItem[] = Array.from(files).map((file) => ({
+      key: `${file.name}-${file.size}-${Date.now()}-${Math.random()}`,
+      file,
+      previewUrl: URL.createObjectURL(file),
+      status: "uploading",
+    }));
+    setItems((prev) => [...prev, ...newItems]);
+    newItems.forEach((item) => uploadOne(item));
+  };
+
+  const removeItem = (key: string) => {
+    setItems((prev) => {
+      const next = prev.filter((i) => i.key !== key);
+      syncImageIds(next);
+      return next;
+    });
+  };
+
+  const retryItem = (item: ImageItem) => {
+    setItems((prev) => prev.map((i) => (i.key === item.key ? { ...i, status: "uploading" } : i)));
+    uploadOne(item);
+  };
+
+  const uploading = items.some((i) => i.status === "uploading");
+
+  return (
+    <div>
+      <button
+        onClick={onBack}
+        style={{
+          display: "inline-flex",
+          alignItems: "center",
+          gap: 6,
+          fontSize: fontSize.sm + 0.5,
+          fontWeight: 600,
+          color: colors.muted,
+          marginBottom: spacing.lg,
+        }}
+      >
+        <Icon name="arrowLeft" size={17} /> Back
+      </button>
+
+      <h1
+        style={{
+          fontFamily: "var(--font-display)",
+          fontSize: 26,
+          letterSpacing: "-0.02em",
+          marginBottom: spacing.sm,
+        }}
+      >
+        Add photos
+      </h1>
+      <p style={{ fontSize: fontSize.base, color: colors.muted, marginBottom: spacing.xl - 2 }}>
+        Listings with real photos get far more enquiries. You can add more later.
+      </p>
+
+      <input
+        ref={inputRef}
+        type="file"
+        accept="image/*"
+        multiple
+        hidden
+        onChange={(e) => {
+          onFiles(e.target.files);
+          e.target.value = "";
+        }}
+      />
+
+      <button
+        onClick={() => inputRef.current?.click()}
+        style={{
+          width: "100%",
+          height: 130,
+          border: `1.5px dashed ${colors.line}`,
+          borderRadius: radius.md,
+          display: "flex",
+          flexDirection: "column",
+          alignItems: "center",
+          justifyContent: "center",
+          gap: spacing.sm,
+          color: colors.muted,
+          background: colors.card,
+        }}
+      >
+        <Icon name="house" size={22} color={colors.primary} />
+        <span style={{ fontSize: fontSize.sm, fontWeight: 600, color: colors.ink }}>
+          Click to upload photos
+        </span>
+        <span style={{ fontSize: fontSize.xs }}>JPG or PNG, multiple allowed</span>
+      </button>
+
+      {items.length > 0 && (
+        <div
+          className="grid grid-cols-2 sm:grid-cols-3"
+          style={{ gap: spacing.md, marginTop: spacing.lg }}
+        >
+          {items.map((item) => (
+            <div
+              key={item.key}
+              style={{
+                position: "relative",
+                borderRadius: radius.md,
+                overflow: "hidden",
+                aspectRatio: "4 / 3",
+                border: `1px solid ${colors.line}`,
+              }}
+            >
+              {/* eslint-disable-next-line @next/next/no-img-element */}
+              <img
+                src={item.previewUrl}
+                alt=""
+                style={{ width: "100%", height: "100%", objectFit: "cover" }}
+              />
+              <button
+                onClick={() => removeItem(item.key)}
+                aria-label="Remove image"
+                style={{
+                  position: "absolute",
+                  top: 6,
+                  right: 6,
+                  width: 26,
+                  height: 26,
+                  borderRadius: "50%",
+                  background: "rgba(16,28,48,0.65)",
+                  color: colors.white,
+                  display: "grid",
+                  placeItems: "center",
+                }}
+              >
+                <Icon name="close" size={13} color={colors.white} />
+              </button>
+              {item.status === "uploading" && (
+                <div
+                  style={{
+                    position: "absolute",
+                    inset: 0,
+                    background: "rgba(16,28,48,0.45)",
+                    color: colors.white,
+                    display: "grid",
+                    placeItems: "center",
+                    fontSize: fontSize.xs,
+                    fontWeight: 600,
+                  }}
+                >
+                  Uploading…
+                </div>
+              )}
+              {item.status === "error" && (
+                <button
+                  onClick={() => retryItem(item)}
+                  style={{
+                    position: "absolute",
+                    inset: 0,
+                    background: "rgba(192,57,43,0.75)",
+                    color: colors.white,
+                    display: "grid",
+                    placeItems: "center",
+                    fontSize: fontSize.xs,
+                    fontWeight: 700,
+                  }}
+                >
+                  Failed — tap to retry
+                </button>
+              )}
+            </div>
+          ))}
+        </div>
+      )}
+
+      <button
+        onClick={() => !uploading && onContinue()}
+        className={`login-cta${!uploading ? " is-ready" : ""}`}
+        style={{
+          display: "inline-flex",
+          alignItems: "center",
+          justifyContent: "center",
+          gap: 9,
+          width: "100%",
+          height: 52,
+          marginTop: spacing.xl,
+          borderRadius: radius.md,
+          background: colors.primary,
+          color: colors.white,
+          fontWeight: 600,
+          fontSize: fontSize.md - 1,
+          opacity: uploading ? 0.5 : 1,
+        }}
+      >
+        {uploading ? "Uploading…" : imageIds.length > 0 ? "Continue" : "Skip for now"}
+        {!uploading && <Icon name="arrow" size={18} color={colors.white} />}
+      </button>
+    </div>
+  );
+}

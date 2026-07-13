@@ -6,6 +6,9 @@ export const API_ENDPOINTS = {
   AUTH: {
     CHECK_USER_LOGIN: "auth/check-user",
     USER_LOGIN_OTP: "auth/user-login-otp",
+    // Called by ApiService itself whenever a request comes back 401 — trades
+    // the locally stored refresh token for a new access token.
+    REFRESH_TOKEN: "auth/refresh-token",
   },
   LANDING: {
     FEATURED_PROPERTIES: "/landing/featured-properties",
@@ -14,6 +17,10 @@ export const API_ENDPOINTS = {
     // Guest-accessible — no auth required. Full professional-services
     // category taxonomy (id, name, image, professionalsCount).
     CATEGORY_LIST: "common/category-list",
+    // Requires a stored auth token. Multipart image upload used by the
+    // property-add flow (and elsewhere) — returns an image record with an
+    // `_id` to reference from `property_images`.
+    IMAGE_UPLOAD: "common/image-upload",
   },
   DATA: {
     FEATURED_PROFESSIONALS: "data/get-featured-professionals",
@@ -42,5 +49,9 @@ export const API_ENDPOINTS = {
     // Guest-accessible — no auth required. Property type taxonomy (id + name
     // + count), used to drive the "Property type" filter with real ids.
     PROPERTY_TYPES: "property/get-property-types",
+    // Requires a stored auth token. Mirrors homedot-mobile-app's
+    // CREATE_SELL_PROPERTY ("v1/property/create") — same "v1/" note as
+    // FILTER_SELL_PROPERTY above.
+    CREATE_PROPERTY: "property/create",
   },
 } as const;

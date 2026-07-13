@@ -118,6 +118,66 @@ export interface PropertyDetailBody {
   data: PropertyDetailEntry[];
 }
 
+export interface ImageUploadRecord {
+  _id: string;
+  imageFile?: string;
+}
+
+export interface ImageUploadBody {
+  status: boolean;
+  message: string;
+  data: ImageUploadRecord;
+}
+
+// Wire payload for property/create — field names match homedot-mobile-app's
+// create_SellProperty_* request bodies exactly (same backend). Every screen
+// sends the same common fields plus whichever subset applies to its property
+// kind (see PROPERTY_KIND_FIELDS in PropertyAddScreen); the rest are left
+// undefined and JSON.stringify drops them, so one shape covers every kind.
+export interface CreatePropertyPayload {
+  property_name: string;
+  property_ad_title: string;
+  description: string;
+  property_state: string;
+  property_district: string;
+  listed_by: "owner";
+  property_location: string;
+  property_sub_location: string;
+  property_city: string;
+  property_country: string;
+  google_address_string: string;
+  latitude: number;
+  longitude: number;
+  property_type: string;
+  price: number;
+  property_images: string[];
+  bedrooms?: string;
+  bathrooms?: number;
+  balcony?: number;
+  furnished?: string;
+  build_up_area?: number;
+  carpet_area?: number;
+  plot_area?: number;
+  no_of_floors?: number;
+  road_width?: number;
+  maintenanceCharge?: number;
+  garage?: number;
+  amenities?: string[];
+  length?: number;
+  breadth?: number;
+}
+
+export interface CreatePropertyRecord {
+  _id: string;
+  propertySlug?: string;
+}
+
+export interface CreatePropertyBody {
+  status: boolean;
+  message: string;
+  data: CreatePropertyRecord[];
+}
+
 // All Marketplace screen API calls live here. The screen only ever imports
 // this file — never ApiService or fetch directly.
 export const MarketplaceScreenService = {
@@ -142,6 +202,20 @@ export const MarketplaceScreenService = {
   // Guest-accessible — no auth required.
   getPropertyTypes: (): Promise<ApiResponse<PropertyTypesBody>> =>
     ApiService.get<PropertyTypesBody>(API_ENDPOINTS.MARKETPLACE.PROPERTY_TYPES),
+
+  // Requires a stored auth token. One file per call, matching the mobile
+  // app's per-image multipart upload (field name "image").
+  uploadPropertyImage: (file: File): Promise<ApiResponse<ImageUploadBody>> => {
+    const form = new FormData();
+    form.append("image", file);
+    return ApiService.post<ImageUploadBody>(API_ENDPOINTS.COMMON.IMAGE_UPLOAD, form);
+  },
+
+  // Requires a stored auth token.
+  createProperty: (
+    payload: CreatePropertyPayload,
+  ): Promise<ApiResponse<CreatePropertyBody>> =>
+    ApiService.post<CreatePropertyBody>(API_ENDPOINTS.MARKETPLACE.CREATE_PROPERTY, payload),
 };
 
 interface AmenityLike {

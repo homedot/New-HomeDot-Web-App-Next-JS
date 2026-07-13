@@ -30,6 +30,7 @@ export default function PropertyCard({
   property: Property;
   onOpen?: () => void;
   saved?: boolean;
+
   onSave?: (id: string) => void;
 }) {
   return (

@@ -13,7 +13,7 @@ import { spacing, radius, fontSize, shadow } from "@/utils/size";
 import Icon from "@/components/Icon";
 import Button from "@/components/Button";
 import AuthService from "@/services/AuthService";
-import { setAuthTokens } from "@/utils/authStorage";
+import { useAuthStore } from "@/store/useAuthStore";
 import type { LocationValue } from "@/components/LocationMapPicker";
 import RoleStep from "./RoleStep";
 import UserFormStep, { type UserFormValues } from "./UserFormStep";
@@ -216,7 +216,7 @@ const LoginModal = forwardRef<LoginModalHandle>(function LoginModal(_props, ref)
     }
     const record = res.data.data[0];
     if (record?.token && record?.reToken) {
-      setAuthTokens({ token: record.token, refreshToken: record.reToken });
+      useAuthStore.getState().setTokens({ token: record.token, refreshToken: record.reToken });
     }
     if (isNewUser) {
       setStep("role");
