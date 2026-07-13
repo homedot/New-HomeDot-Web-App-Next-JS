@@ -614,25 +614,6 @@ export default function MarketplaceScreen() {
                   ))}
                 </select>
               </label>
-              <button
-                type="button"
-                onClick={applyTypedLocation}
-                style={{
-                  height: 50,
-                  padding: "0 24px",
-                  borderRadius: 12,
-                  background: colors.primary,
-                  color: colors.white,
-                  fontWeight: 600,
-                  fontSize: fontSize.base - 0.5,
-                  display: "inline-flex",
-                  alignItems: "center",
-                  gap: 8,
-                  flexShrink: 0,
-                }}
-              >
-                <Icon name="search" size={18} color={colors.white} /> Search
-              </button>
             </div>
           </section>
 
