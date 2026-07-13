@@ -28,11 +28,15 @@ import MarketplaceScreenService, {
   type PropertyTypeRecord,
 } from "@/services/MarketplaceScreenService";
 import {
+  loadGoogleMapsScript,
+  type GoogleMapsNamespace,
+  type GoogleMapsAddressComponent,
+} from "@/utils/loadGoogleMapsScript";
+import {
   properties,
   bedOptions,
   bathOptions,
   priceOptions,
-  amenityOptions,
   budgetRanges,
   parsePrice,
   type MarketplaceProperty,
@@ -44,6 +48,25 @@ const wrap: CSSProperties = {
   padding: `0 ${spacing.xl}px`,
 };
 
+// Mirrors homedot-mobile-app's location filter, which only reads the
+// "locality" component out of a geocode/place result to drive `cities`.
+function cityFromAddressComponents(
+  components: GoogleMapsAddressComponent[] | undefined,
+): string | null {
+  return components?.find((c) => c.types.includes("locality"))?.long_name ?? null;
+}
+
+// Office space and plots have no bedroom/bathroom counts server-side, so
+// those filters don't apply to them.
+const PROPERTY_TYPES_WITHOUT_BED_BATH = new Set(["office-space", "plots"]);
+
+function hidesBedBath(type: PropertyTypeRecord | null): boolean {
+  if (!type) return false;
+  if (type.propertyTypeSlug && PROPERTY_TYPES_WITHOUT_BED_BATH.has(type.propertyTypeSlug))
+    return true;
+  return /office|plot/i.test(type.propertyType);
+}
+
 export default function MarketplaceScreen() {
   const searchParams = useSearchParams();
   const requestedPropertyTypeId = searchParams.get("propertyType");
@@ -54,10 +77,22 @@ export default function MarketplaceScreen() {
   >([]);
   const [selectedPropertyType, setSelectedPropertyType] =
     useState<PropertyTypeRecord | null>(null);
+  // `locationText` is purely the input's display value (updates on every
+  // keystroke); `appliedLocation` is what actually drives the API filter and
+  // is only set when a Places suggestion is picked or "use my current
+  // location" resolves — mirrors homedot-mobile-app's searchText/location split.
+  const [locationText, setLocationText] = useState("Kochi, Kerala");
+  const [appliedLocation, setAppliedLocation] = useState<{
+    address: string;
+    city: string | null;
+  } | null>(null);
+  const [locatingMe, setLocatingMe] = useState(false);
+  const locationInputRef = useRef<HTMLInputElement | null>(null);
+  const googleMapsRef = useRef<GoogleMapsNamespace | null>(null);
+  const locationAutocompleteInitialized = useRef(false);
   const [beds, setBeds] = useState("");
   const [baths, setBaths] = useState("");
   const [budget, setBudget] = useState("");
-  const [amenities, setAmenities] = useState<string[]>([]);
   const [sort, setSort] = useState<"recommended" | "low" | "high" | "area">(
     "recommended",
   );
@@ -82,6 +117,112 @@ export default function MarketplaceScreen() {
     });
   }, []);
 
+  // Binds Google Places Autocomplete to the hero location input, matching
+  // homedot-mobile-app's location search (search box + "use my current
+  // location"). The JS Places widget is used instead of the REST Autocomplete
+  // API the mobile app calls directly, since that REST endpoint has no CORS
+  // headers and can't be called from a browser.
+  useEffect(() => {
+    let cancelled = false;
+    loadGoogleMapsScript()
+      .then((google) => {
+        if (cancelled) return;
+        googleMapsRef.current = google;
+        if (locationAutocompleteInitialized.current || !locationInputRef.current) return;
+        locationAutocompleteInitialized.current = true;
+
+        const autocomplete = new google.maps.places.Autocomplete(locationInputRef.current, {
+          componentRestrictions: { country: "in" },
+          fields: ["formatted_address", "address_components"],
+        });
+        autocomplete.addListener("place_changed", () => {
+          const place = autocomplete.getPlace();
+          if (!place.formatted_address) return;
+          setLocationText(place.formatted_address);
+          setAppliedLocation({
+            address: place.formatted_address,
+            city: cityFromAddressComponents(place.address_components),
+          });
+        });
+      })
+      .catch(() => {
+        // Silently degrade to a plain text field — listings still load
+        // without location search if Maps fails to load.
+      });
+    return () => {
+      cancelled = true;
+    };
+  }, []);
+
+  const locateCurrentPosition = () => {
+    if (typeof navigator === "undefined" || !navigator.geolocation) return;
+    setLocatingMe(true);
+    navigator.geolocation.getCurrentPosition(
+      ({ coords }) => {
+        const google = googleMapsRef.current;
+        if (!google) {
+          setLocatingMe(false);
+          return;
+        }
+        new google.maps.Geocoder().geocode(
+          { location: { lat: coords.latitude, lng: coords.longitude } },
+          (results, status) => {
+            setLocatingMe(false);
+            if (status === "OK" && results?.[0]) {
+              setLocationText(results[0].formatted_address);
+              setAppliedLocation({
+                address: results[0].formatted_address,
+                city: cityFromAddressComponents(results[0].address_components),
+              });
+            }
+          },
+        );
+      },
+      () => setLocatingMe(false),
+    );
+  };
+
+  const clearLocation = () => {
+    setLocationText("");
+    setAppliedLocation(null);
+  };
+
+  // The Places widget only applies a location when a dropdown suggestion is
+  // actually clicked/selected — typing a full address and hitting "Search"
+  // (or Enter) without picking a suggestion leaves `appliedLocation` unset,
+  // so the location filter silently never reaches the API. This geocodes
+  // whatever's currently typed as a fallback so "Search" always works.
+  const applyTypedLocation = () => {
+    const query = locationText.trim();
+    if (!query) {
+      clearLocation();
+      return;
+    }
+    if (appliedLocation?.address === query) return;
+    const google = googleMapsRef.current;
+    if (!google) return;
+    new google.maps.Geocoder().geocode({ address: query }, (results, status) => {
+      if (status === "OK" && results?.[0]) {
+        setLocationText(results[0].formatted_address);
+        setAppliedLocation({
+          address: results[0].formatted_address,
+          city: cityFromAddressComponents(results[0].address_components),
+        });
+      }
+    });
+  };
+
+  // Sets the property type and clears Bedrooms/Bathrooms whenever the new
+  // type hides them (office space, plots) — otherwise a stale "3 BHK"
+  // selection silently zeroes out every result for a type that has no beds.
+  const selectPropertyType = (next: PropertyTypeRecord | null) => {
+    setSelectedPropertyType(next);
+    if (hidesBedBath(next)) {
+      setBeds("");
+      setBaths("");
+    }
+  };
+
   // Pre-selects the property type passed in via ?propertyType=<id> (e.g. from
   // LandingScreen's "Browse by property category" cards) once the taxonomy
   // has loaded and a matching option can be resolved.
@@ -91,7 +232,7 @@ export default function MarketplaceScreen() {
       const match = propertyTypeOptions.find(
         (t) => t._id === requestedPropertyTypeId,
       );
-      if (match) setSelectedPropertyType(match);
+      if (match) selectPropertyType(match);
     };
     applyRequestedType();
   }, [requestedPropertyTypeId, propertyTypeOptions]);
@@ -104,14 +245,14 @@ export default function MarketplaceScreen() {
     return {
       min: range?.[0] ?? null,
       max: max === undefined || max === Infinity ? null : max,
-      address: null,
+      address: appliedLocation?.address ?? null,
       featured: false,
       bedrooms: beds ? (beds === "5+" ? "4_PLUS_BHK" : `${beds}_BHK`) : null,
       bathrooms: baths ? parseInt(baths, 10) : null,
-      cities: null,
+      cities: appliedLocation?.city ? [appliedLocation.city] : null,
       propertyType: selectedPropertyType?._id ?? null,
     };
-  }, [budget, beds, baths, selectedPropertyType]);
+  }, [budget, beds, baths, selectedPropertyType, appliedLocation]);
 
   useEffect(() => {
     let cancelled = false;
@@ -124,11 +265,16 @@ export default function MarketplaceScreen() {
       );
       if (cancelled) return;
       setLoading(false);
-      const result = res.data?.data?.[0];
-      if (res.success && res.data?.status && result) {
-        setApiProperties(result.data.map((r) => toMarketplaceProperty(r, purpose)));
-        setPage(result.currentPage);
-        setTotalPages(result.totalPages);
+      // An empty `data` array (no page entry at all) means zero matches for
+      // this search — must still clear stale results from a previous search,
+      // not just leave them on screen.
+      if (res.success && res.data?.status) {
+        const result = res.data.data[0];
+        setApiProperties(
+          result ? result.data.map((r) => toMarketplaceProperty(r, purpose)) : [],
+        );
+        setPage(result?.currentPage ?? 1);
+        setTotalPages(result?.totalPages ?? 1);
       }
     };
     load();
@@ -157,9 +303,6 @@ export default function MarketplaceScreen() {
     }
   };
 
-  const toggle = (arr: string[], set: (v: string[]) => void, v: string) =>
-    set(arr.includes(v) ? arr.filter((x) => x !== v) : [...arr, v]);
-
   const toggleSave = (id: string) =>
     setSaved((s) => (s.includes(id) ? s.filter((x) => x !== id) : [...s, id]));
 
@@ -181,37 +324,26 @@ export default function MarketplaceScreen() {
         return v >= lo && v < hi;
       });
     }
-    if (amenities.length)
-      out = out.filter((p) => amenities.every((a) => p.amenities.includes(a)));
     if (sort === "low")
       out = [...out].sort((a, b) => parsePrice(a.price) - parsePrice(b.price));
     if (sort === "high")
       out = [...out].sort((a, b) => parsePrice(b.price) - parsePrice(a.price));
     if (sort === "area") out = [...out].sort((a, b) => b.area - a.area);
     return out;
-  }, [
-    apiProperties,
-    purpose,
-    selectedPropertyType,
-    beds,
-    baths,
-    budget,
-    amenities,
-    sort,
-  ]);
+  }, [apiProperties, purpose, selectedPropertyType, beds, baths, budget, sort]);
 
   const activeCount =
     (selectedPropertyType ? 1 : 0) +
-    amenities.length +
+    (appliedLocation ? 1 : 0) +
     (beds ? 1 : 0) +
     (baths ? 1 : 0) +
     (budget ? 1 : 0);
   const clearAll = () => {
     setSelectedPropertyType(null);
+    clearLocation();
     setBeds("");
     setBaths("");
     setBudget("");
-    setAmenities([]);
   };
 
   const openDetail = (p: MarketplaceProperty) => {
@@ -397,7 +529,16 @@ export default function MarketplaceScreen() {
               >
                 <Icon name="location" size={18} />
                 <input
-                  defaultValue="Kochi, Kerala"
+                  ref={locationInputRef}
+                  value={locationText}
+                  onChange={(e) => setLocationText(e.target.value)}
+                  onKeyDown={(e) => {
+                    if (e.key !== "Enter") return;
+                    e.preventDefault();
+                    // Deferred so a Places suggestion the widget itself
+                    // resolves on Enter (place_changed) applies first.
+                    setTimeout(applyTypedLocation, 0);
+                  }}
                   placeholder="Search city, locality or project"
                   style={{
                     border: "none",
@@ -408,6 +549,31 @@ export default function MarketplaceScreen() {
                     color: colors.ink,
                   }}
                 />
+                {appliedLocation ? (
+                  <button
+                    type="button"
+                    onClick={clearLocation}
+                    aria-label="Clear location"
+                    style={{ display: "flex", flexShrink: 0, color: colors.muted }}
+                  >
+                    <Icon name="close" size={14} />
+                  </button>
+                ) : (
+                  <button
+                    type="button"
+                    onClick={locateCurrentPosition}
+                    disabled={locatingMe}
+                    aria-label="Use my current location"
+                    style={{
+                      display: "flex",
+                      flexShrink: 0,
+                      color: colors.primary,
+                      opacity: locatingMe ? 0.5 : 1,
+                    }}
+                  >
+                    <Icon name="compass" size={17} />
+                  </button>
+                )}
               </label>
               <label
                 style={{
@@ -426,7 +592,7 @@ export default function MarketplaceScreen() {
                 <select
                   value={selectedPropertyType?._id ?? ""}
                   onChange={(e) =>
-                    setSelectedPropertyType(
+                    selectPropertyType(
                       propertyTypeOptions.find(
                         (t) => t._id === e.target.value,
                       ) ?? null,
@@ -449,6 +615,8 @@ export default function MarketplaceScreen() {
                 </select>
               </label>
               <button
+                type="button"
+                onClick={applyTypedLocation}
                 style={{
                   height: 50,
                   padding: "0 24px",
@@ -530,7 +698,7 @@ export default function MarketplaceScreen() {
                       }
                       checked={selectedPropertyType?._id === t._id}
                       onChange={() =>
-                        setSelectedPropertyType(
+                        selectPropertyType(
                           selectedPropertyType?._id === t._id ? null : t,
                         )
                       }
@@ -538,7 +706,7 @@ export default function MarketplaceScreen() {
                   ))}
                 </FilterGroup>
 
-                <FilterGroup title="Budget">
+                <FilterGroup title="Budget" last={hidesBedBath(selectedPropertyType)}>
                   {priceOptions.map((b) => (
                     <RadioRow
                       key={b}
@@ -549,42 +717,35 @@ export default function MarketplaceScreen() {
                   ))}
                 </FilterGroup>
 
-                <FilterGroup title="Bedrooms">
-                  <div style={{ display: "flex", flexWrap: "wrap", gap: 8 }}>
-                    {bedOptions.map((b) => (
-                      <SegPill
-                        key={b}
-                        label={`${b} BHK`}
-                        active={beds === b}
-                        onClick={() => setBeds(beds === b ? "" : b)}
-                      />
-                    ))}
-                  </div>
-                </FilterGroup>
+                {!hidesBedBath(selectedPropertyType) && (
+                  <>
+                    <FilterGroup title="Bedrooms">
+                      <div style={{ display: "flex", flexWrap: "wrap", gap: 8 }}>
+                        {bedOptions.map((b) => (
+                          <SegPill
+                            key={b}
+                            label={`${b} BHK`}
+                            active={beds === b}
+                            onClick={() => setBeds(beds === b ? "" : b)}
+                          />
+                        ))}
+                      </div>
+                    </FilterGroup>
 
-                <FilterGroup title="Bathrooms">
-                  <div style={{ display: "flex", flexWrap: "wrap", gap: 8 }}>
-                    {bathOptions.map((b) => (
-                      <SegPill
-                        key={b}
-                        label={`${b}+`}
-                        active={baths === b}
-                        onClick={() => setBaths(baths === b ? "" : b)}
-                      />
-                    ))}
-                  </div>
-                </FilterGroup>
-
-                <FilterGroup title="Amenities" last>
-                  {amenityOptions.map((a) => (
-                    <CheckRow
-                      key={a}
-                      label={a}
-                      checked={amenities.includes(a)}
-                      onChange={() => toggle(amenities, setAmenities, a)}
-                    />
-                  ))}
-                </FilterGroup>
+                    <FilterGroup title="Bathrooms" last>
+                      <div style={{ display: "flex", flexWrap: "wrap", gap: 8 }}>
+                        {bathOptions.map((b) => (
+                          <SegPill
+                            key={b}
+                            label={`${b}+`}
+                            active={baths === b}
+                            onClick={() => setBaths(baths === b ? "" : b)}
+                          />
+                        ))}
+                      </div>
+                    </FilterGroup>
+                  </>
+                )}
               </aside>
 
               {/* results */}
@@ -724,6 +885,12 @@ export default function MarketplaceScreen() {
                         onRemove={() => setSelectedPropertyType(null)}
                       />
                     )}
+                    {appliedLocation && (
+                      <Chip
+                        label={appliedLocation.city || appliedLocation.address}
+                        onRemove={clearLocation}
+                      />
+                    )}
                     {beds && (
                       <Chip
                         label={`${beds} BHK`}
@@ -739,13 +906,6 @@ export default function MarketplaceScreen() {
                     {budget && (
                       <Chip label={budget} onRemove={() => setBudget("")} />
                     )}
-                    {amenities.map((a) => (
-                      <Chip
-                        key={a}
-                        label={a}
-                        onRemove={() => toggle(amenities, setAmenities, a)}
-                      />
-                    ))}
                     <button
                       onClick={clearAll}
                       style={{
@@ -896,52 +1056,6 @@ function FilterGroup({
         {children}
       </div>
     </div>
-  );
-}
-
-function CheckRow({
-  label,
-  checked,
-  onChange,
-}: {
-  label: string;
-  checked: boolean;
-  onChange: () => void;
-}) {
-  return (
-    <label
-      style={{
-        display: "flex",
-        alignItems: "center",
-        gap: 10,
-        fontSize: fontSize.base - 1,
-        color: colors.ink2,
-        cursor: "pointer",
-      }}
-    >
-      <input
-        type="checkbox"
-        checked={checked}
-        onChange={onChange}
-        style={{ position: "absolute", opacity: 0, width: 0, height: 0 }}
-      />
-      <span
-        style={{
-          width: 19,
-          height: 19,
-          borderRadius: 6,
-          border: `1.5px solid ${checked ? colors.primary : colors.line}`,
-          background: checked ? colors.primary : "transparent",
-          display: "grid",
-          placeItems: "center",
-          color: colors.white,
-          flexShrink: 0,
-        }}
-      >
-        {checked && <Icon name="check" size={12} color={colors.white} />}
-      </span>
-      {label}
-    </label>
   );
 }
 

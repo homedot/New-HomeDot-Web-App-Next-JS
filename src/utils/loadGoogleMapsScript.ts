@@ -8,15 +8,30 @@ export interface GoogleMapsMarker {
   addListener: (event: string, handler: () => void) => void;
 }
 
+export interface GoogleMapsAddressComponent {
+  long_name: string;
+  short_name: string;
+  types: string[];
+}
+
+export interface GoogleMapsGeocodeResult {
+  formatted_address: string;
+  address_components: GoogleMapsAddressComponent[];
+  geometry: { location: { lat: () => number; lng: () => number } };
+}
+
 export interface GoogleMapsNamespace {
   maps: {
     Map: new (el: HTMLElement, opts: Record<string, unknown>) => unknown;
     Marker: new (opts: Record<string, unknown>) => GoogleMapsMarker;
     Geocoder: new () => {
       geocode: (
-        request: { location: { lat: number; lng: number } },
+        request:
+          | { location: { lat: number; lng: number } }
+          | { placeId: string }
+          | { address: string },
         callback: (
-          results: { formatted_address: string }[] | null,
+          results: GoogleMapsGeocodeResult[] | null,
           status: string,
         ) => void,
       ) => void;
@@ -29,6 +44,7 @@ export interface GoogleMapsNamespace {
         addListener: (event: string, handler: () => void) => void;
         getPlace: () => {
           formatted_address?: string;
+          address_components?: GoogleMapsAddressComponent[];
           geometry?: { location: { lat: () => number; lng: () => number } };
         };
         setBounds: (bounds: unknown) => void;
