@@ -3,6 +3,8 @@
 import { useEffect, useRef, useState } from "react";
 import { colors } from "@/constants/colors";
 import { spacing, radius, fontSize, shadow } from "@/utils/size";
+import { DEFAULT_MAP_CENTER } from "@/constants/MapConstants";
+import { loadGoogleMapsScript } from "@/utils/loadGoogleMapsScript";
 import Icon, { type IconName } from "@/components/Icon";
 import Button from "@/components/Button";
 import PropertyCard from "@/components/PropertyCard";
@@ -95,6 +97,7 @@ export default function PropertyDetail({
   const [mobileIndex, setMobileIndex] = useState(0);
   const [copied, setCopied] = useState(false);
   const [activeSection, setActiveSection] = useState("overview");
+  const [mapReady, setMapReady] = useState(false);
 
   // Reset transient UI state (lightbox, form, scroll-spy…) whenever the
   // visitor jumps to a different listing — this component is reused across
@@ -109,6 +112,7 @@ export default function PropertyDetail({
     setMobileIndex(0);
     setCopied(false);
     setActiveSection("overview");
+    setMapReady(false);
   }
 
   const overviewRef = useRef<HTMLDivElement>(null);
@@ -118,6 +122,7 @@ export default function PropertyDetail({
   const contactCardRef = useRef<HTMLDivElement>(null);
   const nameInputRef = useRef<HTMLInputElement>(null);
   const mobileGalleryRef = useRef<HTMLDivElement>(null);
+  const mapDivRef = useRef<HTMLDivElement>(null);
 
   const sectionRefs = {
     overview: overviewRef,
@@ -173,6 +178,43 @@ export default function PropertyDetail({
     window.addEventListener("keydown", onKey);
     return () => window.removeEventListener("keydown", onKey);
   }, [lightbox, prop.gallery.length]);
+
+  // Property records only carry a free-text address, not lat/lng, so the
+  // real Google Map is built by geocoding that address client-side and
+  // dropping a marker — same Maps JS API + key already used by
+  // LocationMapPicker in the property-add flow. Falls back to the
+  // decorative panel (mapReady stays false) if the script or geocode fails.
+  useEffect(() => {
+    let cancelled = false;
+    const address = `${prop.location}, ${prop.city}`;
+
+    loadGoogleMapsScript()
+      .then((google) => {
+        if (cancelled || !mapDivRef.current) return;
+        const geocoder = new google.maps.Geocoder();
+        geocoder.geocode({ address }, (results, status) => {
+          if (cancelled || !mapDivRef.current) return;
+          const resolved = status === "OK" && results?.[0] ? results[0].geometry.location : null;
+          const center = resolved ? { lat: resolved.lat(), lng: resolved.lng() } : DEFAULT_MAP_CENTER;
+          const map = new google.maps.Map(mapDivRef.current, {
+            center,
+            zoom: resolved ? 15 : 11,
+            disableDefaultUI: true,
+            zoomControl: true,
+            gestureHandling: "cooperative",
+          });
+          new google.maps.Marker({ position: center, map });
+          setMapReady(true);
+        });
+      })
+      .catch(() => {
+        // leave mapReady false — decorative fallback panel stays visible
+      });
+
+    return () => {
+      cancelled = true;
+    };
+  }, [prop.id, prop.location, prop.city]);
 
   function scrollToSection(key: keyof typeof sectionRefs) {
     sectionRefs[key].current?.scrollIntoView({ behavior: "smooth", block: "start" });
@@ -859,7 +901,7 @@ export default function PropertyDetail({
                 <div
                   style={{
                     position: "relative",
-                    height: 200,
+                    height: 260,
                     borderRadius: radius.lg,
                     overflow: "hidden",
                     border: `1px solid ${colors.line}`,
@@ -867,48 +909,56 @@ export default function PropertyDetail({
                       "repeating-linear-gradient(0deg, rgba(16,28,48,0.045) 0 1px, transparent 1px 34px), repeating-linear-gradient(90deg, rgba(16,28,48,0.045) 0 1px, transparent 1px 34px), #EEF1F5",
                   }}
                 >
-                  <span
-                    className="pd-map-glow"
-                    style={{
-                      position: "absolute",
-                      left: "50%",
-                      top: "50%",
-                      width: 140,
-                      height: 140,
-                      marginLeft: -70,
-                      marginTop: -70,
-                      borderRadius: "50%",
-                      background: kindStyle.accent,
-                      filter: "blur(46px)",
-                      opacity: 0.3,
-                    }}
-                  />
-                  <div
-                    className="pd-map-pin"
-                    style={{
-                      position: "absolute",
-                      left: "50%",
-                      top: "50%",
-                      transform: "translate(-50%, -50%)",
-                      display: "grid",
-                      placeItems: "center",
-                    }}
-                  >
-                    <span
-                      style={{
-                        width: 46,
-                        height: 46,
-                        borderRadius: "50%",
-                        background: kindStyle.accent,
-                        color: colors.white,
-                        display: "grid",
-                        placeItems: "center",
-                        boxShadow: shadow.md,
-                      }}
-                    >
-                      <Icon name="location" size={22} color={colors.white} filled />
-                    </span>
-                  </div>
+                  {/* real Google Map, geocoded from the listing's address */}
+                  <div ref={mapDivRef} style={{ position: "absolute", inset: 0, opacity: mapReady ? 1 : 0, transition: "opacity 0.3s ease" }} />
+
+                  {/* decorative fallback shown until the map has loaded (or if it fails) */}
+                  {!mapReady && (
+                    <>
+                      <span
+                        className="pd-map-glow"
+                        style={{
+                          position: "absolute",
+                          left: "50%",
+                          top: "50%",
+                          width: 140,
+                          height: 140,
+                          marginLeft: -70,
+                          marginTop: -70,
+                          borderRadius: "50%",
+                          background: kindStyle.accent,
+                          filter: "blur(46px)",
+                          opacity: 0.3,
+                        }}
+                      />
+                      <div
+                        className="pd-map-pin"
+                        style={{
+                          position: "absolute",
+                          left: "50%",
+                          top: "50%",
+                          transform: "translate(-50%, -50%)",
+                          display: "grid",
+                          placeItems: "center",
+                        }}
+                      >
+                        <span
+                          style={{
+                            width: 46,
+                            height: 46,
+                            borderRadius: "50%",
+                            background: kindStyle.accent,
+                            color: colors.white,
+                            display: "grid",
+                            placeItems: "center",
+                            boxShadow: shadow.md,
+                          }}
+                        >
+                          <Icon name="location" size={22} color={colors.white} filled />
+                        </span>
+                      </div>
+                    </>
+                  )}
                   <a
                     href={`https://www.google.com/maps/search/?api=1&query=${mapQuery}`}
                     target="_blank"
