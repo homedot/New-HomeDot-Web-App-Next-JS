@@ -1,11 +1,12 @@
 "use client";
 
+import { useState } from "react";
 import { colors } from "@/constants/colors";
 import { spacing, radius, fontSize } from "@/utils/size";
 import Icon from "@/components/Icon";
 import LocationMapPicker from "@/components/LocationMapPicker";
-import { amenityOptions } from "@/screens/MarketplaceScreen/data";
 import {
+  AMENITY_CATALOG,
   BEDROOM_OPTIONS,
   FURNISHING_OPTIONS,
   Field,
@@ -14,6 +15,7 @@ import {
   fieldInputStyle,
   inputWrap,
   isDetailsComplete,
+  type ListingPurpose,
   type PropertyFormState,
   type PropertyKind,
 } from "./shared";
@@ -50,6 +52,7 @@ function NumberField({
 export default function DetailsStep({
   kind,
   typeName,
+  purpose,
   form,
   setForm,
   onBack,
@@ -57,6 +60,7 @@ export default function DetailsStep({
 }: {
   kind: PropertyKind;
   typeName: string;
+  purpose: ListingPurpose;
   form: PropertyFormState;
   setForm: (updater: (f: PropertyFormState) => PropertyFormState) => void;
   onBack: () => void;
@@ -67,13 +71,40 @@ export default function DetailsStep({
   const set = <K extends keyof PropertyFormState>(key: K, value: PropertyFormState[K]) =>
     setForm((f) => ({ ...f, [key]: value }));
 
-  const toggleAmenity = (a: string) =>
-    setForm((f) => ({
-      ...f,
-      amenities: f.amenities.includes(a) ? f.amenities.filter((x) => x !== a) : [...f.amenities, a],
-    }));
+  // "Others" (id 10) is a sentinel — selecting it reveals a text input
+  // instead of toggling a real amenity, matching homedot-mobile-app's
+  // toggleAmenityOther() behavior.
+  const [showCustomAmenity, setShowCustomAmenity] = useState(false);
+  const [customAmenityInput, setCustomAmenityInput] = useState("");
+
+  const toggleCatalogAmenity = (item: (typeof AMENITY_CATALOG)[number]) => {
+    if (item.title === "Others") {
+      setShowCustomAmenity((v) => !v);
+      return;
+    }
+    setForm((f) => {
+      const exists = f.amenities.some((a) => a.id === item.id);
+      return { ...f, amenities: exists ? f.amenities.filter((a) => a.id !== item.id) : [...f.amenities, item] };
+    });
+  };
+
+  const addCustomAmenity = () => {
+    const title = customAmenityInput.trim();
+    if (!title) return;
+    setForm((f) => ({ ...f, amenities: [...f.amenities, { id: Date.now(), title }] }));
+    setCustomAmenityInput("");
+  };
+
+  const removeAmenity = (id: number) =>
+    setForm((f) => ({ ...f, amenities: f.amenities.filter((a) => a.id !== id) }));
+
+  // Custom amenities the user typed in themselves (ids outside the fixed
+  // 1–10 catalog) — rendered as their own removable chips below the catalog.
+  const customAmenities = form.amenities.filter((a) => !AMENITY_CATALOG.some((c) => c.id === a.id));
 
   const valid = isDetailsComplete(kind, form);
+  const priceLabel = purpose === "Rent" ? "Rental price" : "Selling price";
+  const pricePlaceholder = purpose === "Rent" ? "e.g. 28000" : "e.g. 7600000";
 
   return (
     <div>
@@ -137,14 +168,14 @@ export default function DetailsStep({
           />
         </Field>
 
-        <Field label="Price">
+        <Field label={priceLabel} hint={purpose === "Rent" ? "Monthly rent, in ₹" : undefined}>
           <div style={inputWrap}>
             <span style={{ color: colors.muted, fontWeight: 600 }}>₹</span>
             <input
               type="number"
               min={0}
               inputMode="numeric"
-              placeholder="e.g. 7600000"
+              placeholder={pricePlaceholder}
               value={form.price}
               onChange={(e) => set("price", e.target.value)}
               style={fieldInputStyle}
@@ -341,15 +372,17 @@ export default function DetailsStep({
         )}
 
         {has("amenities") && (
-          <Field label="Amenities" hint="Optional">
+          <Field label="Amenities" hint="Select at least one">
             <div style={{ display: "flex", flexWrap: "wrap", gap: spacing.sm }}>
-              {amenityOptions.map((a) => {
-                const selected = form.amenities.includes(a);
+              {AMENITY_CATALOG.map((item) => {
+                const selected =
+                  item.title === "Others" ? showCustomAmenity : form.amenities.some((a) => a.id === item.id);
                 return (
                   <button
-                    key={a}
+                    key={item.id}
                     type="button"
-                    onClick={() => toggleAmenity(a)}
+                    onClick={() => toggleCatalogAmenity(item)}
+                    className="pa-amenity-chip"
                     style={{
                       padding: "9px 15px",
                       borderRadius: radius.full,
@@ -360,10 +393,77 @@ export default function DetailsStep({
                       color: selected ? colors.primary : colors.ink2,
                     }}
                   >
-                    {a}
+                    {item.title}
                   </button>
                 );
               })}
+              {customAmenities.map((a) => (
+                <button
+                  key={a.id}
+                  type="button"
+                  onClick={() => removeAmenity(a.id)}
+                  className="pa-amenity-chip"
+                  style={{
+                    display: "inline-flex",
+                    alignItems: "center",
+                    gap: 6,
+                    padding: "9px 13px 9px 15px",
+                    borderRadius: radius.full,
+                    fontSize: fontSize.sm,
+                    fontWeight: 600,
+                    border: `1.5px solid ${colors.primary}`,
+                    background: colors.primarySoft,
+                    color: colors.primary,
+                  }}
+                >
+                  {a.title}
+                  <Icon name="close" size={13} />
+                </button>
+              ))}
+            </div>
+
+            <div
+              className="pa-custom-amenity"
+              style={{
+                height: showCustomAmenity ? 50 : 0,
+                opacity: showCustomAmenity ? 1 : 0,
+                overflow: "hidden",
+                marginTop: showCustomAmenity ? spacing.sm : 0,
+              }}
+            >
+              <div style={{ ...inputWrap, paddingRight: 6 }}>
+                <input
+                  type="text"
+                  placeholder="Name your own amenity, e.g. Rooftop deck"
+                  value={customAmenityInput}
+                  onChange={(e) => setCustomAmenityInput(e.target.value)}
+                  onKeyDown={(e) => {
+                    if (e.key === "Enter") {
+                      e.preventDefault();
+                      addCustomAmenity();
+                    }
+                  }}
+                  style={fieldInputStyle}
+                />
+                <button
+                  type="button"
+                  onClick={addCustomAmenity}
+                  disabled={!customAmenityInput.trim()}
+                  style={{
+                    flexShrink: 0,
+                    width: 34,
+                    height: 34,
+                    borderRadius: radius.sm,
+                    background: customAmenityInput.trim() ? colors.primary : colors.line,
+                    color: colors.white,
+                    display: "grid",
+                    placeItems: "center",
+                  }}
+                  aria-label="Add amenity"
+                >
+                  <Icon name="check" size={16} color={colors.white} />
+                </button>
+              </div>
             </div>
           </Field>
         )}

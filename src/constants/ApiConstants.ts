@@ -59,5 +59,9 @@ export const API_ENDPOINTS = {
     // CREATE_SELL_PROPERTY ("v1/property/create") — same "v1/" note as
     // FILTER_SELL_PROPERTY above.
     CREATE_PROPERTY: "property/create",
+    // Requires a stored auth token. Mirrors homedot-mobile-app's
+    // CREATE_RENTAL_PROPERTY ("v1/rent/create") — separate endpoint from
+    // CREATE_PROPERTY, same request body shape.
+    CREATE_RENTAL_PROPERTY: "rent/create",
   },
 } as const;

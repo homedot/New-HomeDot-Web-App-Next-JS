@@ -4,12 +4,15 @@ import { useEffect, useState } from "react";
 import { colors } from "@/constants/colors";
 import { spacing, radius, fontSize } from "@/utils/size";
 import Icon from "@/components/Icon";
+import Reveal from "@/components/Reveal";
 import MarketplaceScreenService, { type PropertyTypeRecord } from "@/services/MarketplaceScreenService";
 import { KIND_ICON, resolveKind } from "./shared";
 
 export default function TypeStep({
+  onBack,
   onSelect,
 }: {
+  onBack?: () => void;
   onSelect: (type: PropertyTypeRecord) => void;
 }) {
   const [types, setTypes] = useState<PropertyTypeRecord[]>([]);
@@ -29,6 +32,23 @@ export default function TypeStep({
 
   return (
     <div>
+      {onBack && (
+        <button
+          onClick={onBack}
+          style={{
+            display: "inline-flex",
+            alignItems: "center",
+            gap: 6,
+            fontSize: fontSize.sm + 0.5,
+            fontWeight: 600,
+            color: colors.muted,
+            marginBottom: spacing.lg,
+          }}
+        >
+          <Icon name="arrowLeft" size={17} /> Back
+        </button>
+      )}
+
       <h1
         style={{
           fontFamily: "var(--font-display)",
@@ -51,7 +71,8 @@ export default function TypeStep({
       )}
 
       {!loading && !error && (
-        <div
+        <Reveal
+          stagger
           className="grid grid-cols-1 sm:grid-cols-2"
           style={{ gap: spacing.md }}
         >
@@ -97,7 +118,7 @@ export default function TypeStep({
               </span>
             </button>
           ))}
-        </div>
+        </Reveal>
       )}
     </div>
   );

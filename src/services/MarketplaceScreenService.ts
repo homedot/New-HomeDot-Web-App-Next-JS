@@ -129,11 +129,18 @@ export interface ImageUploadBody {
   data: ImageUploadRecord;
 }
 
-// Wire payload for property/create — field names match homedot-mobile-app's
-// create_SellProperty_* request bodies exactly (same backend). Every screen
-// sends the same common fields plus whichever subset applies to its property
-// kind (see PROPERTY_KIND_FIELDS in PropertyAddScreen); the rest are left
-// undefined and JSON.stringify drops them, so one shape covers every kind.
+// Wire payload for property/create and rent/create — field names match
+// homedot-mobile-app's create_SellProperty_* / create_RentProperty_* request
+// bodies exactly (same backend, same shape for both purposes — only the
+// endpoint differs, see `createProperty` below). Every screen sends the same
+// common fields plus whichever subset applies to its property kind (see
+// KIND_FIELDS in PropertyAddScreen/shared.tsx); the rest are left undefined
+// and JSON.stringify drops them, so one shape covers every kind.
+export interface CreatePropertyAmenity {
+  id: number;
+  title: string;
+}
+
 export interface CreatePropertyPayload {
   property_name: string;
   property_ad_title: string;
@@ -162,7 +169,10 @@ export interface CreatePropertyPayload {
   road_width?: number;
   maintenanceCharge?: number;
   garage?: number;
-  amenities?: string[];
+  // Plain array of {id, title} objects — matches homedot-mobile-app's
+  // `selectedAmenities` exactly (locally-generated ids, not server ids; sent
+  // as a raw array, never JSON-stringified). See MarketPlaceServices.js.
+  amenities?: CreatePropertyAmenity[];
   length?: number;
   breadth?: number;
 }
@@ -219,11 +229,19 @@ export const MarketplaceScreenService = {
     return ApiService.post<ImageUploadBody>(API_ENDPOINTS.COMMON.IMAGE_UPLOAD, form);
   },
 
-  // Requires a stored auth token.
+  // Requires a stored auth token. "Buy" and "Rent" are separate create
+  // endpoints server-side (mirrors homedot-mobile-app's CREATE_SELL_PROPERTY
+  // vs CREATE_RENTAL_PROPERTY) but take the exact same request body shape.
   createProperty: (
     payload: CreatePropertyPayload,
+    purpose: "Buy" | "Rent" = "Buy",
   ): Promise<ApiResponse<CreatePropertyBody>> =>
-    ApiService.post<CreatePropertyBody>(API_ENDPOINTS.MARKETPLACE.CREATE_PROPERTY, payload),
+    ApiService.post<CreatePropertyBody>(
+      purpose === "Rent"
+        ? API_ENDPOINTS.MARKETPLACE.CREATE_RENTAL_PROPERTY
+        : API_ENDPOINTS.MARKETPLACE.CREATE_PROPERTY,
+      payload,
+    ),
 };
 
 interface AmenityLike {

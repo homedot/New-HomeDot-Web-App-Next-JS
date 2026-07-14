@@ -38,13 +38,27 @@ function getPropertyKind(category: string): PropertyKind {
   return "residential";
 }
 
-const KIND_STYLE: Record<PropertyKind, { icon: IconName; accent: string; soft: string }> = {
-  residential: { icon: "house", accent: colors.primary, soft: colors.primarySoft },
-  office: { icon: "office", accent: colors.price, soft: "rgba(14,124,138,0.12)" },
+const KIND_STYLE: Record<
+  PropertyKind,
+  { icon: IconName; accent: string; soft: string }
+> = {
+  residential: {
+    icon: "house",
+    accent: colors.primary,
+    soft: colors.primarySoft,
+  },
+  office: {
+    icon: "office",
+    accent: colors.price,
+    soft: "rgba(14,124,138,0.12)",
+  },
   plot: { icon: "plot", accent: "#1F8A5B", soft: "rgba(31,138,91,0.12)" },
 };
 
-const KIND_HIGHLIGHTS: Record<PropertyKind, { icon: IconName; label: string }[]> = {
+const KIND_HIGHLIGHTS: Record<
+  PropertyKind,
+  { icon: IconName; label: string }[]
+> = {
   residential: [
     { icon: "shield", label: "RERA registered" },
     { icon: "verified", label: "HomeDot verified" },
@@ -134,14 +148,19 @@ export default function PropertyDetail({
   const isSaved = saved.includes(prop.id);
   const isRent = prop.purpose === "Rent";
   const priceVal = parsePrice(prop.price);
-  const psf = prop.area > 0 ? Math.round(priceVal / prop.area).toLocaleString() : null;
+  const psf =
+    prop.area > 0 ? Math.round(priceVal / prop.area).toLocaleString() : null;
   const emi = !isRent && priceVal > 0 ? estimateMonthlyEmi(priceVal) : null;
 
   const kind = getPropertyKind(prop.category);
   const kindStyle = KIND_STYLE[kind];
   const highlights = KIND_HIGHLIGHTS[kind];
-  const verifiedHighlight = highlights.find((h) => h.label === "HomeDot verified");
-  const otherHighlights = highlights.filter((h) => h.label !== "HomeDot verified");
+  const verifiedHighlight = highlights.find(
+    (h) => h.label === "HomeDot verified",
+  );
+  const otherHighlights = highlights.filter(
+    (h) => h.label !== "HomeDot verified",
+  );
 
   useEffect(() => {
     mobileGalleryRef.current?.scrollTo({ left: 0 });
@@ -157,11 +176,13 @@ export default function PropertyDetail({
       (entries) => {
         const visible = entries.filter((e) => e.isIntersecting);
         if (visible.length === 0) return;
-        const topMost = visible.reduce((a, b) => (a.boundingClientRect.top < b.boundingClientRect.top ? a : b));
+        const topMost = visible.reduce((a, b) =>
+          a.boundingClientRect.top < b.boundingClientRect.top ? a : b,
+        );
         const match = targets.find((t) => t.el === topMost.target);
         if (match) setActiveSection(match.key);
       },
-      { rootMargin: "-160px 0px -60% 0px", threshold: [0, 1] }
+      { rootMargin: "-160px 0px -60% 0px", threshold: [0, 1] },
     );
     targets.forEach((t) => observer.observe(t.el));
     return () => observer.disconnect();
@@ -172,8 +193,12 @@ export default function PropertyDetail({
     if (lightbox === null) return;
     function onKey(e: KeyboardEvent) {
       if (e.key === "Escape") setLightbox(null);
-      else if (e.key === "ArrowRight") setLightbox((i) => (i === null ? i : (i + 1) % prop.gallery.length));
-      else if (e.key === "ArrowLeft") setLightbox((i) => (i === null ? i : (i - 1 + prop.gallery.length) % prop.gallery.length));
+      else if (e.key === "ArrowRight")
+        setLightbox((i) => (i === null ? i : (i + 1) % prop.gallery.length));
+      else if (e.key === "ArrowLeft")
+        setLightbox((i) =>
+          i === null ? i : (i - 1 + prop.gallery.length) % prop.gallery.length,
+        );
     }
     window.addEventListener("keydown", onKey);
     return () => window.removeEventListener("keydown", onKey);
@@ -194,8 +219,13 @@ export default function PropertyDetail({
         const geocoder = new google.maps.Geocoder();
         geocoder.geocode({ address }, (results, status) => {
           if (cancelled || !mapDivRef.current) return;
-          const resolved = status === "OK" && results?.[0] ? results[0].geometry.location : null;
-          const center = resolved ? { lat: resolved.lat(), lng: resolved.lng() } : DEFAULT_MAP_CENTER;
+          const resolved =
+            status === "OK" && results?.[0]
+              ? results[0].geometry.location
+              : null;
+          const center = resolved
+            ? { lat: resolved.lat(), lng: resolved.lng() }
+            : DEFAULT_MAP_CENTER;
           const map = new google.maps.Map(mapDivRef.current, {
             center,
             zoom: resolved ? 15 : 11,
@@ -217,11 +247,17 @@ export default function PropertyDetail({
   }, [prop.id, prop.location, prop.city]);
 
   function scrollToSection(key: keyof typeof sectionRefs) {
-    sectionRefs[key].current?.scrollIntoView({ behavior: "smooth", block: "start" });
+    sectionRefs[key].current?.scrollIntoView({
+      behavior: "smooth",
+      block: "start",
+    });
   }
 
   function focusContactForm() {
-    contactCardRef.current?.scrollIntoView({ behavior: "smooth", block: "start" });
+    contactCardRef.current?.scrollIntoView({
+      behavior: "smooth",
+      block: "start",
+    });
     window.setTimeout(() => nameInputRef.current?.focus(), 450);
   }
 
@@ -247,34 +283,87 @@ export default function PropertyDetail({
   const navItems: { key: keyof typeof sectionRefs; label: string }[] = [
     { key: "overview", label: "Overview" },
     { key: "details", label: "Details" },
-    ...(prop.amenities.length > 0 ? [{ key: "amenities" as const, label: "Amenities" }] : []),
+    ...(prop.amenities.length > 0
+      ? [{ key: "amenities" as const, label: "Amenities" }]
+      : []),
     { key: "location", label: "Location" },
   ];
 
   const keyFacts: { icon: IconName; label: string; value: string }[] =
     kind === "plot"
       ? [
-          { icon: "plot", label: "Plot area", value: prop.plotArea ? `${prop.plotArea.toLocaleString()} sqft` : "—" },
+          {
+            icon: "plot",
+            label: "Plot area",
+            value: prop.plotArea
+              ? `${prop.plotArea.toLocaleString()} sqft`
+              : "—",
+          },
           {
             icon: "ruler",
             label: "Dimensions",
-            value: prop.length && prop.breadth ? `${prop.length} × ${prop.breadth} ft` : "—",
+            value:
+              prop.length && prop.breadth
+                ? `${prop.length} × ${prop.breadth} ft`
+                : "—",
           },
-          { icon: "compass", label: "Road width", value: prop.roadWidth ? `${prop.roadWidth} ft` : "—" },
-          { icon: "sparkle", label: "Price / sqft", value: psf ? `₹${psf}` : "On request" },
+          {
+            icon: "compass",
+            label: "Road width",
+            value: prop.roadWidth ? `${prop.roadWidth} ft` : "—",
+          },
+          {
+            icon: "sparkle",
+            label: "Price / sqft",
+            value: psf ? `₹${psf}` : "On request",
+          },
         ]
       : kind === "office"
         ? [
-            { icon: "office", label: "Built-up area", value: prop.area ? `${prop.area.toLocaleString()} sqft` : "—" },
-            { icon: "cube", label: "Carpet area", value: prop.carpetArea ? `${prop.carpetArea.toLocaleString()} sqft` : "—" },
-            { icon: "ruler", label: "Floors", value: prop.noOfFloors ? String(prop.noOfFloors) : "—" },
-            { icon: "sparkle", label: "Price / sqft", value: psf ? `₹${psf}` : "On request" },
+            {
+              icon: "office",
+              label: "Built-up area",
+              value: prop.area ? `${prop.area.toLocaleString()} sqft` : "—",
+            },
+            {
+              icon: "cube",
+              label: "Carpet area",
+              value: prop.carpetArea
+                ? `${prop.carpetArea.toLocaleString()} sqft`
+                : "—",
+            },
+            {
+              icon: "ruler",
+              label: "Floors",
+              value: prop.noOfFloors ? String(prop.noOfFloors) : "—",
+            },
+            {
+              icon: "sparkle",
+              label: "Price / sqft",
+              value: psf ? `₹${psf}` : "On request",
+            },
           ]
         : [
-            { icon: "house", label: "Bedrooms", value: prop.beds > 0 ? `${prop.beds} BHK` : "—" },
-            { icon: "drop", label: "Bathrooms", value: prop.baths > 0 ? String(prop.baths) : "—" },
-            { icon: "cube", label: "Built-up area", value: prop.area ? `${prop.area.toLocaleString()} sqft` : "—" },
-            { icon: "sparkle", label: "Price / sqft", value: psf ? `₹${psf}` : "On request" },
+            {
+              icon: "house",
+              label: "Bedrooms",
+              value: prop.beds > 0 ? `${prop.beds} BHK` : "—",
+            },
+            {
+              icon: "drop",
+              label: "Bathrooms",
+              value: prop.baths > 0 ? String(prop.baths) : "—",
+            },
+            {
+              icon: "cube",
+              label: "Built-up area",
+              value: prop.area ? `${prop.area.toLocaleString()} sqft` : "—",
+            },
+            {
+              icon: "sparkle",
+              label: "Price / sqft",
+              value: psf ? `₹${psf}` : "On request",
+            },
           ];
 
   const details: [string, string][] = [
@@ -283,22 +372,36 @@ export default function PropertyDetail({
   ];
   if (prop.beds > 0) details.push(["Bedrooms", `${prop.beds} BHK`]);
   if (prop.baths > 0) details.push(["Bathrooms", String(prop.baths)]);
-  if (kind !== "plot" && prop.area > 0) details.push(["Built-up area", `${prop.area.toLocaleString()} sqft`]);
-  if (prop.carpetArea) details.push(["Carpet area", `${prop.carpetArea.toLocaleString()} sqft`]);
-  if (prop.plotArea) details.push(["Plot area", `${prop.plotArea.toLocaleString()} sqft`]);
-  if (prop.length && prop.breadth) details.push(["Dimensions", `${prop.length} × ${prop.breadth} ft`]);
+  if (kind !== "plot" && prop.area > 0)
+    details.push(["Built-up area", `${prop.area.toLocaleString()} sqft`]);
+  if (prop.carpetArea)
+    details.push(["Carpet area", `${prop.carpetArea.toLocaleString()} sqft`]);
+  if (prop.plotArea)
+    details.push(["Plot area", `${prop.plotArea.toLocaleString()} sqft`]);
+  if (prop.length && prop.breadth)
+    details.push(["Dimensions", `${prop.length} × ${prop.breadth} ft`]);
   if (prop.noOfFloors) details.push(["No. of floors", String(prop.noOfFloors)]);
   if (prop.roadWidth) details.push(["Road width", `${prop.roadWidth} ft`]);
-  if (prop.maintenanceCharge) details.push(["Maintenance charge", `₹${prop.maintenanceCharge.toLocaleString("en-IN")} / month`]);
+  if (prop.maintenanceCharge)
+    details.push([
+      "Maintenance charge",
+      `₹${prop.maintenanceCharge.toLocaleString("en-IN")} / month`,
+    ]);
   if (prop.garage) details.push(["Garage", String(prop.garage)]);
   if (prop.balcony) details.push(["Balcony", String(prop.balcony)]);
   if (prop.furnished) details.push(["Furnishing", prop.furnished]);
-  if (prop.listedBy) details.push(["Listed by", prop.listedBy.charAt(0).toUpperCase() + prop.listedBy.slice(1)]);
+  if (prop.listedBy)
+    details.push([
+      "Listed by",
+      prop.listedBy.charAt(0).toUpperCase() + prop.listedBy.slice(1),
+    ]);
 
   const mapQuery = encodeURIComponent(`${prop.location}, ${prop.city}`);
 
   return (
-    <section style={{ padding: `${spacing.xl}px ${spacing.xl}px ${spacing.huge}px` }}>
+    <section
+      style={{ padding: `${spacing.xl}px ${spacing.xl}px ${spacing.huge}px` }}
+    >
       <div style={{ maxWidth: 1200, margin: "0 auto" }}>
         {/* back + breadcrumb + actions */}
         <div
@@ -311,7 +414,14 @@ export default function PropertyDetail({
             flexWrap: "wrap",
           }}
         >
-          <div style={{ display: "flex", alignItems: "center", gap: spacing.lg, flexWrap: "wrap" }}>
+          <div
+            style={{
+              display: "flex",
+              alignItems: "center",
+              gap: spacing.lg,
+              flexWrap: "wrap",
+            }}
+          >
             <button
               onClick={onBack}
               style={{
@@ -330,12 +440,25 @@ export default function PropertyDetail({
             >
               <Icon name="arrowLeft" size={16} /> Back
             </button>
-            <div style={{ display: "flex", alignItems: "center", gap: 6, fontSize: fontSize.sm, color: colors.muted }}>
-              <button onClick={onBack} style={{ color: colors.muted, cursor: "pointer" }}>
+            <div
+              style={{
+                display: "flex",
+                alignItems: "center",
+                gap: 6,
+                fontSize: fontSize.sm,
+                color: colors.muted,
+              }}
+            >
+              <button
+                onClick={onBack}
+                style={{ color: colors.muted, cursor: "pointer" }}
+              >
                 Marketplace
               </button>
               <Icon name="arrow" size={13} />
-              <span style={{ color: colors.ink, fontWeight: 600 }}>{prop.category}</span>
+              <span style={{ color: colors.ink, fontWeight: 600 }}>
+                {prop.category}
+              </span>
             </div>
           </div>
           <div style={{ display: "flex", gap: spacing.sm }}>
@@ -397,7 +520,11 @@ export default function PropertyDetail({
                 cursor: "pointer",
               }}
             >
-              <span key={isSaved ? "saved" : "unsaved"} className={isSaved ? "pd-heart-pop" : undefined} style={{ display: "inline-flex" }}>
+              <span
+                key={isSaved ? "saved" : "unsaved"}
+                className={isSaved ? "pd-heart-pop" : undefined}
+                style={{ display: "inline-flex" }}
+              >
                 <Icon name="heart" size={17} filled={isSaved} />
               </span>
               {isSaved ? "Saved" : "Save"}
@@ -413,20 +540,33 @@ export default function PropertyDetail({
           <button
             onClick={() => setLightbox(0)}
             className="card-hover"
-            style={{ position: "relative", borderRadius: radius.lg, overflow: "hidden", cursor: "zoom-in", background: colors.primarySoft }}
+            style={{
+              position: "relative",
+              borderRadius: radius.lg,
+              overflow: "hidden",
+              cursor: "zoom-in",
+              background: colors.primarySoft,
+            }}
           >
             {/* eslint-disable-next-line @next/next/no-img-element */}
             <img
               src={prop.gallery[0]}
               alt={prop.title}
               className="card-hover-img"
-              style={{ position: "absolute", inset: 0, width: "100%", height: "100%", objectFit: "cover" }}
+              style={{
+                position: "absolute",
+                inset: 0,
+                width: "100%",
+                height: "100%",
+                objectFit: "cover",
+              }}
             />
             <div
               style={{
                 position: "absolute",
                 inset: 0,
-                background: "linear-gradient(180deg, transparent 55%, rgba(10,20,34,0.45) 100%)",
+                background:
+                  "linear-gradient(180deg, transparent 55%, rgba(10,20,34,0.45) 100%)",
                 pointerEvents: "none",
               }}
             />
@@ -462,12 +602,20 @@ export default function PropertyDetail({
                   borderRadius: radius.full,
                 }}
               >
-                <Icon name="grid" size={12} color={colors.white} /> View all {prop.gallery.length} photos
+                <Icon name="grid" size={12} color={colors.white} /> View all{" "}
+                {prop.gallery.length} photos
               </span>
             )}
           </button>
           {prop.gallery.length > 1 && (
-            <div className="grid" style={{ gridTemplateColumns: "1fr 1fr", gridTemplateRows: "1fr 1fr", gap: 10 }}>
+            <div
+              className="grid"
+              style={{
+                gridTemplateColumns: "1fr 1fr",
+                gridTemplateRows: "1fr 1fr",
+                gap: 10,
+              }}
+            >
               {prop.gallery.slice(1, 4).map((g, i) => {
                 const isLastVisible = i === 2 && prop.gallery.length > 4;
                 return (
@@ -475,14 +623,26 @@ export default function PropertyDetail({
                     key={i}
                     onClick={() => setLightbox(i + 1)}
                     className="card-hover"
-                    style={{ position: "relative", borderRadius: radius.md, overflow: "hidden", cursor: "zoom-in", background: colors.primarySoft }}
+                    style={{
+                      position: "relative",
+                      borderRadius: radius.md,
+                      overflow: "hidden",
+                      cursor: "zoom-in",
+                      background: colors.primarySoft,
+                    }}
                   >
                     {/* eslint-disable-next-line @next/next/no-img-element */}
                     <img
                       src={g}
                       alt={`View ${i + 2}`}
                       className="card-hover-img"
-                      style={{ position: "absolute", inset: 0, width: "100%", height: "100%", objectFit: "cover" }}
+                      style={{
+                        position: "absolute",
+                        inset: 0,
+                        width: "100%",
+                        height: "100%",
+                        objectFit: "cover",
+                      }}
                     />
                     {isLastVisible && (
                       <div
@@ -500,8 +660,8 @@ export default function PropertyDetail({
                           fontSize: fontSize.md,
                         }}
                       >
-                        <Icon name="grid" size={18} color={colors.white} />
-                        +{prop.gallery.length - 4} photos
+                        <Icon name="grid" size={18} color={colors.white} />+
+                        {prop.gallery.length - 4} photos
                       </div>
                     )}
                   </button>
@@ -517,19 +677,33 @@ export default function PropertyDetail({
             ref={mobileGalleryRef}
             onScroll={handleMobileGalleryScroll}
             className="pd-carousel flex overflow-x-auto"
-            style={{ borderRadius: radius.lg, height: "clamp(240px, 66vw, 340px)", background: colors.primarySoft }}
+            style={{
+              borderRadius: radius.lg,
+              height: "clamp(240px, 66vw, 340px)",
+              background: colors.primarySoft,
+            }}
           >
             {prop.gallery.map((g, i) => (
               <button
                 key={i}
                 onClick={() => setLightbox(i)}
-                style={{ flex: "0 0 100%", position: "relative", cursor: "zoom-in" }}
+                style={{
+                  flex: "0 0 100%",
+                  position: "relative",
+                  cursor: "zoom-in",
+                }}
               >
                 {/* eslint-disable-next-line @next/next/no-img-element */}
                 <img
                   src={g}
                   alt={`${prop.title} — view ${i + 1}`}
-                  style={{ position: "absolute", inset: 0, width: "100%", height: "100%", objectFit: "cover" }}
+                  style={{
+                    position: "absolute",
+                    inset: 0,
+                    width: "100%",
+                    height: "100%",
+                    objectFit: "cover",
+                  }}
                 />
               </button>
             ))}
@@ -539,7 +713,8 @@ export default function PropertyDetail({
               position: "absolute",
               inset: 0,
               borderRadius: radius.lg,
-              background: "linear-gradient(180deg, transparent 60%, rgba(10,20,34,0.4) 100%)",
+              background:
+                "linear-gradient(180deg, transparent 60%, rgba(10,20,34,0.4) 100%)",
               pointerEvents: "none",
             }}
           />
@@ -576,9 +751,21 @@ export default function PropertyDetail({
             </span>
           )}
           {prop.gallery.length > 1 && (
-            <div style={{ position: "absolute", left: "50%", bottom: 14, transform: "translateX(-50%)", display: "flex", gap: 5 }}>
+            <div
+              style={{
+                position: "absolute",
+                left: "50%",
+                bottom: 14,
+                transform: "translateX(-50%)",
+                display: "flex",
+                gap: 5,
+              }}
+            >
               {prop.gallery.map((_, i) => (
-                <span key={i} className={`pd-dot ${i === mobileIndex ? "active" : ""}`} />
+                <span
+                  key={i}
+                  className={`pd-dot ${i === mobileIndex ? "active" : ""}`}
+                />
               ))}
             </div>
           )}
@@ -604,7 +791,15 @@ export default function PropertyDetail({
           }}
         >
           <div style={{ flex: 1, minWidth: 260 }}>
-            <div style={{ display: "flex", flexWrap: "wrap", alignItems: "center", gap: spacing.sm, marginBottom: spacing.md }}>
+            <div
+              style={{
+                display: "flex",
+                flexWrap: "wrap",
+                alignItems: "center",
+                gap: spacing.sm,
+                marginBottom: spacing.md,
+              }}
+            >
               <span
                 style={{
                   display: "inline-flex",
@@ -635,7 +830,8 @@ export default function PropertyDetail({
                     borderRadius: radius.full,
                   }}
                 >
-                  <Icon name="verified" size={13} filled color={colors.white} /> {verifiedHighlight.label}
+                  <Icon name="verified" size={13} filled color={colors.white} />{" "}
+                  {verifiedHighlight.label}
                 </span>
               )}
               {otherHighlights.slice(0, 1).map((h) => (
@@ -668,15 +864,37 @@ export default function PropertyDetail({
             >
               {prop.title}
             </h1>
-            <p style={{ display: "flex", alignItems: "center", gap: 6, fontSize: fontSize.base, color: colors.muted }}>
+            <p
+              style={{
+                display: "flex",
+                alignItems: "center",
+                gap: 6,
+                fontSize: fontSize.base,
+                color: colors.muted,
+              }}
+            >
               <Icon name="location" size={16} /> {prop.location}, {prop.city}
             </p>
           </div>
           <div style={{ textAlign: "right", flexShrink: 0 }}>
-            <div style={{ fontFamily: "var(--font-display)", fontSize: "clamp(26px, 3vw, 38px)", fontWeight: 700, color: colors.price, lineHeight: 1 }}>
+            <div
+              style={{
+                fontFamily: "var(--font-display)",
+                fontSize: "clamp(26px, 3vw, 38px)",
+                fontWeight: 700,
+                color: colors.price,
+                lineHeight: 1,
+              }}
+            >
               {prop.price}
             </div>
-            <div style={{ fontSize: fontSize.sm, color: colors.muted, marginTop: 5 }}>
+            <div
+              style={{
+                fontSize: fontSize.sm,
+                color: colors.muted,
+                marginTop: 5,
+              }}
+            >
               {prop.priceUnit ? `/ ${prop.priceUnit}` : "onwards*"}
             </div>
             {emi !== null && (
@@ -694,14 +912,19 @@ export default function PropertyDetail({
                   borderRadius: radius.full,
                 }}
               >
-                <Icon name="sparkle" size={12} color={colors.accent} /> EMI ≈ ₹{emi.toLocaleString("en-IN")}/mo*
+                <Icon name="sparkle" size={12} color={colors.accent} /> EMI ≈ ₹
+                {emi.toLocaleString("en-IN")}/mo*
               </div>
             )}
           </div>
         </Reveal>
 
         {/* key facts */}
-        <Reveal stagger className="grid grid-cols-2 lg:grid-cols-4" style={{ gap: spacing.md, margin: `${spacing.xl}px 0 4px` }}>
+        <Reveal
+          stagger
+          className="grid grid-cols-2 lg:grid-cols-4"
+          style={{ gap: spacing.md, margin: `${spacing.xl}px 0 4px` }}
+        >
           {keyFacts.map((k) => (
             <div
               key={k.label}
@@ -733,8 +956,24 @@ export default function PropertyDetail({
                 <Icon name={k.icon} size={20} />
               </span>
               <div>
-                <b style={{ display: "block", fontFamily: "var(--font-display)", fontSize: fontSize.md + 1 }}>{k.value}</b>
-                <em style={{ fontStyle: "normal", fontSize: fontSize.xs, color: colors.muted }}>{k.label}</em>
+                <b
+                  style={{
+                    display: "block",
+                    fontFamily: "var(--font-display)",
+                    fontSize: fontSize.md + 1,
+                  }}
+                >
+                  {k.value}
+                </b>
+                <em
+                  style={{
+                    fontStyle: "normal",
+                    fontSize: fontSize.xs,
+                    color: colors.muted,
+                  }}
+                >
+                  {k.label}
+                </em>
               </div>
             </div>
           ))}
@@ -751,7 +990,10 @@ export default function PropertyDetail({
             margin: `${spacing.lg}px 0`,
           }}
         >
-          <div className="pd-subnav-row" style={{ display: "flex", gap: 6, overflowX: "auto" }}>
+          <div
+            className="pd-subnav-row"
+            style={{ display: "flex", gap: 6, overflowX: "auto" }}
+          >
             {navItems.map((item) => (
               <button
                 key={item.key}
@@ -763,8 +1005,10 @@ export default function PropertyDetail({
                   fontWeight: 600,
                   padding: "9px 18px",
                   borderRadius: radius.full,
-                  background: activeSection === item.key ? colors.primary : "transparent",
-                  color: activeSection === item.key ? colors.white : colors.ink2,
+                  background:
+                    activeSection === item.key ? colors.primary : "transparent",
+                  color:
+                    activeSection === item.key ? colors.white : colors.ink2,
                   cursor: "pointer",
                 }}
               >
@@ -774,12 +1018,36 @@ export default function PropertyDetail({
           </div>
         </div>
 
-        <div className="grid grid-cols-1 lg:grid-cols-[1fr_350px]" style={{ gap: spacing.xxl, marginTop: spacing.md, alignItems: "start" }}>
+        <div
+          className="grid grid-cols-1 lg:grid-cols-[1fr_350px]"
+          style={{
+            gap: spacing.xxl,
+            marginTop: spacing.md,
+            alignItems: "start",
+          }}
+        >
           {/* main column */}
           <div>
-            <div ref={overviewRef} data-section="overview" style={{ scrollMarginTop: SECTION_SCROLL_OFFSET }}>
-              <Reveal style={{ padding: `${spacing.xl}px 0`, borderBottom: `1px solid ${colors.line}` }}>
-                <h2 style={{ display: "flex", alignItems: "center", gap: spacing.sm, fontSize: fontSize.lg + 2, marginBottom: spacing.md }}>
+            <div
+              ref={overviewRef}
+              data-section="overview"
+              style={{ scrollMarginTop: SECTION_SCROLL_OFFSET }}
+            >
+              <Reveal
+                style={{
+                  padding: `${spacing.xl}px 0`,
+                  borderBottom: `1px solid ${colors.line}`,
+                }}
+              >
+                <h2
+                  style={{
+                    display: "flex",
+                    alignItems: "center",
+                    gap: spacing.sm,
+                    fontSize: fontSize.lg + 2,
+                    marginBottom: spacing.md,
+                  }}
+                >
                   <span
                     style={{
                       width: 8,
@@ -791,8 +1059,23 @@ export default function PropertyDetail({
                   />
                   About this property
                 </h2>
-                <p style={{ color: colors.ink2, fontSize: fontSize.base, lineHeight: 1.7, marginBottom: spacing.lg }}>{prop.desc}</p>
-                <div style={{ display: "flex", flexWrap: "wrap", gap: spacing.sm + 2 }}>
+                <p
+                  style={{
+                    color: colors.ink2,
+                    fontSize: fontSize.base,
+                    lineHeight: 1.7,
+                    marginBottom: spacing.lg,
+                  }}
+                >
+                  {prop.desc}
+                </p>
+                <div
+                  style={{
+                    display: "flex",
+                    flexWrap: "wrap",
+                    gap: spacing.sm + 2,
+                  }}
+                >
                   {highlights.map((h) => (
                     <div
                       key={h.label}
@@ -809,20 +1092,49 @@ export default function PropertyDetail({
                         padding: "9px 15px",
                       }}
                     >
-                      <Icon name={h.icon} size={17} color={colors.accent} /> {h.label}
+                      <Icon name={h.icon} size={17} color={colors.accent} />{" "}
+                      {h.label}
                     </div>
                   ))}
                 </div>
               </Reveal>
             </div>
 
-            <div ref={detailsRef} data-section="details" style={{ scrollMarginTop: SECTION_SCROLL_OFFSET }}>
-              <Reveal style={{ padding: `${spacing.xl}px 0`, borderBottom: `1px solid ${colors.line}` }}>
-                <h2 style={{ display: "flex", alignItems: "center", gap: spacing.sm, fontSize: fontSize.lg + 2, marginBottom: spacing.md }}>
-                  <span style={{ width: 8, height: 8, borderRadius: "50%", background: kindStyle.accent, display: "inline-block" }} />
+            <div
+              ref={detailsRef}
+              data-section="details"
+              style={{ scrollMarginTop: SECTION_SCROLL_OFFSET }}
+            >
+              <Reveal
+                style={{
+                  padding: `${spacing.xl}px 0`,
+                  borderBottom: `1px solid ${colors.line}`,
+                }}
+              >
+                <h2
+                  style={{
+                    display: "flex",
+                    alignItems: "center",
+                    gap: spacing.sm,
+                    fontSize: fontSize.lg + 2,
+                    marginBottom: spacing.md,
+                  }}
+                >
+                  <span
+                    style={{
+                      width: 8,
+                      height: 8,
+                      borderRadius: "50%",
+                      background: kindStyle.accent,
+                      display: "inline-block",
+                    }}
+                  />
                   Property details
                 </h2>
-                <div className="grid grid-cols-1 sm:grid-cols-2" style={{ columnGap: spacing.xxl }}>
+                <div
+                  className="grid grid-cols-1 sm:grid-cols-2"
+                  style={{ columnGap: spacing.xxl }}
+                >
                   {details.map(([k, v]) => (
                     <div
                       key={k}
@@ -836,7 +1148,9 @@ export default function PropertyDetail({
                       }}
                     >
                       <span style={{ color: colors.muted }}>{k}</span>
-                      <span style={{ color: colors.ink, fontWeight: 600 }}>{v}</span>
+                      <span style={{ color: colors.ink, fontWeight: 600 }}>
+                        {v}
+                      </span>
                     </div>
                   ))}
                 </div>
@@ -844,13 +1158,41 @@ export default function PropertyDetail({
             </div>
 
             {prop.amenities.length > 0 && (
-              <div ref={amenitiesRef} data-section="amenities" style={{ scrollMarginTop: SECTION_SCROLL_OFFSET }}>
-                <Reveal style={{ padding: `${spacing.xl}px 0`, borderBottom: `1px solid ${colors.line}` }}>
-                  <h2 style={{ display: "flex", alignItems: "center", gap: spacing.sm, fontSize: fontSize.lg + 2, marginBottom: spacing.md }}>
-                    <span style={{ width: 8, height: 8, borderRadius: "50%", background: kindStyle.accent, display: "inline-block" }} />
+              <div
+                ref={amenitiesRef}
+                data-section="amenities"
+                style={{ scrollMarginTop: SECTION_SCROLL_OFFSET }}
+              >
+                <Reveal
+                  style={{
+                    padding: `${spacing.xl}px 0`,
+                    borderBottom: `1px solid ${colors.line}`,
+                  }}
+                >
+                  <h2
+                    style={{
+                      display: "flex",
+                      alignItems: "center",
+                      gap: spacing.sm,
+                      fontSize: fontSize.lg + 2,
+                      marginBottom: spacing.md,
+                    }}
+                  >
+                    <span
+                      style={{
+                        width: 8,
+                        height: 8,
+                        borderRadius: "50%",
+                        background: kindStyle.accent,
+                        display: "inline-block",
+                      }}
+                    />
                     Amenities
                   </h2>
-                  <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3" style={{ gap: spacing.md }}>
+                  <div
+                    className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3"
+                    style={{ gap: spacing.md }}
+                  >
                     {prop.amenities.map((a) => (
                       <span
                         key={a}
@@ -889,14 +1231,44 @@ export default function PropertyDetail({
               </div>
             )}
 
-            <div ref={locationRef} data-section="location" style={{ scrollMarginTop: SECTION_SCROLL_OFFSET }}>
+            <div
+              ref={locationRef}
+              data-section="location"
+              style={{ scrollMarginTop: SECTION_SCROLL_OFFSET }}
+            >
               <Reveal style={{ padding: `${spacing.xl}px 0` }}>
-                <h2 style={{ display: "flex", alignItems: "center", gap: spacing.sm, fontSize: fontSize.lg + 2, marginBottom: spacing.md }}>
-                  <span style={{ width: 8, height: 8, borderRadius: "50%", background: kindStyle.accent, display: "inline-block" }} />
+                <h2
+                  style={{
+                    display: "flex",
+                    alignItems: "center",
+                    gap: spacing.sm,
+                    fontSize: fontSize.lg + 2,
+                    marginBottom: spacing.md,
+                  }}
+                >
+                  <span
+                    style={{
+                      width: 8,
+                      height: 8,
+                      borderRadius: "50%",
+                      background: kindStyle.accent,
+                      display: "inline-block",
+                    }}
+                  />
                   Location
                 </h2>
-                <p style={{ display: "flex", alignItems: "center", gap: 7, fontSize: fontSize.base, color: colors.ink2, marginBottom: spacing.lg }}>
-                  <Icon name="location" size={17} color={kindStyle.accent} /> {prop.location}, {prop.city}
+                <p
+                  style={{
+                    display: "flex",
+                    alignItems: "center",
+                    gap: 7,
+                    fontSize: fontSize.base,
+                    color: colors.ink2,
+                    marginBottom: spacing.lg,
+                  }}
+                >
+                  <Icon name="location" size={17} color={kindStyle.accent} />{" "}
+                  {prop.location}, {prop.city}
                 </p>
                 <div
                   style={{
@@ -910,7 +1282,15 @@ export default function PropertyDetail({
                   }}
                 >
                   {/* real Google Map, geocoded from the listing's address */}
-                  <div ref={mapDivRef} style={{ position: "absolute", inset: 0, opacity: mapReady ? 1 : 0, transition: "opacity 0.3s ease" }} />
+                  <div
+                    ref={mapDivRef}
+                    style={{
+                      position: "absolute",
+                      inset: 0,
+                      opacity: mapReady ? 1 : 0,
+                      transition: "opacity 0.3s ease",
+                    }}
+                  />
 
                   {/* decorative fallback shown until the map has loaded (or if it fails) */}
                   {!mapReady && (
@@ -954,7 +1334,12 @@ export default function PropertyDetail({
                             boxShadow: shadow.md,
                           }}
                         >
-                          <Icon name="location" size={22} color={colors.white} filled />
+                          <Icon
+                            name="location"
+                            size={22}
+                            color={colors.white}
+                            filled
+                          />
                         </span>
                       </div>
                     </>
@@ -979,7 +1364,8 @@ export default function PropertyDetail({
                       boxShadow: shadow.sm,
                     }}
                   >
-                    <Icon name="compass" size={14} color={kindStyle.accent} /> Get directions
+                    <Icon name="compass" size={14} color={kindStyle.accent} />{" "}
+                    Get directions
                   </a>
                 </div>
               </Reveal>
@@ -989,7 +1375,13 @@ export default function PropertyDetail({
           {/* sidebar */}
           <Reveal
             delay={100}
-            style={{ display: "flex", flexDirection: "column", gap: spacing.lg, position: "sticky", top: 100 }}
+            style={{
+              display: "flex",
+              flexDirection: "column",
+              gap: spacing.lg,
+              position: "sticky",
+              top: 100,
+            }}
           >
             <div
               ref={contactCardRef}
@@ -1003,15 +1395,41 @@ export default function PropertyDetail({
                 flexDirection: "column",
               }}
             >
-              <div style={{ height: 5, background: `linear-gradient(90deg, ${kindStyle.accent}, ${colors.accent})` }} />
-              <div style={{ padding: spacing.xl, display: "flex", flexDirection: "column", gap: spacing.md }}>
-                <div style={{ display: "flex", alignItems: "center", gap: spacing.md, paddingBottom: spacing.md, borderBottom: `1px solid ${colors.line}` }}>
+              <div
+                style={{
+                  height: 5,
+                  background: `linear-gradient(90deg, ${kindStyle.accent}, ${colors.accent})`,
+                }}
+              />
+              <div
+                style={{
+                  padding: spacing.xl,
+                  display: "flex",
+                  flexDirection: "column",
+                  gap: spacing.md,
+                }}
+              >
+                <div
+                  style={{
+                    display: "flex",
+                    alignItems: "center",
+                    gap: spacing.md,
+                    paddingBottom: spacing.md,
+                    borderBottom: `1px solid ${colors.line}`,
+                  }}
+                >
                   <span style={{ position: "relative", flexShrink: 0 }}>
                     {/* eslint-disable-next-line @next/next/no-img-element */}
                     <img
                       src={agent.avatar}
                       alt={agent.name}
-                      style={{ width: 50, height: 50, borderRadius: "50%", objectFit: "cover", border: `2px solid ${colors.primarySoft}` }}
+                      style={{
+                        width: 50,
+                        height: 50,
+                        borderRadius: "50%",
+                        objectFit: "cover",
+                        border: `2px solid ${colors.primarySoft}`,
+                      }}
                     />
                     <span
                       style={{
@@ -1027,16 +1445,45 @@ export default function PropertyDetail({
                     />
                   </span>
                   <div>
-                    <b style={{ display: "block", fontFamily: "var(--font-display)", fontSize: fontSize.md }}>{agent.name}</b>
-                    <span style={{ fontSize: fontSize.xs, color: colors.muted }}>{agent.role}</span>
-                    <div style={{ fontSize: fontSize.xs, color: colors.ink2, marginTop: 2, fontWeight: 600 }}>
-                      <Icon name="star" size={13} filled color={colors.gold} /> {agent.rating} · {agent.deals} deals
+                    <b
+                      style={{
+                        display: "block",
+                        fontFamily: "var(--font-display)",
+                        fontSize: fontSize.md,
+                      }}
+                    >
+                      {agent.name}
+                    </b>
+                    <span
+                      style={{ fontSize: fontSize.xs, color: colors.muted }}
+                    >
+                      {agent.role}
+                    </span>
+                    <div
+                      style={{
+                        fontSize: fontSize.xs,
+                        color: colors.ink2,
+                        marginTop: 2,
+                        fontWeight: 600,
+                      }}
+                    >
+                      <Icon name="star" size={13} filled color={colors.gold} />{" "}
+                      {agent.rating} · {agent.deals} deals
                     </div>
                   </div>
                 </div>
 
                 {sent ? (
-                  <div style={{ display: "flex", flexDirection: "column", alignItems: "center", textAlign: "center", gap: 6, padding: "10px 0" }}>
+                  <div
+                    style={{
+                      display: "flex",
+                      flexDirection: "column",
+                      alignItems: "center",
+                      textAlign: "center",
+                      gap: 6,
+                      padding: "10px 0",
+                    }}
+                  >
                     <span
                       style={{
                         width: 48,
@@ -1052,7 +1499,11 @@ export default function PropertyDetail({
                       <Icon name="check" size={24} />
                     </span>
                     <b style={{ fontSize: fontSize.base }}>Request sent!</b>
-                    <span style={{ fontSize: fontSize.sm, color: colors.muted }}>The agent will call you shortly.</span>
+                    <span
+                      style={{ fontSize: fontSize.sm, color: colors.muted }}
+                    >
+                      The agent will call you shortly.
+                    </span>
                   </div>
                 ) : (
                   <form
@@ -1060,25 +1511,55 @@ export default function PropertyDetail({
                       e.preventDefault();
                       setSent(true);
                     }}
-                    style={{ display: "flex", flexDirection: "column", gap: spacing.sm + 2 }}
+                    style={{
+                      display: "flex",
+                      flexDirection: "column",
+                      gap: spacing.sm + 2,
+                    }}
                   >
                     <input
                       ref={nameInputRef}
                       required
                       placeholder="Your name"
-                      style={{ border: `1.5px solid ${colors.line}`, borderRadius: radius.sm + 1, padding: "11px 13px", fontSize: fontSize.sm + 1, outline: "none" }}
+                      style={{
+                        border: `1.5px solid ${colors.line}`,
+                        borderRadius: radius.sm + 1,
+                        padding: "11px 13px",
+                        fontSize: fontSize.sm + 1,
+                        outline: "none",
+                      }}
                     />
                     <input
                       required
                       placeholder="Phone number"
-                      style={{ border: `1.5px solid ${colors.line}`, borderRadius: radius.sm + 1, padding: "11px 13px", fontSize: fontSize.sm + 1, outline: "none" }}
+                      style={{
+                        border: `1.5px solid ${colors.line}`,
+                        borderRadius: radius.sm + 1,
+                        padding: "11px 13px",
+                        fontSize: fontSize.sm + 1,
+                        outline: "none",
+                      }}
                     />
                     <textarea
                       rows={2}
                       defaultValue={`I'm interested in "${prop.title.slice(0, 34)}…"`}
-                      style={{ border: `1.5px solid ${colors.line}`, borderRadius: radius.sm + 1, padding: "11px 13px", fontSize: fontSize.sm + 1, outline: "none", resize: "vertical", fontFamily: "inherit" }}
+                      style={{
+                        border: `1.5px solid ${colors.line}`,
+                        borderRadius: radius.sm + 1,
+                        padding: "11px 13px",
+                        fontSize: fontSize.sm + 1,
+                        outline: "none",
+                        resize: "vertical",
+                        fontFamily: "inherit",
+                      }}
                     />
-                    <Button variant="primary" size="lg" full icon={<Icon name="check" size={18} />} type="submit">
+                    <Button
+                      variant="primary"
+                      size="lg"
+                      full
+                      icon={<Icon name="check" size={18} />}
+                      type="submit"
+                    >
                       Schedule a visit
                     </Button>
                   </form>
@@ -1086,18 +1567,37 @@ export default function PropertyDetail({
 
                 <div style={{ display: "flex", gap: spacing.sm }}>
                   <span style={{ flex: 1 }}>
-                    <Button variant="outline" size="md" full icon={<Icon name="phone" size={16} />}>
+                    <Button
+                      variant="outline"
+                      size="md"
+                      full
+                      icon={<Icon name="phone" size={16} />}
+                    >
                       Call
                     </Button>
                   </span>
                   <span style={{ flex: 1 }}>
-                    <Button variant="outline" size="md" full icon={<Icon name="chat" size={16} />}>
+                    <Button
+                      variant="outline"
+                      size="md"
+                      full
+                      icon={<Icon name="chat" size={16} />}
+                    >
                       Chat
                     </Button>
                   </span>
                 </div>
-                <p style={{ display: "flex", alignItems: "center", gap: 7, fontSize: fontSize.xs, color: colors.muted }}>
-                  <Icon name="shield" size={14} color={colors.primary} /> Shared only with this verified agent.
+                <p
+                  style={{
+                    display: "flex",
+                    alignItems: "center",
+                    gap: 7,
+                    fontSize: fontSize.xs,
+                    color: colors.muted,
+                  }}
+                >
+                  <Icon name="shield" size={14} color={colors.primary} /> Shared
+                  only with this verified agent.
                 </p>
               </div>
             </div>
@@ -1129,9 +1629,24 @@ export default function PropertyDetail({
                 <Icon name="shield" size={18} />
               </span>
               <div>
-                <b style={{ display: "block", fontSize: fontSize.sm + 1, marginBottom: 3 }}>The HomeDot promise</b>
-                <span style={{ fontSize: fontSize.xs + 0.5, color: colors.muted, lineHeight: 1.5 }}>
-                  Every listing &amp; agent is manually verified before it goes live.
+                <b
+                  style={{
+                    display: "block",
+                    fontSize: fontSize.sm + 1,
+                    marginBottom: 3,
+                  }}
+                >
+                  The HomeDot promise
+                </b>
+                <span
+                  style={{
+                    fontSize: fontSize.xs + 0.5,
+                    color: colors.muted,
+                    lineHeight: 1.5,
+                  }}
+                >
+                  Every listing &amp; agent is manually verified before it goes
+                  live.
                 </span>
               </div>
             </div>
@@ -1141,17 +1656,49 @@ export default function PropertyDetail({
         {/* similar properties */}
         {similar.length > 0 && (
           <div style={{ marginTop: spacing.huge - 20 }}>
-            <div style={{ display: "flex", justifyContent: "space-between", alignItems: "flex-end", marginBottom: spacing.xl, gap: spacing.lg }}>
+            <div
+              style={{
+                display: "flex",
+                justifyContent: "space-between",
+                alignItems: "flex-end",
+                marginBottom: spacing.xl,
+                gap: spacing.lg,
+              }}
+            >
               <div>
-                <h2 style={{ fontFamily: "var(--font-display)", fontSize: fontSize.xxl - 4, fontWeight: 600 }}>Similar properties</h2>
-                <p style={{ color: colors.muted, fontSize: fontSize.base, marginTop: spacing.sm }}>
+                <h2
+                  style={{
+                    fontFamily: "var(--font-display)",
+                    fontSize: fontSize.xxl - 4,
+                    fontWeight: 600,
+                  }}
+                >
+                  Similar properties
+                </h2>
+                <p
+                  style={{
+                    color: colors.muted,
+                    fontSize: fontSize.base,
+                    marginTop: spacing.sm,
+                  }}
+                >
                   More {prop.category.toLowerCase()} options you may like.
                 </p>
               </div>
             </div>
-            <Reveal stagger className="grid grid-cols-1 md:grid-cols-3" style={{ gap: spacing.xl }}>
+            <Reveal
+              stagger
+              className="grid grid-cols-1 md:grid-cols-3"
+              style={{ gap: spacing.xl }}
+            >
               {similar.map((p) => (
-                <PropertyCard key={p.id} property={p} saved={saved.includes(p.id)} onSave={onSave} onOpen={() => onOpen(p)} />
+                <PropertyCard
+                  key={p.id}
+                  property={p}
+                  saved={saved.includes(p.id)}
+                  onSave={onSave}
+                  onOpen={() => onOpen(p)}
+                />
               ))}
             </Reveal>
           </div>
@@ -1179,10 +1726,20 @@ export default function PropertyDetail({
         }}
       >
         <div style={{ flex: 1, minWidth: 0 }}>
-          <div style={{ fontFamily: "var(--font-display)", fontSize: fontSize.lg, fontWeight: 700, color: colors.price, lineHeight: 1.1 }}>
+          <div
+            style={{
+              fontFamily: "var(--font-display)",
+              fontSize: fontSize.lg,
+              fontWeight: 700,
+              color: colors.price,
+              lineHeight: 1.1,
+            }}
+          >
             {prop.price}
           </div>
-          <div style={{ fontSize: fontSize.xs, color: colors.muted }}>{prop.priceUnit ? `/ ${prop.priceUnit}` : "onwards*"}</div>
+          <div style={{ fontSize: fontSize.xs, color: colors.muted }}>
+            {prop.priceUnit ? `/ ${prop.priceUnit}` : "onwards*"}
+          </div>
         </div>
         <button
           onClick={() => onSave(prop.id)}
@@ -1201,7 +1758,12 @@ export default function PropertyDetail({
           <Icon name="heart" size={19} filled={isSaved} />
         </button>
         <span style={{ flexShrink: 0 }}>
-          <Button variant="primary" size="md" icon={<Icon name="check" size={16} />} onClick={focusContactForm}>
+          <Button
+            variant="primary"
+            size="md"
+            icon={<Icon name="check" size={16} />}
+            onClick={focusContactForm}
+          >
             {isRent ? "Enquire Now" : "Schedule Visit"}
           </Button>
         </span>
@@ -1268,7 +1830,11 @@ export default function PropertyDetail({
               <button
                 onClick={(e) => {
                   e.stopPropagation();
-                  setLightbox((i) => (i === null ? i : (i - 1 + prop.gallery.length) % prop.gallery.length));
+                  setLightbox((i) =>
+                    i === null
+                      ? i
+                      : (i - 1 + prop.gallery.length) % prop.gallery.length,
+                  );
                 }}
                 aria-label="Previous photo"
                 className="pd-lightbox-arrow"
@@ -1292,7 +1858,9 @@ export default function PropertyDetail({
               <button
                 onClick={(e) => {
                   e.stopPropagation();
-                  setLightbox((i) => (i === null ? i : (i + 1) % prop.gallery.length));
+                  setLightbox((i) =>
+                    i === null ? i : (i + 1) % prop.gallery.length,
+                  );
                 }}
                 aria-label="Next photo"
                 className="pd-lightbox-arrow"
@@ -1323,11 +1891,28 @@ export default function PropertyDetail({
             alt="Property"
             onClick={(e) => e.stopPropagation()}
             className="pd-lightbox-img"
-            style={{ position: "relative", zIndex: 1, maxWidth: "90vw", maxHeight: "78vh", borderRadius: radius.md, boxShadow: shadow.lg }}
+            style={{
+              position: "relative",
+              zIndex: 1,
+              maxWidth: "90vw",
+              maxHeight: "78vh",
+              borderRadius: radius.md,
+              boxShadow: shadow.lg,
+            }}
           />
           <div
             onClick={(e) => e.stopPropagation()}
-            style={{ position: "absolute", zIndex: 2, left: "50%", bottom: 24, transform: "translateX(-50%)", display: "flex", gap: 10, maxWidth: "90vw", overflowX: "auto" }}
+            style={{
+              position: "absolute",
+              zIndex: 2,
+              left: "50%",
+              bottom: 24,
+              transform: "translateX(-50%)",
+              display: "flex",
+              gap: 10,
+              maxWidth: "90vw",
+              overflowX: "auto",
+            }}
           >
             {prop.gallery.map((g, i) => (
               <button
@@ -1339,13 +1924,20 @@ export default function PropertyDetail({
                   borderRadius: 9,
                   overflow: "hidden",
                   flexShrink: 0,
-                  border: i === lightbox ? `2px solid ${colors.white}` : "2px solid transparent",
+                  border:
+                    i === lightbox
+                      ? `2px solid ${colors.white}`
+                      : "2px solid transparent",
                   opacity: i === lightbox ? 1 : 0.55,
                   transition: "opacity 0.2s ease, border-color 0.2s ease",
                 }}
               >
                 {/* eslint-disable-next-line @next/next/no-img-element */}
-                <img src={g} alt={`View ${i + 1}`} style={{ width: "100%", height: "100%", objectFit: "cover" }} />
+                <img
+                  src={g}
+                  alt={`View ${i + 1}`}
+                  style={{ width: "100%", height: "100%", objectFit: "cover" }}
+                />
               </button>
             ))}
           </div>

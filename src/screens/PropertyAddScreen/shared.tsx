@@ -1,9 +1,33 @@
 import type { CSSProperties, ReactNode } from "react";
 import { colors } from "@/constants/colors";
 import { radius, spacing, fontSize } from "@/utils/size";
-import type { IconName } from "@/components/Icon";
+import Icon, { type IconName } from "@/components/Icon";
+import type { CreatePropertyAmenity } from "@/services/MarketplaceScreenService";
 
 export type PropertyKind = "villa" | "house" | "flat" | "office" | "plot";
+
+export type ListingPurpose = "Buy" | "Rent";
+
+// An uploaded property photo, lifted from ImagesStep up to index.tsx so the
+// Review step can render actual thumbnails instead of just a count — `url`
+// is the local blob preview (object URL), `id` the uploaded image's server id.
+export interface UploadedImage {
+  id: string;
+  url: string;
+}
+
+export type Step = "purpose" | "type" | "details" | "images" | "review" | "success";
+
+// Drives both the step header/progress indicator and the URL-free wizard
+// navigation in index.tsx. "success" is deliberately excluded — it's a
+// terminal screen, not a step you progress toward.
+export const FLOW_STEPS: { key: Exclude<Step, "success">; label: string; icon: IconName }[] = [
+  { key: "purpose", label: "Purpose", icon: "sparkle" },
+  { key: "type", label: "Type", icon: "house" },
+  { key: "details", label: "Details", icon: "ruler" },
+  { key: "images", label: "Photos", icon: "grid" },
+  { key: "review", label: "Review", icon: "check" },
+];
 
 export type FieldKey =
   | "bedrooms"
@@ -91,10 +115,33 @@ export const BEDROOM_OPTIONS = ["1", "2", "3", "4", "5+"];
 // Exact strings the backend expects (matches homedot-mobile-app's sell_Furnishing).
 export const FURNISHING_OPTIONS = ["Fully furnished", "Semi furnished", "Un furnished"];
 
+// Matches homedot-mobile-app's hardcoded `sellVillaAmenities` catalog
+// (SellOrRentDetailedNextScreen.js) exactly — same ids, same titles, same
+// order — since ids are sent to the API as-is (not resolved against any
+// server-side catalog). "Others" is a sentinel: selecting it reveals a text
+// input instead of toggling a real amenity (see DetailsStep).
+export const AMENITY_CATALOG: CreatePropertyAmenity[] = [
+  { id: 1, title: "Club House" },
+  { id: 2, title: "Individual Garden" },
+  { id: 3, title: "Kids Play Area" },
+  { id: 4, title: "Open Party Area" },
+  { id: 5, title: "Swimming Pool" },
+  { id: 6, title: "Health Club" },
+  { id: 7, title: "Centralized Security" },
+  { id: 8, title: "Gazebo" },
+  { id: 9, title: "Yoga & Meditation" },
+  { id: 10, title: "Others" },
+];
+
 // "5+" has no exact BHK value server-side — same 4_PLUS_BHK convention used
-// by MarketplaceScreen's filter payload.
+// by MarketplaceScreen's filter payload. `beds` here is whatever the
+// Bedrooms <select> stores, which is the display label itself (e.g. "2 BHK",
+// from BEDROOM_OPTIONS.map(b => `${b} BHK`) in DetailsStep) — strip that
+// suffix back off before building the enum, or bedroomsToApi("2 BHK") would
+// otherwise produce the malformed "2 BHK_BHK".
 export function bedroomsToApi(beds: string): string {
-  return beds === "5+" ? "4_PLUS_BHK" : `${beds}_BHK`;
+  const n = beds.replace(/\s*BHK$/i, "").trim();
+  return n === "5+" ? "4_PLUS_BHK" : `${n}_BHK`;
 }
 
 export const inputWrap: CSSProperties = {
@@ -198,7 +245,7 @@ export interface PropertyFormState {
   roadWidth: string;
   maintenanceCharge: string;
   garage: string;
-  amenities: string[];
+  amenities: CreatePropertyAmenity[];
   length: string;
   breadth: string;
 }
@@ -235,6 +282,11 @@ export function isDetailsComplete(kind: PropertyKind, f: PropertyFormState): boo
 
   const fields = KIND_FIELDS[kind];
   const need = (key: FieldKey) => !fields.includes(key) || !!f[key as keyof PropertyFormState];
+  // Amenities is an array, so the generic truthy `need()` check above can't
+  // gate it (an empty array is still truthy) — mirrors homedot-mobile-app's
+  // validation(), which requires at least one amenity for Villas/Flat &
+  // Apartment specifically (not House, Office Space or Plots).
+  if (fields.includes("amenities") && f.amenities.length === 0) return false;
   return (
     need("bedrooms") &&
     need("bathrooms") &&
@@ -247,7 +299,75 @@ export function isDetailsComplete(kind: PropertyKind, f: PropertyFormState): boo
     need("roadWidth") &&
     need("length") &&
     need("breadth")
-    // maintenanceCharge, garage and amenities are left optional — mirrors
+    // maintenanceCharge and garage are left optional — mirrors
     // homedot-mobile-app, which doesn't hard-require them either.
+  );
+}
+
+// Horizontal step indicator shown above every step but the success screen —
+// filled dots + connecting lines animate as the wizard progresses, so
+// filling out the listing reads as working through a real, trackable form
+// rather than a series of disconnected screens.
+export function StepProgress({ currentIndex }: { currentIndex: number }) {
+  return (
+    <div style={{ display: "flex", alignItems: "flex-start", marginBottom: spacing.xxl }}>
+      {FLOW_STEPS.map((s, i) => (
+        <div key={s.key} style={{ display: "flex", alignItems: "flex-start", flex: i < FLOW_STEPS.length - 1 ? 1 : undefined }}>
+          <div style={{ display: "flex", flexDirection: "column", alignItems: "center", gap: 7, flexShrink: 0 }}>
+            <span
+              className="pa-step-dot"
+              style={{
+                width: 36,
+                height: 36,
+                borderRadius: "50%",
+                display: "grid",
+                placeItems: "center",
+                background: i <= currentIndex ? colors.primary : colors.card,
+                color: i <= currentIndex ? colors.white : colors.muted,
+                border: `2px solid ${i <= currentIndex ? colors.primary : colors.line}`,
+                transform: i === currentIndex ? "scale(1.12)" : "scale(1)",
+                boxShadow: i === currentIndex ? `0 0 0 4px ${colors.primarySoft}` : "none",
+              }}
+            >
+              {i < currentIndex ? <Icon name="check" size={16} /> : <Icon name={s.icon} size={15} />}
+            </span>
+            <span
+              style={{
+                fontSize: fontSize.xs,
+                fontWeight: 600,
+                color: i <= currentIndex ? colors.ink : colors.muted,
+                whiteSpace: "nowrap",
+              }}
+            >
+              {s.label}
+            </span>
+          </div>
+          {i < FLOW_STEPS.length - 1 && (
+            <div
+              style={{
+                flex: 1,
+                height: 2,
+                marginTop: 17,
+                marginInline: 6,
+                background: colors.line,
+                position: "relative",
+                overflow: "hidden",
+                borderRadius: 2,
+              }}
+            >
+              <span
+                className="pa-step-line-fill"
+                style={{
+                  position: "absolute",
+                  inset: 0,
+                  background: colors.primary,
+                  transform: `scaleX(${i < currentIndex ? 1 : 0})`,
+                }}
+              />
+            </div>
+          )}
+        </div>
+      ))}
+    </div>
   );
 }

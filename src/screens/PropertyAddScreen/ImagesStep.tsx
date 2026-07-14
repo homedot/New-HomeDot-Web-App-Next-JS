@@ -1,10 +1,11 @@
 "use client";
 
-import { useRef, useState } from "react";
+import { useEffect, useRef, useState } from "react";
 import { colors } from "@/constants/colors";
 import { spacing, radius, fontSize } from "@/utils/size";
 import Icon from "@/components/Icon";
 import MarketplaceScreenService from "@/services/MarketplaceScreenService";
+import type { UploadedImage } from "./shared";
 
 interface ImageItem {
   key: string;
@@ -15,35 +16,45 @@ interface ImageItem {
 }
 
 export default function ImagesStep({
-  imageIds,
-  setImageIds,
+  setImages,
   onBack,
   onContinue,
 }: {
-  imageIds: string[];
-  setImageIds: (ids: string[]) => void;
+  setImages: (images: UploadedImage[]) => void;
   onBack: () => void;
   onContinue: () => void;
 }) {
   const [items, setItems] = useState<ImageItem[]>([]);
+  const [dragActive, setDragActive] = useState(false);
   const inputRef = useRef<HTMLInputElement | null>(null);
 
-  const syncImageIds = (list: ImageItem[]) =>
-    setImageIds(list.filter((i) => i.status === "done" && i.imageId).map((i) => i.imageId as string));
+  // Pushes the uploaded subset of `items` up to the parent (which needs it
+  // for the payload and the Review step's thumbnails) whenever it changes.
+  // This runs as an effect — not inline inside the setItems updater above —
+  // because calling a *different* component's setState synchronously from
+  // within your own setState updater trips React's
+  // "Cannot update a component while rendering a different component"
+  // warning (and can silently drop updates under fast-resolving uploads).
+  useEffect(() => {
+    setImages(
+      items
+        .filter((i) => i.status === "done" && i.imageId)
+        .map((i) => ({ id: i.imageId as string, url: i.previewUrl })),
+    );
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [items]);
 
   const uploadOne = async (item: ImageItem) => {
     const res = await MarketplaceScreenService.uploadPropertyImage(item.file);
-    setItems((prev) => {
-      const next = prev.map((i) =>
+    setItems((prev) =>
+      prev.map((i) =>
         i.key === item.key
           ? res.success && res.data?.status && res.data.data?._id
             ? { ...i, status: "done" as const, imageId: res.data.data._id }
             : { ...i, status: "error" as const }
           : i,
-      );
-      syncImageIds(next);
-      return next;
-    });
+      ),
+    );
   };
 
   const onFiles = (files: FileList | null) => {
@@ -59,11 +70,7 @@ export default function ImagesStep({
   };
 
   const removeItem = (key: string) => {
-    setItems((prev) => {
-      const next = prev.filter((i) => i.key !== key);
-      syncImageIds(next);
-      return next;
-    });
+    setItems((prev) => prev.filter((i) => i.key !== key));
   };
 
   const retryItem = (item: ImageItem) => {
@@ -72,6 +79,7 @@ export default function ImagesStep({
   };
 
   const uploading = items.some((i) => i.status === "uploading");
+  const hasUploaded = items.some((i) => i.status === "done");
 
   return (
     <div>
@@ -118,10 +126,21 @@ export default function ImagesStep({
 
       <button
         onClick={() => inputRef.current?.click()}
+        onDragOver={(e) => {
+          e.preventDefault();
+          setDragActive(true);
+        }}
+        onDragLeave={() => setDragActive(false)}
+        onDrop={(e) => {
+          e.preventDefault();
+          setDragActive(false);
+          onFiles(e.dataTransfer.files);
+        }}
+        className="pa-dropzone"
         style={{
           width: "100%",
-          height: 130,
-          border: `1.5px dashed ${colors.line}`,
+          height: 140,
+          border: `1.5px dashed ${dragActive ? colors.primary : colors.line}`,
           borderRadius: radius.md,
           display: "flex",
           flexDirection: "column",
@@ -129,12 +148,24 @@ export default function ImagesStep({
           justifyContent: "center",
           gap: spacing.sm,
           color: colors.muted,
-          background: colors.card,
+          background: dragActive ? colors.primarySoft : colors.card,
         }}
       >
-        <Icon name="house" size={22} color={colors.primary} />
+        <span
+          style={{
+            width: 44,
+            height: 44,
+            borderRadius: "50%",
+            background: colors.primarySoft,
+            color: colors.primary,
+            display: "grid",
+            placeItems: "center",
+          }}
+        >
+          <Icon name="grid" size={20} />
+        </span>
         <span style={{ fontSize: fontSize.sm, fontWeight: 600, color: colors.ink }}>
-          Click to upload photos
+          Drag photos here, or click to upload
         </span>
         <span style={{ fontSize: fontSize.xs }}>JPG or PNG, multiple allowed</span>
       </button>
@@ -144,15 +175,17 @@ export default function ImagesStep({
           className="grid grid-cols-2 sm:grid-cols-3"
           style={{ gap: spacing.md, marginTop: spacing.lg }}
         >
-          {items.map((item) => (
+          {items.map((item, i) => (
             <div
               key={item.key}
+              className="pa-image-tile"
               style={{
                 position: "relative",
                 borderRadius: radius.md,
                 overflow: "hidden",
                 aspectRatio: "4 / 3",
                 border: `1px solid ${colors.line}`,
+                animationDelay: `${Math.min(i, 8) * 40}ms`,
               }}
             >
               {/* eslint-disable-next-line @next/next/no-img-element */}
@@ -236,7 +269,7 @@ export default function ImagesStep({
           opacity: uploading ? 0.5 : 1,
         }}
       >
-        {uploading ? "Uploading…" : imageIds.length > 0 ? "Continue" : "Skip for now"}
+        {uploading ? "Uploading…" : hasUploaded ? "Continue" : "Skip for now"}
         {!uploading && <Icon name="arrow" size={18} color={colors.white} />}
       </button>
     </div>

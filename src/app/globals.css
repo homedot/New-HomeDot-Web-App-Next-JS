@@ -929,3 +929,130 @@ body.has-cursor * {
     transition: none;
   }
 }
+
+/* PropertyAddScreen (list-your-property wizard): purpose cards, step
+   progress indicator, amenity chips and the publish success screen. */
+@keyframes paCardIn {
+  from {
+    opacity: 0;
+    transform: translateY(16px);
+  }
+  to {
+    opacity: 1;
+    transform: translateY(0);
+  }
+}
+
+.pa-form-card {
+  animation: paCardIn 0.45s cubic-bezier(0.16, 1, 0.3, 1) both;
+}
+
+.pa-purpose-card {
+  transition: border-color 0.2s ease;
+}
+
+.pa-purpose-glow {
+  transition: opacity 0.3s ease, transform 0.3s ease;
+}
+
+.pa-purpose-card:hover .pa-purpose-glow {
+  opacity: 0.36;
+  transform: scale(1.15);
+}
+
+.pa-purpose-cta {
+  transition: gap 0.2s ease;
+}
+
+.pa-purpose-card:hover .pa-purpose-cta {
+  gap: 11px;
+}
+
+.pa-step-dot {
+  transition: background 0.3s ease, border-color 0.3s ease, color 0.3s ease, transform 0.3s cubic-bezier(0.2, 0.8, 0.3, 1.2), box-shadow 0.3s ease;
+}
+
+.pa-step-line-fill {
+  transform-origin: left;
+  transition: transform 0.5s cubic-bezier(0.16, 1, 0.3, 1);
+}
+
+.pa-amenity-chip {
+  transition: transform 0.12s ease, border-color 0.2s ease, background 0.2s ease, color 0.2s ease;
+}
+
+.pa-amenity-chip:active {
+  transform: scale(0.95);
+}
+
+.pa-custom-amenity {
+  transition: height 0.3s cubic-bezier(0.16, 1, 0.3, 1), opacity 0.25s ease, margin-top 0.3s ease;
+}
+
+.pa-review-row:not(:last-child) {
+  border-bottom: 1px solid #d7d9de;
+}
+
+.pa-review-photos {
+  scrollbar-width: none;
+  -ms-overflow-style: none;
+}
+
+.pa-review-photos::-webkit-scrollbar {
+  display: none;
+}
+
+.pa-success-ring {
+  display: inline-block;
+  animation: loginPop 0.5s cubic-bezier(0.2, 0.9, 0.3, 1.4) both;
+}
+
+.pa-success-glow {
+  animation: glowPulse 2.6s ease-in-out infinite;
+}
+
+/* Dashed image-upload dropzone: idle breathing glow + lift/border pop on
+   hover, so it reads as an active drop target rather than a static box. */
+.pa-dropzone {
+  transition: border-color 0.2s ease, background 0.2s ease, transform 0.15s ease;
+}
+
+.pa-dropzone:hover {
+  border-color: #101c30;
+  background: #f5f5f7;
+  transform: translateY(-2px);
+}
+
+@keyframes paImageIn {
+  from {
+    opacity: 0;
+    transform: scale(0.92);
+  }
+  to {
+    opacity: 1;
+    transform: scale(1);
+  }
+}
+
+.pa-image-tile {
+  animation: paImageIn 0.3s cubic-bezier(0.16, 1, 0.3, 1) both;
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .pa-form-card,
+  .pa-success-ring,
+  .pa-success-glow,
+  .pa-image-tile {
+    animation: none;
+  }
+  .pa-purpose-card,
+  .pa-purpose-glow,
+  .pa-purpose-cta,
+  .pa-step-dot,
+  .pa-step-line-fill,
+  .pa-amenity-chip,
+  .pa-custom-amenity,
+  .pa-dropzone {
+    transition: none;
+  }
+}
