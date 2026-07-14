@@ -726,3 +726,206 @@ body.has-cursor * {
     transition: none;
   }
 }
+
+/* Marketplace property detail page (PropertyDetail component). */
+
+/* Sticky section sub-nav (Overview / Details / Amenities / Location): pills
+   scroll horizontally on mobile, active pill is driven by an IntersectionObserver
+   in the component and just needs a smooth color/background transition here. */
+.pd-subnav {
+  position: sticky;
+  top: 76px;
+  z-index: 40;
+  background: rgba(255, 255, 255, 0.86);
+  backdrop-filter: blur(14px) saturate(1.4);
+  -webkit-backdrop-filter: blur(14px) saturate(1.4);
+}
+
+.pd-subnav-row {
+  scrollbar-width: none;
+  -ms-overflow-style: none;
+}
+
+.pd-subnav-row::-webkit-scrollbar {
+  display: none;
+}
+
+.pd-pill {
+  transition: background 0.2s ease, color 0.2s ease, border-color 0.2s ease, transform 0.15s ease;
+}
+
+.pd-pill:active {
+  transform: scale(0.96);
+}
+
+/* Mobile gallery carousel: full-bleed horizontal snap scroll, dot indicator
+   reflects scroll position (tracked in the component). */
+.pd-carousel {
+  scroll-snap-type: x mandatory;
+  scrollbar-width: none;
+  -ms-overflow-style: none;
+}
+
+.pd-carousel::-webkit-scrollbar {
+  display: none;
+}
+
+.pd-carousel > * {
+  scroll-snap-align: start;
+}
+
+.pd-dot {
+  width: 6px;
+  height: 6px;
+  border-radius: 999px;
+  background: rgba(255, 255, 255, 0.55);
+  transition: width 0.3s cubic-bezier(0.16, 1, 0.3, 1), background 0.3s ease;
+}
+
+.pd-dot.active {
+  width: 18px;
+  background: #ffffff;
+}
+
+/* Lightbox: crossfade/scale-in on every image change (component remounts the
+   <img> via key={index} so this replays each time). */
+@keyframes pdLightboxFade {
+  from {
+    opacity: 0;
+  }
+}
+
+@keyframes pdLightboxImgIn {
+  from {
+    opacity: 0;
+    transform: scale(0.97);
+  }
+  to {
+    opacity: 1;
+    transform: scale(1);
+  }
+}
+
+.pd-lightbox-overlay {
+  animation: pdLightboxFade 0.2s ease both;
+}
+
+.pd-lightbox-img {
+  animation: pdLightboxImgIn 0.35s cubic-bezier(0.16, 1, 0.3, 1) both;
+}
+
+.pd-lightbox-arrow {
+  transition: background 0.2s ease, transform 0.15s ease;
+}
+
+.pd-lightbox-arrow:hover {
+  background: rgba(255, 255, 255, 0.22);
+  transform: scale(1.06);
+}
+
+.pd-lightbox-arrow:active {
+  transform: scale(0.94);
+}
+
+/* Verified/trust badge: a soft, slow pulse ring so it reads as "live"
+   without being distracting. */
+@keyframes pdBadgePulse {
+  0%,
+  100% {
+    box-shadow: 0 0 0 0 rgba(41, 151, 255, 0.28);
+  }
+  50% {
+    box-shadow: 0 0 0 5px rgba(41, 151, 255, 0);
+  }
+}
+
+.pd-badge-pulse {
+  animation: pdBadgePulse 2.4s ease-in-out infinite;
+}
+
+/* Save/heart button: pops once whenever the saved state is remounted
+   (component keys the icon wrapper on isSaved to replay this). */
+@keyframes pdHeartPop {
+  0% {
+    transform: scale(0.7);
+  }
+  45% {
+    transform: scale(1.25);
+  }
+  100% {
+    transform: scale(1);
+  }
+}
+
+.pd-heart-pop {
+  animation: pdHeartPop 0.4s cubic-bezier(0.2, 0.9, 0.3, 1.4) both;
+}
+
+/* Mobile sticky CTA bar: slides up on mount. */
+@keyframes pdCtaSlideUp {
+  from {
+    transform: translateY(100%);
+    opacity: 0;
+  }
+  to {
+    transform: translateY(0);
+    opacity: 1;
+  }
+}
+
+.pd-mobile-cta {
+  animation: pdCtaSlideUp 0.4s cubic-bezier(0.2, 0.8, 0.3, 1) 0.2s both;
+}
+
+/* Decorative "location" panel pin — reuses the floaty/glowPulse keyframes
+   already defined above for the ambient background. */
+.pd-map-pin {
+  animation: floaty 3.6s ease-in-out infinite;
+}
+
+.pd-map-glow {
+  animation: glowPulse 3.6s ease-in-out infinite;
+}
+
+/* "Link copied" toast above the Share button. */
+@keyframes pdToastIn {
+  from {
+    opacity: 0;
+    transform: translate(-50%, 4px);
+  }
+  to {
+    opacity: 1;
+    transform: translate(-50%, 0);
+  }
+}
+
+.pd-toast {
+  animation: pdToastIn 0.18s ease both;
+}
+
+.pd-key-fact:hover .pd-key-fact-icon {
+  transform: scale(1.08) rotate(-4deg);
+}
+
+.pd-key-fact-icon {
+  transition: transform 0.25s cubic-bezier(0.2, 0.8, 0.3, 1.2);
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .pd-lightbox-overlay,
+  .pd-lightbox-img,
+  .pd-badge-pulse,
+  .pd-heart-pop,
+  .pd-mobile-cta,
+  .pd-map-pin,
+  .pd-map-glow,
+  .pd-toast {
+    animation: none;
+  }
+  .pd-pill,
+  .pd-lightbox-arrow,
+  .pd-key-fact-icon,
+  .pd-dot {
+    transition: none;
+  }
+}

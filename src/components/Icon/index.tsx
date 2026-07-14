@@ -32,7 +32,8 @@ type IconName =
   | "villa"
   | "apartment"
   | "plot"
-  | "office";
+  | "office"
+  | "share";
 
 const PATHS: Record<IconName, React.ReactNode> = {
   search: (
@@ -190,6 +191,13 @@ const PATHS: Record<IconName, React.ReactNode> = {
       <rect x="5" y="3" width="10" height="18" rx="1" />
       <path d="M8 6.5h1M11 6.5h1M8 9.5h1M11 9.5h1M8 12.5h1M11 12.5h1M8 15.5h1M11 15.5h1" />
       <path d="M15 9v12h5V13h-5" />
+    </>
+  ),
+  share: (
+    <>
+      <path d="M12 15V3" />
+      <path d="M7.5 7.5 12 3l4.5 4.5" />
+      <path d="M5 12v7a1 1 0 0 0 1 1h12a1 1 0 0 0 1-1v-7" />
     </>
   ),
 };
