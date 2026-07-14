@@ -8,7 +8,7 @@ import {
   type CSSProperties,
   type ReactNode,
 } from "react";
-import { useSearchParams } from "next/navigation";
+import { useSearchParams, useRouter, usePathname } from "next/navigation";
 import { colors } from "@/constants/colors";
 import { spacing, radius, fontSize, shadow, maxWidth } from "@/utils/size";
 import Icon from "@/components/Icon";
@@ -69,6 +69,8 @@ function hidesBedBath(type: PropertyTypeRecord | null): boolean {
 
 export default function MarketplaceScreen() {
   const searchParams = useSearchParams();
+  const router = useRouter();
+  const pathname = usePathname();
   const requestedPropertyTypeId = searchParams.get("propertyType");
 
   const [purpose, setPurpose] = useState<"Buy" | "Rent">("Buy");
@@ -103,6 +105,14 @@ export default function MarketplaceScreen() {
     MarketplaceProperty[] | null
   >(null);
   const detailRequestId = useRef(0);
+  // Whether a shared "?property=<slug>" link is still being resolved on
+  // first load (no `detail` yet to show, but the plain listing shouldn't
+  // flash first either). Seeded lazily from the initial URL so it's already
+  // correct on the very first render, instead of flipping true inside an effect.
+  const [initialSlugLoading, setInitialSlugLoading] = useState(
+    () => searchParams.get("property") !== null,
+  );
+  const initialSlugHandled = useRef(false);
 
   const [apiProperties, setApiProperties] =
     useState<MarketplaceProperty[]>(properties);
@@ -346,6 +356,19 @@ export default function MarketplaceScreen() {
     setBudget("");
   };
 
+  // Keeps the URL in sync with whichever property is open (or closed) —
+  // this is what lets the Share button on the detail screen copy a link
+  // that reopens the same property when pasted elsewhere. Only the
+  // "property" param changes; any other query params (e.g. ?propertyType=)
+  // are preserved. `scroll: false` since we already handle scroll ourselves.
+  const setPropertyQueryParam = (slug: string | null) => {
+    const params = new URLSearchParams(searchParams.toString());
+    if (slug) params.set("property", slug);
+    else params.delete("property");
+    const qs = params.toString();
+    router.push(qs ? `${pathname}?${qs}` : pathname, { scroll: false });
+  };
+
   const openDetail = (p: MarketplaceProperty) => {
     setDetail(p);
     setDetailSimilar(null);
@@ -353,6 +376,7 @@ export default function MarketplaceScreen() {
 
     const slug = p.propertySlug;
     if (!slug) return;
+    setPropertyQueryParam(slug);
     const requestId = ++detailRequestId.current;
     MarketplaceScreenService.getPropertyBySlug(slug).then((res) => {
       if (detailRequestId.current !== requestId) return; // superseded by a newer click
@@ -371,7 +395,34 @@ export default function MarketplaceScreen() {
     setDetail(null);
     setDetailSimilar(null);
     window.scrollTo(0, 0);
+    setPropertyQueryParam(null);
   };
+
+  // Resolves a shared "?property=<slug>" link on first load — the normal
+  // openDetail() flow above always starts from an already-known
+  // MarketplaceProperty (the clicked card), but a pasted URL has only the
+  // slug, so this fetches the detail record directly instead.
+  useEffect(() => {
+    if (initialSlugHandled.current) return;
+    initialSlugHandled.current = true;
+    const slug = searchParams.get("property");
+    if (!slug) return;
+
+    MarketplaceScreenService.getPropertyBySlug(slug).then((res) => {
+      setInitialSlugLoading(false);
+      const entry = res.data?.data?.[0];
+      const record = entry?.propertyDetails?.[0];
+      if (!record) return; // invalid/stale slug — falls through to the normal listing
+      const full = toMarketplacePropertyDetail(record);
+      setDetail(full);
+      if (entry?.similarProperties?.length) {
+        setDetailSimilar(
+          entry.similarProperties.map((r) => toMarketplaceProperty(r, full.purpose)),
+        );
+      }
+    });
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, []);
 
   const similar = useMemo(() => {
     if (!detail) return [];
@@ -407,6 +458,33 @@ export default function MarketplaceScreen() {
           onBack={closeDetail}
           onOpen={openDetail}
         />
+      ) : initialSlugLoading ? (
+        <div
+          style={{
+            minHeight: "70vh",
+            display: "flex",
+            flexDirection: "column",
+            alignItems: "center",
+            justifyContent: "center",
+            gap: spacing.md,
+          }}
+        >
+          <span
+            className="animate-glow-pulse"
+            style={{
+              width: 60,
+              height: 60,
+              borderRadius: "50%",
+              background: colors.primarySoft,
+              color: colors.primary,
+              display: "grid",
+              placeItems: "center",
+            }}
+          >
+            <Icon name="house" size={26} />
+          </span>
+          <p style={{ color: colors.muted, fontSize: fontSize.base }}>Loading property…</p>
+        </div>
       ) : (
         <>
           {/* compact hero + search */}
