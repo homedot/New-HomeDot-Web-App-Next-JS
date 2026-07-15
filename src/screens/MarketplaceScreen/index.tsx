@@ -493,7 +493,7 @@ export default function MarketplaceScreen() {
       <ScrollProgress />
       <Cursor />
       <SiteNav />
-      <LoginModal ref={loginModalRef} />
+      <LoginModal ref={loginModalRef} hideTrigger />
 
       {detail ? (
         <PropertyDetail

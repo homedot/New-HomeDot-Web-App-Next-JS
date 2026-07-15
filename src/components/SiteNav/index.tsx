@@ -1,6 +1,6 @@
 "use client";
 
-import { useRef, type CSSProperties } from "react";
+import { useEffect, useRef, type CSSProperties } from "react";
 import Link from "next/link";
 import { usePathname, useRouter } from "next/navigation";
 import { colors } from "@/constants/colors";
@@ -11,6 +11,12 @@ import Brand from "@/components/Brand";
 import LoginModal, { type LoginModalHandle } from "@/components/LoginModal";
 import NavShell from "@/components/NavShell";
 import { getAuthToken } from "@/utils/authStorage";
+
+// Only nudge once per browser session — SiteNav is mounted fresh on every
+// top-level page (it's not hoisted into a shared layout), so without this
+// flag a guest who navigates between pages within their first 5 seconds on
+// each would get the popup again and again instead of just once.
+const GUEST_PROMPT_SHOWN_KEY = "hd_guest_login_prompt_shown";
 
 const wrap: CSSProperties = {
   maxWidth,
@@ -48,6 +54,23 @@ export default function SiteNav() {
   };
 
   const favoritesActive = pathname === "/favorites";
+
+  // Nudges signed-out visitors to log in after they've been on the site for
+  // 5 seconds, once per session. Re-checks auth right before opening (not
+  // just at effect-setup time) in case they logged in during that window.
+  useEffect(() => {
+    if (getAuthToken()) return;
+    if (sessionStorage.getItem(GUEST_PROMPT_SHOWN_KEY)) return;
+
+    const timer = setTimeout(() => {
+      sessionStorage.setItem(GUEST_PROMPT_SHOWN_KEY, "1");
+      if (!getAuthToken()) {
+        loginModalRef.current?.open();
+      }
+    }, 5000);
+
+    return () => clearTimeout(timer);
+  }, []);
 
   return (
     <NavShell className="nav-shell">

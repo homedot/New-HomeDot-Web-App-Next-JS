@@ -81,7 +81,7 @@ export default function FavoritesScreen() {
       <ScrollProgress />
       <Cursor />
       <SiteNav />
-      <LoginModal ref={loginModalRef} />
+      <LoginModal ref={loginModalRef} hideTrigger />
 
       <section style={{ ...wrap, paddingTop: spacing.xl, paddingBottom: spacing.huge }}>
         {/* header */}

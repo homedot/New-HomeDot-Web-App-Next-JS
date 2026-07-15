@@ -59,10 +59,20 @@ export interface LoginModalHandle {
   open: () => void;
 }
 
+export interface LoginModalProps {
+  /** Skips rendering the built-in "Log in" trigger button, keeping only the
+   * ref-triggered modal itself. For mounting a second instance purely to call
+   * `.open()` from elsewhere on a page (e.g. gating a save/favorite action)
+   * without a duplicate "Log in" button appearing in the page's normal flow —
+   * SiteNav's own instance (which does render the trigger) is the one users
+   * actually see and click. */
+  hideTrigger?: boolean;
+}
+
 /** Login trigger button (Nav) + the phone/email → OTP → success modal. Self-contained
  * client island so the rest of LandingScreen can stay a Server Component. */
-const LoginModal = forwardRef<LoginModalHandle>(
-  function LoginModal(_props, ref) {
+const LoginModal = forwardRef<LoginModalHandle, LoginModalProps>(
+  function LoginModal({ hideTrigger }, ref) {
     const [open, setOpen] = useState(false);
     const [loggedIn, setLoggedIn] = useState(false);
     const [step, setStep] = useState<Step>("method");
@@ -83,6 +93,19 @@ const LoginModal = forwardRef<LoginModalHandle>(
     useImperativeHandle(ref, () => ({
       open: () => setOpen(true),
     }));
+
+    // `loggedIn` otherwise only ever gets set true by finishSuccess() at the
+    // end of a live login flow in this modal — a returning visitor who
+    // already has a valid token from a previous session would still see the
+    // "Log in" trigger on load. This corrects that after mount (not as the
+    // initial state) since the token lives in localStorage, which doesn't
+    // exist during SSR — reading it for the very first render would render
+    // "Log in" on the server but "My account" on the client and trigger a
+    // hydration mismatch.
+    useEffect(() => {
+      // eslint-disable-next-line react-hooks/set-state-in-effect -- see comment above; this mirrors an external (localStorage-backed) system, not derivable render state
+      if (useAuthStore.getState().token) setLoggedIn(true);
+    }, []);
 
     useEffect(() => {
       if (step !== "otp") return;
@@ -276,34 +299,35 @@ const LoginModal = forwardRef<LoginModalHandle>(
 
     return (
       <>
-        {loggedIn ? (
-          <button
-            onClick={() => setOpen(true)}
-            aria-label="My account"
-            style={{
-              width: 40,
-              height: 40,
-              borderRadius: "50%",
-              background: colors.primarySoft,
-              color: colors.primary,
-              display: "grid",
-              placeItems: "center",
-              border: `1.5px solid ${colors.line}`,
-              flexShrink: 0,
-            }}
-          >
-            <Icon name="check" size={18} strokeWidth={2.4} />
-          </button>
-        ) : (
-          <Button
-            variant="primary"
-            size="sm"
-            // icon={<Icon name="check" size={16} />}
-            onClick={() => setOpen(true)}
-          >
-            Log in
-          </Button>
-        )}
+        {!hideTrigger &&
+          (loggedIn ? (
+            <button
+              onClick={() => setOpen(true)}
+              aria-label="My account"
+              style={{
+                width: 40,
+                height: 40,
+                borderRadius: "50%",
+                background: colors.primarySoft,
+                color: colors.primary,
+                display: "grid",
+                placeItems: "center",
+                border: `1.5px solid ${colors.line}`,
+                flexShrink: 0,
+              }}
+            >
+              <Icon name="check" size={18} strokeWidth={2.4} />
+            </button>
+          ) : (
+            <Button
+              variant="primary"
+              size="sm"
+              // icon={<Icon name="check" size={16} />}
+              onClick={() => setOpen(true)}
+            >
+              Log in
+            </Button>
+          ))}
 
         {open && (
           <div
