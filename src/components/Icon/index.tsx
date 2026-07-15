@@ -33,7 +33,10 @@ type IconName =
   | "apartment"
   | "plot"
   | "office"
-  | "share";
+  | "share"
+  | "clock"
+  | "calendar"
+  | "briefcase";
 
 const PATHS: Record<IconName, React.ReactNode> = {
   search: (
@@ -198,6 +201,24 @@ const PATHS: Record<IconName, React.ReactNode> = {
       <path d="M12 15V3" />
       <path d="M7.5 7.5 12 3l4.5 4.5" />
       <path d="M5 12v7a1 1 0 0 0 1 1h12a1 1 0 0 0 1-1v-7" />
+    </>
+  ),
+  clock: (
+    <>
+      <circle cx="12" cy="12" r="8" />
+      <path d="M12 8v4.5l3 1.8" />
+    </>
+  ),
+  calendar: (
+    <>
+      <rect x="4" y="5.5" width="16" height="15" rx="2.5" />
+      <path d="M4 10h16M8 3.5v4M16 3.5v4" />
+    </>
+  ),
+  briefcase: (
+    <>
+      <rect x="4" y="7.5" width="16" height="12" rx="2" />
+      <path d="M9 7.5V6a2 2 0 0 1 2-2h2a2 2 0 0 1 2 2v1.5M4 13h16" />
     </>
   ),
 };

@@ -17,11 +17,22 @@ export type Professional = {
   tagline: string;
 };
 
-export default function ProCard({ pro }: { pro: Professional }) {
+export default function ProCard({
+  pro,
+  onOpen,
+  saved,
+  onSave,
+}: {
+  pro: Professional;
+  onOpen?: () => void;
+  saved?: boolean;
+  onSave?: (id: string) => void;
+}) {
   const initial = pro.name.trim().charAt(0).toUpperCase() || "?";
   return (
     <article
       className="card-hover"
+      onClick={onOpen}
       style={{
         background: colors.card,
         border: `1px solid ${colors.line}`,
@@ -30,7 +41,7 @@ export default function ProCard({ pro }: { pro: Professional }) {
         boxShadow: shadow.sm,
         display: "flex",
         flexDirection: "column",
-        cursor: "pointer",
+        cursor: onOpen ? "pointer" : "default",
       }}
     >
       <div style={{ position: "relative", aspectRatio: "16/10", background: colors.primarySoft, overflow: "hidden" }}>
@@ -68,6 +79,30 @@ export default function ProCard({ pro }: { pro: Professional }) {
             <Icon name="verified" size={13} filled color={colors.white} />
             Verified
           </span>
+        )}
+        {onSave && (
+          <button
+            aria-label={saved ? "Remove from saved" : "Save professional"}
+            onClick={(e) => {
+              e.stopPropagation();
+              onSave(pro.id);
+            }}
+            style={{
+              position: "absolute",
+              right: spacing.md,
+              top: spacing.md,
+              width: 38,
+              height: 38,
+              borderRadius: "50%",
+              background: colors.white,
+              display: "grid",
+              placeItems: "center",
+              color: saved ? "#E5484D" : colors.ink2,
+              boxShadow: shadow.sm,
+            }}
+          >
+            <Icon name="heart" size={18} filled={saved} />
+          </button>
         )}
       </div>
       <div style={{ padding: spacing.xl, display: "flex", flexDirection: "column", gap: spacing.md, flex: 1 }}>
@@ -129,9 +164,15 @@ export default function ProCard({ pro }: { pro: Professional }) {
             <b style={{ fontSize: fontSize.lg - 1 }}>{pro.price}</b>{" "}
             <em style={{ fontStyle: "normal", fontSize: fontSize.xs, color: colors.muted }}>/ {pro.priceUnit}</em>
           </span>
-          <span style={{ display: "inline-flex", alignItems: "center", gap: 5, fontSize: fontSize.sm, fontWeight: 600, color: colors.primary }}>
+          <button
+            onClick={(e) => {
+              e.stopPropagation();
+              onOpen?.();
+            }}
+            style={{ display: "inline-flex", alignItems: "center", gap: 5, fontSize: fontSize.sm, fontWeight: 600, color: colors.primary }}
+          >
             View profile <Icon name="arrow" size={16} />
-          </span>
+          </button>
         </div>
       </div>
     </article>

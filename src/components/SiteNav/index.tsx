@@ -26,7 +26,7 @@ const wrap: CSSProperties = {
 
 const LINKS: { label: string; href?: string }[] = [
   { label: "Home", href: "/" },
-  { label: "Professionals" },
+  { label: "Professionals", href: "/professionals" },
   { label: "Blogs" },
   { label: "Marketplace", href: "/marketplace" },
   { label: "Contact" },
