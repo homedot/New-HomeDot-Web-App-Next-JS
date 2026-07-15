@@ -188,6 +188,21 @@ export interface CreatePropertyBody {
   data: CreatePropertyRecord[];
 }
 
+export interface ToggleFavoriteBody {
+  status: boolean;
+  message: string;
+}
+
+// Same PropertyRecord shape as the regular listing endpoints — mirrors
+// homedot-mobile-app's FavoriteScreenTabNavigator, which spreads each
+// get-favorite-properties record straight into the same card component
+// used for the main marketplace grid.
+export interface FavoritePropertiesBody {
+  status: boolean;
+  message: string;
+  data: PropertyRecord[];
+}
+
 // All Marketplace screen API calls live here. The screen only ever imports
 // this file — never ApiService or fetch directly.
 export const MarketplaceScreenService = {
@@ -242,6 +257,26 @@ export const MarketplaceScreenService = {
         : API_ENDPOINTS.MARKETPLACE.CREATE_PROPERTY,
       payload,
     ),
+
+  // Requires a stored auth token. Toggles favorite/unfavorite for a single
+  // property — same endpoint handles both directions (mirrors
+  // homedot-mobile-app's add_Fav_Sell, which POSTs {property: id} once to
+  // favorite and again to un-favorite the same property). "Buy" and "Rent"
+  // listings are separate endpoints server-side, same as createProperty.
+  toggleFavoriteProperty: (
+    propertyId: string,
+    purpose: "Buy" | "Rent" = "Buy",
+  ): Promise<ApiResponse<ToggleFavoriteBody>> =>
+    ApiService.post<ToggleFavoriteBody>(
+      purpose === "Rent"
+        ? API_ENDPOINTS.MARKETPLACE.TOGGLE_FAVORITE_RENT
+        : API_ENDPOINTS.MARKETPLACE.TOGGLE_FAVORITE_SELL,
+      { property: propertyId },
+    ),
+
+  // Requires a stored auth token.
+  getFavoriteProperties: (): Promise<ApiResponse<FavoritePropertiesBody>> =>
+    ApiService.get<FavoritePropertiesBody>(API_ENDPOINTS.MARKETPLACE.GET_FAVORITE_PROPERTIES),
 };
 
 interface AmenityLike {

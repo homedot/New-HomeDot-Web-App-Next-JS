@@ -63,5 +63,20 @@ export const API_ENDPOINTS = {
     // CREATE_RENTAL_PROPERTY ("v1/rent/create") — separate endpoint from
     // CREATE_PROPERTY, same request body shape.
     CREATE_RENTAL_PROPERTY: "rent/create",
+    // Requires a stored auth token. Mirrors homedot-mobile-app's
+    // ADD_FAVORITE_SELL ("v1/property/add-favorite-property") — a single
+    // POST {property: id} that toggles favorite/unfavorite for that
+    // property (calling it again un-favorites it; there's no separate
+    // remove endpoint).
+    TOGGLE_FAVORITE_SELL: "property/add-favorite-property",
+    // Requires a stored auth token. Mirrors homedot-mobile-app's
+    // ADD_FAVORITE_RENT ("v1/rent/add-favorite-property") — defined there
+    // but never actually called (every card wires to add_Fav_Sell
+    // regardless of listing purpose); wired correctly here so favoriting a
+    // Rent listing hits the matching endpoint.
+    TOGGLE_FAVORITE_RENT: "rent/add-favorite-property",
+    // Requires a stored auth token. Mirrors homedot-mobile-app's
+    // GET_FAVORITE_PROPERTY ("v1/property/get-favorite-properties").
+    GET_FAVORITE_PROPERTIES: "property/get-favorite-properties",
   },
 } as const;

@@ -20,6 +20,7 @@ import AmbientBackground from "@/components/AmbientBackground";
 import ScrollProgress from "@/components/ScrollProgress";
 import Cursor from "@/components/Cursor";
 import Reveal from "@/components/Reveal";
+import LoginModal, { type LoginModalHandle } from "@/components/LoginModal";
 import PropertyDetail from "./PropertyDetail";
 import MarketplaceScreenService, {
   toMarketplaceProperty,
@@ -27,6 +28,7 @@ import MarketplaceScreenService, {
   type PropertiesFilterPayload,
   type PropertyTypeRecord,
 } from "@/services/MarketplaceScreenService";
+import { getAuthToken } from "@/utils/authStorage";
 import {
   loadGoogleMapsScript,
   type GoogleMapsNamespace,
@@ -100,6 +102,7 @@ export default function MarketplaceScreen() {
   );
   const [view, setView] = useState<"grid" | "list">("grid");
   const [saved, setSaved] = useState<string[]>([]);
+  const loginModalRef = useRef<LoginModalHandle>(null);
   const [detail, setDetail] = useState<MarketplaceProperty | null>(null);
   const [detailSimilar, setDetailSimilar] = useState<
     MarketplaceProperty[] | null
@@ -124,6 +127,19 @@ export default function MarketplaceScreen() {
     MarketplaceScreenService.getPropertyTypes().then((res) => {
       if (res.success && res.data?.status)
         setPropertyTypeOptions(res.data.data);
+    });
+  }, []);
+
+  // Seeds the saved/favorited set from the backend on load, for signed-in
+  // users, so the heart state persists across sessions instead of resetting
+  // on every page load (guests have nothing to seed — toggleSave prompts
+  // login before ever calling the favorite API for them).
+  useEffect(() => {
+    if (!getAuthToken()) return;
+    MarketplaceScreenService.getFavoriteProperties().then((res) => {
+      if (res.success && res.data?.status && res.data.data) {
+        setSaved(res.data.data.map((r) => r._id));
+      }
     });
   }, []);
 
@@ -313,8 +329,37 @@ export default function MarketplaceScreen() {
     }
   };
 
-  const toggleSave = (id: string) =>
-    setSaved((s) => (s.includes(id) ? s.filter((x) => x !== id) : [...s, id]));
+  // Resolves which purpose (Buy/Rent) a property belongs to for the
+  // favorite API call — checks wherever that property might currently be
+  // visible (open detail view, its similar-properties list, the loaded
+  // grid) and falls back to the active Buy/Rent tab.
+  const purposeForId = (id: string): "Buy" | "Rent" => {
+    if (detail?.id === id) return detail.purpose;
+    const fromDetailSimilar = detailSimilar?.find((p) => p.id === id);
+    if (fromDetailSimilar) return fromDetailSimilar.purpose;
+    const fromList = apiProperties.find((p) => p.id === id);
+    if (fromList) return fromList.purpose;
+    return purpose;
+  };
+
+  // Mirrors homedot-mobile-app's add_Fav_Sell: a single endpoint toggles
+  // favorite/unfavorite for a property, so the UI just flips its local
+  // state optimistically, fires the call, and reverts on failure. Guests
+  // are prompted to log in rather than silently no-op-ing — favoriting
+  // requires an auth token server-side.
+  const toggleSave = (id: string) => {
+    if (!getAuthToken()) {
+      loginModalRef.current?.open();
+      return;
+    }
+    const wasSaved = saved.includes(id);
+    setSaved((s) => (wasSaved ? s.filter((x) => x !== id) : [...s, id]));
+    MarketplaceScreenService.toggleFavoriteProperty(id, purposeForId(id)).then((res) => {
+      if (!res.success || !res.data?.status) {
+        setSaved((s) => (wasSaved ? [...s, id] : s.filter((x) => x !== id)));
+      }
+    });
+  };
 
   const list = useMemo(() => {
     let out = apiProperties.filter((p) => p.purpose === purpose);
@@ -448,6 +493,7 @@ export default function MarketplaceScreen() {
       <ScrollProgress />
       <Cursor />
       <SiteNav />
+      <LoginModal ref={loginModalRef} />
 
       {detail ? (
         <PropertyDetail
