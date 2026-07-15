@@ -61,414 +61,420 @@ export interface LoginModalHandle {
 
 /** Login trigger button (Nav) + the phone/email → OTP → success modal. Self-contained
  * client island so the rest of LandingScreen can stay a Server Component. */
-const LoginModal = forwardRef<LoginModalHandle>(function LoginModal(_props, ref) {
-  const [open, setOpen] = useState(false);
-  const [loggedIn, setLoggedIn] = useState(false);
-  const [step, setStep] = useState<Step>("method");
-  const [method, setMethod] = useState<Method>("phone");
-  const [value, setValue] = useState("");
-  const [cc, setCc] = useState("+91");
-  const [otp, setOtp] = useState<string[]>(["", "", "", "", "", ""]);
-  const [secs, setSecs] = useState(0);
-  const [shake, setShake] = useState(false);
-  const [checking, setChecking] = useState(false);
-  const [checkError, setCheckError] = useState<string | null>(null);
-  const [verifying, setVerifying] = useState(false);
-  const [otpError, setOtpError] = useState<string | null>(null);
-  const [isNewUser, setIsNewUser] = useState(true);
-  const [proLocation, setProLocation] = useState<LocationValue | null>(null);
-  const otpRefs = useRef<(HTMLInputElement | null)[]>([]);
+const LoginModal = forwardRef<LoginModalHandle>(
+  function LoginModal(_props, ref) {
+    const [open, setOpen] = useState(false);
+    const [loggedIn, setLoggedIn] = useState(false);
+    const [step, setStep] = useState<Step>("method");
+    const [method, setMethod] = useState<Method>("phone");
+    const [value, setValue] = useState("");
+    const [cc, setCc] = useState("+91");
+    const [otp, setOtp] = useState<string[]>(["", "", "", "", "", ""]);
+    const [secs, setSecs] = useState(0);
+    const [shake, setShake] = useState(false);
+    const [checking, setChecking] = useState(false);
+    const [checkError, setCheckError] = useState<string | null>(null);
+    const [verifying, setVerifying] = useState(false);
+    const [otpError, setOtpError] = useState<string | null>(null);
+    const [isNewUser, setIsNewUser] = useState(true);
+    const [proLocation, setProLocation] = useState<LocationValue | null>(null);
+    const otpRefs = useRef<(HTMLInputElement | null)[]>([]);
 
-  useImperativeHandle(ref, () => ({
-    open: () => setOpen(true),
-  }));
+    useImperativeHandle(ref, () => ({
+      open: () => setOpen(true),
+    }));
 
-  useEffect(() => {
-    if (step !== "otp") return;
-    const id = setInterval(() => setSecs((s) => (s > 0 ? s - 1 : 0)), 1000);
-    return () => clearInterval(id);
-  }, [step]);
+    useEffect(() => {
+      if (step !== "otp") return;
+      const id = setInterval(() => setSecs((s) => (s > 0 ? s - 1 : 0)), 1000);
+      return () => clearInterval(id);
+    }, [step]);
 
-  const reset = useCallback(() => {
-    setStep("method");
-    setMethod("phone");
-    setValue("");
-    setOtp(["", "", "", "", "", ""]);
-    setCheckError(null);
-    setOtpError(null);
-    setIsNewUser(true);
-    setProLocation(null);
-  }, []);
+    const reset = useCallback(() => {
+      setStep("method");
+      setMethod("phone");
+      setValue("");
+      setOtp(["", "", "", "", "", ""]);
+      setCheckError(null);
+      setOtpError(null);
+      setIsNewUser(true);
+      setProLocation(null);
+    }, []);
 
-  const close = useCallback(() => {
-    setOpen(false);
-    setTimeout(reset, 250);
-  }, [reset]);
+    const close = useCallback(() => {
+      setOpen(false);
+      setTimeout(reset, 250);
+    }, [reset]);
 
-  useEffect(() => {
-    if (!open) return;
-    const onKey = (e: KeyboardEvent) => {
-      if (e.key === "Escape") close();
+    useEffect(() => {
+      if (!open) return;
+      const onKey = (e: KeyboardEvent) => {
+        if (e.key === "Escape") close();
+      };
+      window.addEventListener("keydown", onKey);
+      return () => window.removeEventListener("keydown", onKey);
+    }, [open, close]);
+
+    const digitLimit = digitLimitFor(cc);
+    const digits = value.replace(/\D/g, "");
+    const valid =
+      method === "phone"
+        ? digits.length === digitLimit
+        : /\S+@\S+\.\S+/.test(value);
+    const otpFull = otp.every((d) => d !== "");
+
+    const doShake = () => {
+      setShake(true);
+      setTimeout(() => setShake(false), 500);
     };
-    window.addEventListener("keydown", onKey);
-    return () => window.removeEventListener("keydown", onKey);
-  }, [open, close]);
 
-  const digitLimit = digitLimitFor(cc);
-  const digits = value.replace(/\D/g, "");
-  const valid =
-    method === "phone"
-      ? digits.length === digitLimit
-      : /\S+@\S+\.\S+/.test(value);
-  const otpFull = otp.every((d) => d !== "");
+    const contactPayload = () =>
+      method === "phone"
+        ? { userContact: digits, countryCode: cc.replace("+", "") }
+        : { userContact: value.trim() };
 
-  const doShake = () => {
-    setShake(true);
-    setTimeout(() => setShake(false), 500);
-  };
+    const sendOtp = async () => {
+      if (!valid) return doShake();
+      setChecking(true);
+      setCheckError(null);
+      const payload = contactPayload();
 
-  const contactPayload = () =>
-    method === "phone"
-      ? { userContact: digits, countryCode: cc.replace("+", "") }
-      : { userContact: value.trim() };
+      const checkRes = await AuthService.checkUser(payload);
+      if (!checkRes.success || !checkRes.data?.status) {
+        setChecking(false);
+        setCheckError(
+          checkRes.data?.message ||
+            checkRes.message ||
+            "Something went wrong. Please try again.",
+        );
+        return doShake();
+      }
 
-  const sendOtp = async () => {
-    if (!valid) return doShake();
-    setChecking(true);
-    setCheckError(null);
-    const payload = contactPayload();
-
-    const checkRes = await AuthService.checkUser(payload);
-    if (!checkRes.success || !checkRes.data?.status) {
+      const otpRes = await AuthService.sendLoginOtp(payload);
+      console.log("Send OTP response:", otpRes);
       setChecking(false);
-      setCheckError(
-        checkRes.data?.message ||
-          checkRes.message ||
-          "Something went wrong. Please try again.",
+      if (!otpRes.success || !otpRes.data?.status) {
+        setCheckError(
+          otpRes.data?.message ||
+            otpRes.message ||
+            "Couldn't send the OTP. Please try again.",
+        );
+        return doShake();
+      }
+
+      setIsNewUser(
+        otpRes.data.data[0]?.newUser ?? checkRes.data.data[0]?.newUser ?? true,
       );
-      return doShake();
-    }
+      setSecs(120);
+      setStep("otp");
+      setTimeout(() => otpRefs.current[0]?.focus(), 380);
+    };
 
-    const otpRes = await AuthService.sendLoginOtp(payload);
-    console.log("Send OTP response:", otpRes);
-    setChecking(false);
-    if (!otpRes.success || !otpRes.data?.status) {
-      setCheckError(
-        otpRes.data?.message ||
-          otpRes.message ||
-          "Couldn't send the OTP. Please try again.",
-      );
-      return doShake();
-    }
+    const setDigit = (i: number, raw: string) => {
+      const v = raw.replace(/\D/g, "").slice(-1);
+      setOtp((o) => {
+        const next = [...o];
+        next[i] = v;
+        return next;
+      });
+      if (v && i < 5) otpRefs.current[i + 1]?.focus();
+    };
 
-    setIsNewUser(
-      otpRes.data.data[0]?.newUser ?? checkRes.data.data[0]?.newUser ?? true,
-    );
-    setSecs(120);
-    setStep("otp");
-    setTimeout(() => otpRefs.current[0]?.focus(), 380);
-  };
+    const onOtpKey = (i: number, e: React.KeyboardEvent<HTMLInputElement>) => {
+      if (e.key === "Backspace" && !otp[i] && i > 0)
+        otpRefs.current[i - 1]?.focus();
+    };
 
-  const setDigit = (i: number, raw: string) => {
-    const v = raw.replace(/\D/g, "").slice(-1);
-    setOtp((o) => {
-      const next = [...o];
-      next[i] = v;
-      return next;
-    });
-    if (v && i < 5) otpRefs.current[i + 1]?.focus();
-  };
+    const onOtpPaste = (e: React.ClipboardEvent<HTMLDivElement>) => {
+      const d = (e.clipboardData.getData("text") || "")
+        .replace(/\D/g, "")
+        .slice(0, 6)
+        .split("");
+      if (!d.length) return;
+      e.preventDefault();
+      const next = ["", "", "", "", "", ""];
+      d.forEach((x, i) => (next[i] = x));
+      setOtp(next);
+      otpRefs.current[Math.min(d.length, 5)]?.focus();
+    };
 
-  const onOtpKey = (i: number, e: React.KeyboardEvent<HTMLInputElement>) => {
-    if (e.key === "Backspace" && !otp[i] && i > 0)
-      otpRefs.current[i - 1]?.focus();
-  };
+    const verify = async () => {
+      if (!otpFull) return doShake();
+      setVerifying(true);
+      setOtpError(null);
+      const res = await AuthService.verifyLoginOtp({
+        ...contactPayload(),
+        otp: otp.join(""),
+        deviceToken: "",
+        deviceType: "ios",
+      });
+      setVerifying(false);
+      if (!res.success || !res.data || res.data.status === false) {
+        setOtpError(
+          res.data?.message || res.message || "Invalid code. Please try again.",
+        );
+        return doShake();
+      }
+      const record = res.data.data[0];
+      if (record?.token && record?.reToken) {
+        useAuthStore
+          .getState()
+          .setTokens({ token: record.token, refreshToken: record.reToken });
+      }
+      if (isNewUser) {
+        setStep("role");
+        return;
+      }
+      finishSuccess();
+    };
 
-  const onOtpPaste = (e: React.ClipboardEvent<HTMLDivElement>) => {
-    const d = (e.clipboardData.getData("text") || "")
-      .replace(/\D/g, "")
-      .slice(0, 6)
-      .split("");
-    if (!d.length) return;
-    e.preventDefault();
-    const next = ["", "", "", "", "", ""];
-    d.forEach((x, i) => (next[i] = x));
-    setOtp(next);
-    otpRefs.current[Math.min(d.length, 5)]?.focus();
-  };
+    const resendOtp = async () => {
+      setOtpError(null);
+      const res = await AuthService.sendLoginOtp(contactPayload());
+      if (!res.success || !res.data?.status) {
+        setOtpError(
+          res.data?.message ||
+            res.message ||
+            "Couldn't resend the OTP. Please try again.",
+        );
+        return;
+      }
+      setSecs(120);
+    };
 
-  const verify = async () => {
-    if (!otpFull) return doShake();
-    setVerifying(true);
-    setOtpError(null);
-    const res = await AuthService.verifyLoginOtp({
-      ...contactPayload(),
-      otp: otp.join(""),
-      deviceToken: "",
-      deviceType: "ios",
-    });
-    setVerifying(false);
-    if (!res.success || !res.data || res.data.status === false) {
-      setOtpError(
-        res.data?.message || res.message || "Invalid code. Please try again.",
-      );
-      return doShake();
-    }
-    const record = res.data.data[0];
-    if (record?.token && record?.reToken) {
-      useAuthStore.getState().setTokens({ token: record.token, refreshToken: record.reToken });
-    }
-    if (isNewUser) {
-      setStep("role");
-      return;
-    }
-    finishSuccess();
-  };
+    const finishSuccess = () => {
+      setStep("success");
+      setTimeout(() => {
+        setLoggedIn(true);
+        close();
+      }, 1500);
+    };
 
-  const resendOtp = async () => {
-    setOtpError(null);
-    const res = await AuthService.sendLoginOtp(contactPayload());
-    if (!res.success || !res.data?.status) {
-      setOtpError(
-        res.data?.message ||
-          res.message ||
-          "Couldn't resend the OTP. Please try again.",
-      );
-      return;
-    }
-    setSecs(120);
-  };
+    const submitUserForm = (values: UserFormValues) => {
+      console.log("User registration payload:", values);
+      finishSuccess();
+    };
 
-  const finishSuccess = () => {
-    setStep("success");
-    setTimeout(() => {
-      setLoggedIn(true);
-      close();
-    }, 1500);
-  };
+    const submitProForm = (values: ProFormValues) => {
+      console.log("Professional registration payload:", values);
+      finishSuccess();
+    };
 
-  const submitUserForm = (values: UserFormValues) => {
-    console.log("User registration payload:", values);
-    finishSuccess();
-  };
+    const masked =
+      method === "phone"
+        ? `${cc} ${digits
+            .slice(-10)
+            .replace(/(\d{5})(\d{0,5})/, "$1 $2")
+            .trim()}`
+        : value;
 
-  const submitProForm = (values: ProFormValues) => {
-    console.log("Professional registration payload:", values);
-    finishSuccess();
-  };
+    const isWideStep =
+      step === "role" ||
+      step === "userForm" ||
+      step === "proLocation" ||
+      step === "proForm";
 
-  const masked =
-    method === "phone"
-      ? `${cc} ${digits
-          .slice(-10)
-          .replace(/(\d{5})(\d{0,5})/, "$1 $2")
-          .trim()}`
-      : value;
-
-  const isWideStep =
-    step === "role" ||
-    step === "userForm" ||
-    step === "proLocation" ||
-    step === "proForm";
-
-  return (
-    <>
-      {loggedIn ? (
-        <button
-          onClick={() => setOpen(true)}
-          aria-label="My account"
-          style={{
-            width: 40,
-            height: 40,
-            borderRadius: "50%",
-            background: colors.primarySoft,
-            color: colors.primary,
-            display: "grid",
-            placeItems: "center",
-            border: `1.5px solid ${colors.line}`,
-            flexShrink: 0,
-          }}
-        >
-          <Icon name="check" size={18} strokeWidth={2.4} />
-        </button>
-      ) : (
-        <Button
-          variant="primary"
-          size="sm"
-          icon={<Icon name="check" size={16} />}
-          onClick={() => setOpen(true)}
-        >
-          Log in
-        </Button>
-      )}
-
-      {open && (
-        <div
-          className="login-overlay"
-          onClick={close}
-          style={{
-            position: "fixed",
-            inset: 0,
-            zIndex: 1000,
-            background: colors.overlay,
-            backdropFilter: "blur(7px)",
-            display: "flex",
-            justifyContent: "center",
-            alignItems: isWideStep ? "flex-start" : "center",
-            overflowY: "auto",
-            padding: isWideStep ? "40px 20px" : 20,
-          }}
-        >
-          <div
-            className="login-modal"
-            onClick={(e) => e.stopPropagation()}
+    return (
+      <>
+        {loggedIn ? (
+          <button
+            onClick={() => setOpen(true)}
+            aria-label="My account"
             style={{
-              position: "relative",
-              width: isWideStep ? "min(640px, 100%)" : "min(880px, 100%)",
-              maxHeight: isWideStep ? undefined : "94vh",
-              overflow: isWideStep ? "visible" : "hidden",
+              width: 40,
+              height: 40,
+              borderRadius: "50%",
+              background: colors.primarySoft,
+              color: colors.primary,
               display: "grid",
-              gridTemplateColumns: isWideStep ? "1fr" : "1fr 1.05fr",
-              background: colors.card,
-              borderRadius: 24,
-              boxShadow: "0 40px 90px -30px rgba(10,20,34,0.6)",
+              placeItems: "center",
+              border: `1.5px solid ${colors.line}`,
               flexShrink: 0,
             }}
           >
-            <button
-              onClick={close}
-              aria-label="Close"
-              style={{
-                position: "absolute",
-                right: 16,
-                top: 16,
-                zIndex: 5,
-                width: 38,
-                height: 38,
-                borderRadius: "50%",
-                background: isWideStep
-                  ? "rgba(16,28,48,0.08)"
-                  : "rgba(255,255,255,0.16)",
-                color: isWideStep ? colors.ink : colors.white,
-                display: "grid",
-                placeItems: "center",
-              }}
-            >
-              <Icon
-                name="close"
-                size={20}
-                color={isWideStep ? colors.ink : colors.white}
-              />
-            </button>
+            <Icon name="check" size={18} strokeWidth={2.4} />
+          </button>
+        ) : (
+          <Button
+            variant="primary"
+            size="sm"
+            // icon={<Icon name="check" size={16} />}
+            onClick={() => setOpen(true)}
+          >
+            Log in
+          </Button>
+        )}
 
-            {!isWideStep && <BrandPanel />}
-
+        {open && (
+          <div
+            className="login-overlay"
+            onClick={close}
+            style={{
+              position: "fixed",
+              inset: 0,
+              zIndex: 1000,
+              background: colors.overlay,
+              backdropFilter: "blur(7px)",
+              display: "flex",
+              justifyContent: "center",
+              alignItems: isWideStep ? "flex-start" : "center",
+              overflowY: "auto",
+              padding: isWideStep ? "40px 20px" : 20,
+            }}
+          >
             <div
+              className="login-modal"
+              onClick={(e) => e.stopPropagation()}
               style={{
-                padding: "38px 36px",
-                display: "flex",
-                flexDirection: "column",
-                justifyContent: isWideStep ? "flex-start" : "center",
-                overflowY: isWideStep ? "visible" : "auto",
-                minHeight: isWideStep ? undefined : 0,
-                minWidth: 0,
+                position: "relative",
+                width: isWideStep ? "min(640px, 100%)" : "min(880px, 100%)",
+                maxHeight: isWideStep ? undefined : "94vh",
+                overflow: isWideStep ? "visible" : "hidden",
+                display: "grid",
+                gridTemplateColumns: isWideStep ? "1fr" : "1fr 1.05fr",
+                background: colors.card,
+                borderRadius: 24,
+                boxShadow: "0 40px 90px -30px rgba(10,20,34,0.6)",
+                flexShrink: 0,
               }}
             >
-              {step === "method" && (
-                <MethodStep
-                  method={method}
-                  setMethod={(m) => {
-                    setMethod(m);
-                    setValue("");
-                  }}
-                  value={value}
-                  setValue={setValue}
-                  cc={cc}
-                  setCc={setCc}
-                  digitLimit={digitLimit}
-                  valid={valid}
-                  shake={shake}
-                  checking={checking}
-                  error={checkError}
-                  onSubmit={sendOtp}
+              <button
+                onClick={close}
+                aria-label="Close"
+                style={{
+                  position: "absolute",
+                  right: 16,
+                  top: 16,
+                  zIndex: 5,
+                  width: 38,
+                  height: 38,
+                  borderRadius: "50%",
+                  background: isWideStep
+                    ? "rgba(16,28,48,0.08)"
+                    : "rgba(255,255,255,0.16)",
+                  color: isWideStep ? colors.ink : colors.white,
+                  display: "grid",
+                  placeItems: "center",
+                }}
+              >
+                <Icon
+                  name="close"
+                  size={20}
+                  color={isWideStep ? colors.ink : colors.white}
                 />
-              )}
+              </button>
 
-              {step === "otp" && (
-                <OtpStep
-                  masked={masked}
-                  otp={otp}
-                  otpRefs={otpRefs}
-                  setDigit={setDigit}
-                  onOtpKey={onOtpKey}
-                  onOtpPaste={onOtpPaste}
-                  shake={shake}
-                  otpFull={otpFull}
-                  secs={secs}
-                  verifying={verifying}
-                  error={otpError}
-                  onBack={() => setStep("method")}
-                  onVerify={verify}
-                  onResend={resendOtp}
-                />
-              )}
+              {!isWideStep && <BrandPanel />}
 
-              {step === "role" && (
-                <RoleStep
-                  onSelect={(r) =>
-                    setStep(r === "user" ? "userForm" : "proLocation")
-                  }
-                />
-              )}
+              <div
+                style={{
+                  padding: "38px 36px",
+                  display: "flex",
+                  flexDirection: "column",
+                  justifyContent: isWideStep ? "flex-start" : "center",
+                  overflowY: isWideStep ? "visible" : "auto",
+                  minHeight: isWideStep ? undefined : 0,
+                  minWidth: 0,
+                }}
+              >
+                {step === "method" && (
+                  <MethodStep
+                    method={method}
+                    setMethod={(m) => {
+                      setMethod(m);
+                      setValue("");
+                    }}
+                    value={value}
+                    setValue={setValue}
+                    cc={cc}
+                    setCc={setCc}
+                    digitLimit={digitLimit}
+                    valid={valid}
+                    shake={shake}
+                    checking={checking}
+                    error={checkError}
+                    onSubmit={sendOtp}
+                  />
+                )}
 
-              {step === "userForm" && (
-                <UserFormStep
-                  method={method}
-                  contactValue={value}
-                  countryCode={cc}
-                  onBack={() => setStep("role")}
-                  onSubmit={submitUserForm}
-                />
-              )}
+                {step === "otp" && (
+                  <OtpStep
+                    masked={masked}
+                    otp={otp}
+                    otpRefs={otpRefs}
+                    setDigit={setDigit}
+                    onOtpKey={onOtpKey}
+                    onOtpPaste={onOtpPaste}
+                    shake={shake}
+                    otpFull={otpFull}
+                    secs={secs}
+                    verifying={verifying}
+                    error={otpError}
+                    onBack={() => setStep("method")}
+                    onVerify={verify}
+                    onResend={resendOtp}
+                  />
+                )}
 
-              {step === "proLocation" && (
-                <ProLocationStep
-                  initialLocation={proLocation}
-                  onBack={() => setStep("role")}
-                  onContinue={(loc) => {
-                    setProLocation(loc);
-                    setStep("proForm");
-                  }}
-                />
-              )}
+                {step === "role" && (
+                  <RoleStep
+                    onSelect={(r) =>
+                      setStep(r === "user" ? "userForm" : "proLocation")
+                    }
+                  />
+                )}
 
-              {step === "proForm" && proLocation && (
-                <ProFormStep
-                  method={method}
-                  contactValue={value}
-                  countryCode={cc}
-                  location={proLocation}
-                  onChangeLocation={() => setStep("proLocation")}
-                  onBack={() => setStep("proLocation")}
-                  onSubmit={submitProForm}
-                />
-              )}
+                {step === "userForm" && (
+                  <UserFormStep
+                    method={method}
+                    contactValue={value}
+                    countryCode={cc}
+                    onBack={() => setStep("role")}
+                    onSubmit={submitUserForm}
+                  />
+                )}
 
-              {step === "success" && (
-                <SuccessStep
-                  title={isNewUser ? "Account created!" : undefined}
-                  subtitle={
-                    isNewUser ? "Welcome to HomeDot. Taking you in…" : undefined
-                  }
-                />
-              )}
+                {step === "proLocation" && (
+                  <ProLocationStep
+                    initialLocation={proLocation}
+                    onBack={() => setStep("role")}
+                    onContinue={(loc) => {
+                      setProLocation(loc);
+                      setStep("proForm");
+                    }}
+                  />
+                )}
+
+                {step === "proForm" && proLocation && (
+                  <ProFormStep
+                    method={method}
+                    contactValue={value}
+                    countryCode={cc}
+                    location={proLocation}
+                    onChangeLocation={() => setStep("proLocation")}
+                    onBack={() => setStep("proLocation")}
+                    onSubmit={submitProForm}
+                  />
+                )}
+
+                {step === "success" && (
+                  <SuccessStep
+                    title={isNewUser ? "Account created!" : undefined}
+                    subtitle={
+                      isNewUser
+                        ? "Welcome to HomeDot. Taking you in…"
+                        : undefined
+                    }
+                  />
+                )}
+              </div>
             </div>
           </div>
-        </div>
-      )}
-    </>
-  );
-});
+        )}
+      </>
+    );
+  },
+);
 
 export default LoginModal;
 

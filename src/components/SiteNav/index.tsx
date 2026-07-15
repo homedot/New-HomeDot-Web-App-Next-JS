@@ -32,14 +32,22 @@ export default function SiteNav() {
   const loginModalRef = useRef<LoginModalHandle>(null);
 
   const onAddProperty = () => {
-    const token = getAuthToken();
-    console.log("Stored auth token:", token);
-    if (token) {
+    if (getAuthToken()) {
       router.push("/property/add");
     } else {
       loginModalRef.current?.open();
     }
   };
+
+  const onFavorites = () => {
+    if (getAuthToken()) {
+      router.push("/favorites");
+    } else {
+      loginModalRef.current?.open();
+    }
+  };
+
+  const favoritesActive = pathname === "/favorites";
 
   return (
     <NavShell className="nav-shell">
@@ -86,6 +94,23 @@ export default function SiteNav() {
             gap: spacing.sm + 1,
           }}
         >
+          <button
+            onClick={onFavorites}
+            aria-label="Favorites"
+            style={{
+              width: 38,
+              height: 38,
+              borderRadius: "50%",
+              border: `1px solid ${favoritesActive ? colors.primary : colors.line}`,
+              background: favoritesActive ? colors.primarySoft : colors.card,
+              color: favoritesActive ? colors.primary : colors.ink2,
+              display: "grid",
+              placeItems: "center",
+              flexShrink: 0,
+            }}
+          >
+            <Icon name="heart" size={17} filled={favoritesActive} />
+          </button>
           <span className="hidden sm:inline-flex">
             <Button
               variant="outline"
