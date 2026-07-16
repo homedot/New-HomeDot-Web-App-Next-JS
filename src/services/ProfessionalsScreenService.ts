@@ -115,6 +115,48 @@ function truncate(text: string, max: number): string {
   return clean.length > max ? `${clean.slice(0, max - 1).trimEnd()}…` : clean;
 }
 
+const unsplash = (id: string, w = 1200) => `https://images.unsplash.com/photo-${id}?auto=format&fit=crop&w=${w}&q=80`;
+
+// Curated, trade-matched stand-ins for professionals who haven't uploaded a
+// cover photo yet — reuses the same Unsplash photos already vetted
+// elsewhere in this app (ProfessionalsScreen/data.ts's mock professionals,
+// the landing page blog cards) so a missing photo reads as an intentional,
+// attractive placeholder rather than a blank box or a bare icon.
+const FALLBACK_COVERS = {
+  architecture: unsplash("1487958449943-2429e8be8625"),
+  interior: unsplash("1618221195710-dd6b41faaea6"),
+  contractor: unsplash("1503387762-592deb58ef4e"),
+  civil: unsplash("1581094794329-c8112a89af12"),
+  kitchen: unsplash("1556911220-bff31c812dba"),
+  landscape: unsplash("1558904541-efa843a96f01"),
+  electrical: unsplash("1621905251918-48416bd8575a"),
+  legal: unsplash("1450101499163-c8848c66ca85"),
+  financial: unsplash("1554224155-6726b3ff858f"),
+  generic: unsplash("1504307651254-35680f356dfd"),
+} as const;
+
+const FALLBACK_POOL = Object.values(FALLBACK_COVERS);
+
+// Picks a photo that matches the professional's trade where possible, and
+// otherwise a stable-but-varied one from the pool (hashed off an id, not
+// random) so reloading the same page never flickers to a different image
+// and a page of unrelated professionals doesn't all show the same photo.
+function pickFallbackCover(categoryName: string, seed: string): string {
+  const n = categoryName.toLowerCase();
+  if (n.includes("architect") || n.includes("engineer")) return FALLBACK_COVERS.architecture;
+  if (n.includes("interior")) return FALLBACK_COVERS.interior;
+  if (n.includes("contractor") || n.includes("builder") || n.includes("construction")) return FALLBACK_COVERS.contractor;
+  if (n.includes("civil") || n.includes("structural")) return FALLBACK_COVERS.civil;
+  if (n.includes("kitchen") || n.includes("bath")) return FALLBACK_COVERS.kitchen;
+  if (n.includes("landscape") || n.includes("garden")) return FALLBACK_COVERS.landscape;
+  if (n.includes("electric") || n.includes("automation") || n.includes("wiring")) return FALLBACK_COVERS.electrical;
+  if (n.includes("legal")) return FALLBACK_COVERS.legal;
+  if (n.includes("financ")) return FALLBACK_COVERS.financial;
+  let hash = 0;
+  for (let i = 0; i < seed.length; i++) hash = (hash * 31 + seed.charCodeAt(i)) >>> 0;
+  return FALLBACK_POOL[hash % FALLBACK_POOL.length];
+}
+
 // Maps a raw filter-professional record onto the richer shape the
 // Professionals screen and detail page use. The filter endpoint only
 // returns a thin slice of a professional's data (no completed-project
@@ -127,9 +169,17 @@ export function toProfessionalRecord(record: ProfessionalListRecord): Profession
   const info = record.professionalInfo?.[0];
   const skillNames = info?.skills?.map((s) => s.levelThreeName).filter(Boolean) ?? [];
   const rate = info?.squareFeetRate;
+  const categoryName = info?.professionalCategoryName || "Professional";
   const gallery = [record.backgroundImage, record.profileImage].filter(
     (g): g is string => !!g,
   );
+  if (gallery.length === 0) {
+    // Second photo is always the next one in the pool (not re-matched by
+    // category) so the two fallback gallery tiles are never identical.
+    const first = pickFallbackCover(categoryName, record.inviteId);
+    const second = FALLBACK_POOL[(FALLBACK_POOL.indexOf(first) + 1) % FALLBACK_POOL.length];
+    gallery.push(first, second);
+  }
 
   return {
     id: record.inviteId,
@@ -137,10 +187,10 @@ export function toProfessionalRecord(record: ProfessionalListRecord): Profession
     name: record.name.trim(),
     profession: info?.subCategoryName || info?.professionalCategoryName || "Professional",
     category: info?.professionalCategory || "",
-    categoryName: info?.professionalCategoryName || "Professional",
+    categoryName,
     location: record.location?.trim() || record.city || "Kerala, India",
     avatar: record.profileImage || undefined,
-    cover: record.backgroundImage || record.profileImage || undefined,
+    cover: record.backgroundImage || record.profileImage || pickFallbackCover(categoryName, record.inviteId),
     rating: info?.rating ?? 0,
     reviews: 0,
     verified: info?.verified ?? false,

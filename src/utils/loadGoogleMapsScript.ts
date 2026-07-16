@@ -20,6 +20,11 @@ export interface GoogleMapsGeocodeResult {
   geometry: { location: { lat: () => number; lng: () => number } };
 }
 
+export interface GoogleMapsPlacePrediction {
+  place_id: string;
+  description: string;
+}
+
 export interface GoogleMapsNamespace {
   maps: {
     Map: new (el: HTMLElement, opts: Record<string, unknown>) => unknown;
@@ -48,6 +53,15 @@ export interface GoogleMapsNamespace {
           geometry?: { location: { lat: () => number; lng: () => number } };
         };
         setBounds: (bounds: unknown) => void;
+      };
+      // Data-only — no UI, unlike Autocomplete above. Lets callers render
+      // their own styled suggestion dropdown instead of Google's own
+      // "pac-container" popup (which can't be restyled to match the app).
+      AutocompleteService: new () => {
+        getPlacePredictions: (
+          request: { input: string; componentRestrictions?: { country: string } },
+          callback: (predictions: GoogleMapsPlacePrediction[] | null, status: string) => void,
+        ) => void;
       };
     };
     LatLngBounds: new (

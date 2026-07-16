@@ -15,6 +15,11 @@ import Cursor from "@/components/Cursor";
 import Reveal from "@/components/Reveal";
 import LoginModal, { type LoginModalHandle } from "@/components/LoginModal";
 import { getAuthToken } from "@/utils/authStorage";
+import {
+  loadGoogleMapsScript,
+  type GoogleMapsNamespace,
+  type GoogleMapsPlacePrediction,
+} from "@/utils/loadGoogleMapsScript";
 import LandingScreenService, {
   toServiceCategoryCard,
   type ServiceCategoryCard,
@@ -50,6 +55,24 @@ export default function ProfessionalsScreen() {
   const [saved, setSaved] = useState<string[]>([]);
   const loginModalRef = useRef<LoginModalHandle>(null);
 
+  // `locationText` is purely the input's display value (updates on every
+  // keystroke); `appliedLocation` is what actually drives the lat/long query
+  // params and is only set when a suggestion from our own dropdown is
+  // picked, "use my current location" resolves, or a typed address is
+  // geocoded on Enter/Search. Mirrors homedot-mobile-app's own custom
+  // suggestion list (GoogleServices.placeAutocomplete →
+  // selectedPlaceDetailed) rather than Google's native "pac-container"
+  // popup, which can't be restyled to match the rest of this screen.
+  const [locationText, setLocationText] = useState("Kochi, Kerala");
+  const [appliedLocation, setAppliedLocation] = useState<{ address: string; lat: number; long: number } | null>(null);
+  const [locatingMe, setLocatingMe] = useState(false);
+  const [suggestions, setSuggestions] = useState<GoogleMapsPlacePrediction[]>([]);
+  const [showSuggestions, setShowSuggestions] = useState(false);
+  const locationInputRef = useRef<HTMLInputElement | null>(null);
+  const locationFieldRef = useRef<HTMLDivElement | null>(null);
+  const googleMapsRef = useRef<GoogleMapsNamespace | null>(null);
+  const suggestTimer = useRef<ReturnType<typeof setTimeout> | null>(null);
+
   const [apiProfessionals, setApiProfessionals] = useState<ProfessionalRecord[]>(mockProfessionals);
   const [page, setPage] = useState(1);
   const [totalRows, setTotalRows] = useState(mockProfessionals.length);
@@ -66,14 +89,164 @@ export default function ProfessionalsScreen() {
     });
   }, []);
 
+  // Loads the Maps JS SDK once — used purely for its data services
+  // (AutocompleteService + Geocoder), no widget UI attached to the input.
+  useEffect(() => {
+    let cancelled = false;
+    loadGoogleMapsScript()
+      .then((google) => {
+        if (!cancelled) googleMapsRef.current = google;
+      })
+      .catch(() => {
+        // Silently degrade to a plain text field — the list still loads
+        // without location filtering if Maps fails to load.
+      });
+    return () => {
+      cancelled = true;
+    };
+  }, []);
+
+  // Closes the suggestion dropdown on an outside click — same behavior as
+  // tapping away from homedot-mobile-app's suggestion FlatList.
+  useEffect(() => {
+    if (!showSuggestions) return;
+    const onDocClick = (e: MouseEvent) => {
+      if (!locationFieldRef.current?.contains(e.target as Node)) setShowSuggestions(false);
+    };
+    document.addEventListener("mousedown", onDocClick);
+    return () => document.removeEventListener("mousedown", onDocClick);
+  }, [showSuggestions]);
+
+  // Fetches predictions as the user types (debounced) and renders them in
+  // our own dropdown below the input — mirrors homedot-mobile-app's
+  // GoogleServices.placeAutocomplete + custom suggestion list, just backed
+  // by the JS SDK's AutocompleteService instead of the raw REST endpoint
+  // (which has no CORS headers and can't be called from a browser — same
+  // reason MarketplaceScreen avoids it).
+  const onLocationInputChange = (value: string) => {
+    setLocationText(value);
+    if (suggestTimer.current) clearTimeout(suggestTimer.current);
+    const q = value.trim();
+    if (q.length < 3) {
+      setSuggestions([]);
+      setShowSuggestions(false);
+      return;
+    }
+    suggestTimer.current = setTimeout(() => {
+      const google = googleMapsRef.current;
+      if (!google) return;
+      new google.maps.places.AutocompleteService().getPlacePredictions(
+        { input: q, componentRestrictions: { country: "in" } },
+        (predictions, status) => {
+          if (status === "OK" && predictions?.length) {
+            setSuggestions(predictions);
+            setShowSuggestions(true);
+          } else {
+            setSuggestions([]);
+            setShowSuggestions(false);
+          }
+        },
+      );
+    }, 300);
+  };
+
+  // Resolves a picked suggestion's place_id to full coordinates — Geocoder
+  // already supports `{ placeId }` requests, so no separate PlacesService
+  // (which needs a map/attribution node) is needed just for this.
+  const selectSuggestion = (prediction: GoogleMapsPlacePrediction) => {
+    setShowSuggestions(false);
+    setSuggestions([]);
+    const google = googleMapsRef.current;
+    if (!google) return;
+    new google.maps.Geocoder().geocode({ placeId: prediction.place_id }, (results, status) => {
+      if (status === "OK" && results?.[0]) {
+        setLocationText(results[0].formatted_address);
+        setAppliedLocation({
+          address: results[0].formatted_address,
+          lat: results[0].geometry.location.lat(),
+          long: results[0].geometry.location.lng(),
+        });
+      }
+    });
+  };
+
+  const locateCurrentPosition = () => {
+    if (typeof navigator === "undefined" || !navigator.geolocation) return;
+    setShowSuggestions(false);
+    setLocatingMe(true);
+    navigator.geolocation.getCurrentPosition(
+      ({ coords }) => {
+        const { latitude, longitude } = coords;
+        const google = googleMapsRef.current;
+        if (!google) {
+          setLocatingMe(false);
+          setAppliedLocation({ address: "Current location", lat: latitude, long: longitude });
+          setLocationText("Current location");
+          return;
+        }
+        new google.maps.Geocoder().geocode(
+          { location: { lat: latitude, lng: longitude } },
+          (results, status) => {
+            setLocatingMe(false);
+            // The coordinates always come straight from the device GPS fix —
+            // reverse geocoding is only used to fill in a readable address,
+            // matching homedot-mobile-app's expoLocation (sets lat/long from
+            // coords immediately, geocodes only for display text).
+            const address = status === "OK" && results?.[0] ? results[0].formatted_address : "Current location";
+            setLocationText(address);
+            setAppliedLocation({ address, lat: latitude, long: longitude });
+          },
+        );
+      },
+      () => setLocatingMe(false),
+    );
+  };
+
+  const clearLocation = () => {
+    setLocationText("");
+    setAppliedLocation(null);
+    setSuggestions([]);
+    setShowSuggestions(false);
+  };
+
+  // Enter/Search picks the top suggestion if the dropdown is open;
+  // otherwise geocodes whatever's typed as a fallback so search still
+  // works if the user never triggered (or dismissed) the dropdown.
+  const applyTypedLocation = () => {
+    if (showSuggestions && suggestions[0]) {
+      selectSuggestion(suggestions[0]);
+      return;
+    }
+    const q = locationText.trim();
+    if (!q) {
+      clearLocation();
+      return;
+    }
+    if (appliedLocation?.address === q) return;
+    const google = googleMapsRef.current;
+    if (!google) return;
+    new google.maps.Geocoder().geocode({ address: q }, (results, status) => {
+      if (status === "OK" && results?.[0]) {
+        setLocationText(results[0].formatted_address);
+        setAppliedLocation({
+          address: results[0].formatted_address,
+          lat: results[0].geometry.location.lat(),
+          long: results[0].geometry.location.lng(),
+        });
+      }
+    });
+  };
+
   const filterQuery = useMemo((): ProfessionalsFilterQuery => {
     const b = budget != null ? budgetBuckets[budget] : null;
     return {
       category: category !== "all" ? category : null,
+      lat: appliedLocation?.lat ?? null,
+      long: appliedLocation?.long ?? null,
       sqMin: b ? b.sqMin : null,
       sqMax: b ? b.sqMax : null,
     };
-  }, [category, budget]);
+  }, [category, budget, appliedLocation]);
 
   const filterPayload = useMemo((): ProfessionalsFilterPayload => {
     const e = experience != null ? experienceBuckets[experience] : null;
@@ -203,8 +376,10 @@ export default function ProfessionalsScreen() {
     return out;
   }, [apiProfessionals, query, verifiedOnly, sort]);
 
-  const activeCount = (budget != null ? 1 : 0) + (rating != null ? 1 : 0) + (experience != null ? 1 : 0) + (verifiedOnly ? 1 : 0);
+  const activeCount =
+    (appliedLocation ? 1 : 0) + (budget != null ? 1 : 0) + (rating != null ? 1 : 0) + (experience != null ? 1 : 0) + (verifiedOnly ? 1 : 0);
   const clearAll = () => {
+    clearLocation();
     setBudget(null);
     setRating(null);
     setExperience(null);
@@ -344,33 +519,109 @@ export default function ProfessionalsScreen() {
                   }}
                 />
               </label>
-              <label
-                style={{
-                  display: "flex",
-                  alignItems: "center",
-                  gap: 9,
-                  height: 50,
-                  border: `1.5px solid ${colors.line}`,
-                  borderRadius: 12,
-                  padding: "0 14px",
-                  color: colors.muted,
-                  flexShrink: 0,
-                }}
-              >
-                <Icon name="location" size={18} />
-                <input
-                  defaultValue="Kochi, Kerala"
+              <div ref={locationFieldRef} style={{ position: "relative", flexShrink: 0 }}>
+                <label
                   style={{
-                    border: "none",
-                    outline: "none",
-                    background: "none",
-                    fontSize: fontSize.base - 0.5,
-                    color: colors.ink,
-                    width: 140,
+                    display: "flex",
+                    alignItems: "center",
+                    gap: 9,
+                    height: 50,
+                    border: `1.5px solid ${colors.line}`,
+                    borderRadius: 12,
+                    padding: "0 14px",
+                    color: colors.muted,
                   }}
-                />
-              </label>
-              <Button variant="primary" size="md" icon={<Icon name="search" size={17} />}>
+                >
+                  <Icon name="location" size={18} />
+                  <input
+                    ref={locationInputRef}
+                    value={locationText}
+                    onChange={(e) => onLocationInputChange(e.target.value)}
+                    onFocus={() => suggestions.length > 0 && setShowSuggestions(true)}
+                    onKeyDown={(e) => {
+                      if (e.key === "Enter") {
+                        e.preventDefault();
+                        applyTypedLocation();
+                      } else if (e.key === "Escape") {
+                        setShowSuggestions(false);
+                      }
+                    }}
+                    placeholder="Search city or locality"
+                    autoComplete="off"
+                    style={{
+                      border: "none",
+                      outline: "none",
+                      background: "none",
+                      fontSize: fontSize.base - 0.5,
+                      color: colors.ink,
+                      width: 140,
+                    }}
+                  />
+                  {appliedLocation ? (
+                    <button
+                      type="button"
+                      onClick={clearLocation}
+                      aria-label="Clear location"
+                      style={{ display: "flex", flexShrink: 0, color: colors.muted }}
+                    >
+                      <Icon name="close" size={14} />
+                    </button>
+                  ) : (
+                    <button
+                      type="button"
+                      onClick={locateCurrentPosition}
+                      disabled={locatingMe}
+                      aria-label="Use my current location"
+                      style={{ display: "flex", flexShrink: 0, color: colors.primary, opacity: locatingMe ? 0.5 : 1 }}
+                    >
+                      <Icon name="compass" size={17} />
+                    </button>
+                  )}
+                </label>
+
+                {showSuggestions && suggestions.length > 0 && (
+                  <div
+                    style={{
+                      position: "absolute",
+                      top: "calc(100% + 6px)",
+                      left: 0,
+                      right: 0,
+                      minWidth: 280,
+                      background: colors.card,
+                      border: `1px solid ${colors.line}`,
+                      borderRadius: radius.md,
+                      boxShadow: shadow.lg,
+                      zIndex: 20,
+                      overflow: "hidden",
+                      maxHeight: 280,
+                      overflowY: "auto",
+                    }}
+                  >
+                    {suggestions.map((s, i) => (
+                      <button
+                        key={s.place_id}
+                        type="button"
+                        onClick={() => selectSuggestion(s)}
+                        style={{
+                          display: "flex",
+                          alignItems: "center",
+                          gap: 10,
+                          width: "100%",
+                          padding: "11px 14px",
+                          textAlign: "left",
+                          fontSize: fontSize.sm + 0.5,
+                          color: colors.ink2,
+                          borderBottom: i < suggestions.length - 1 ? `1px solid ${colors.line}` : "none",
+                        }}
+                      >
+                        <Icon name="location" size={16} color={colors.accent} />
+                        <span style={{ overflow: "hidden", textOverflow: "ellipsis", whiteSpace: "nowrap" }}>{s.description}</span>
+                      </button>
+                    ))}
+                  </div>
+                )}
+              </div>
+              <Button variant="primary" size="md" icon={<Icon name="search" size={17} />} onClick={applyTypedLocation}>
                 Search
               </Button>
             </div>
@@ -590,6 +841,7 @@ export default function ProfessionalsScreen() {
 
                 {activeCount > 0 && (
                   <div style={{ display: "flex", flexWrap: "wrap", gap: 8, marginBottom: spacing.lg }}>
+                    {appliedLocation && <Chip label={appliedLocation.address} onRemove={clearLocation} />}
                     {budget != null && <Chip label={budgetBuckets[budget].label} onRemove={() => setBudget(null)} />}
                     {rating != null && <Chip label={ratingBuckets.find((r) => r.value === rating)!.label} onRemove={() => setRating(null)} />}
                     {experience != null && <Chip label={experienceBuckets[experience].label} onRemove={() => setExperience(null)} />}
