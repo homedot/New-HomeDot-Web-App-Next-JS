@@ -44,6 +44,21 @@ export default function ProfessionalDetail({
   const [copied, setCopied] = useState(false);
   const contactCardRef = useRef<HTMLDivElement>(null);
 
+  // Sliding pill behind the active tab — measured from the actual button
+  // layout (widths vary per label) rather than assumed, so it lines up
+  // exactly regardless of label length or viewport.
+  const tabRefs = useRef<Partial<Record<Tab, HTMLButtonElement | null>>>({});
+  const [indicator, setIndicator] = useState({ left: 0, width: 0 });
+  useEffect(() => {
+    const measure = () => {
+      const el = tabRefs.current[tab];
+      if (el) setIndicator({ left: el.offsetLeft, width: el.offsetWidth });
+    };
+    measure();
+    window.addEventListener("resize", measure);
+    return () => window.removeEventListener("resize", measure);
+  }, [tab]);
+
   // Enquiry form — mirrors homedot-mobile-app's directEnquiry, which needs
   // a service location (address + lat/long, resolved via Places) and a
   // requirement description; the professional themselves is identified by
@@ -248,6 +263,8 @@ export default function ProfessionalDetail({
     window.setTimeout(() => locationInputRef.current?.focus(), 450);
   }
 
+  const ratingPct = Math.max(0, Math.min(100, (pro.rating / 5) * 100));
+
   return (
     <section style={{ padding: `${spacing.xl}px ${spacing.xl}px ${spacing.huge}px` }}>
       <div style={{ maxWidth: 1200, margin: "0 auto" }}>
@@ -356,53 +373,76 @@ export default function ProfessionalDetail({
           </div>
         </div>
 
-        {/* cover */}
-        <Reveal style={{ position: "relative", borderRadius: radius.lg, overflow: "hidden", height: "clamp(180px, 26vw, 300px)", background: colors.primarySoft }}>
-          {pro.cover && (
-            // eslint-disable-next-line @next/next/no-img-element
-            <img src={pro.cover} alt={pro.name} style={{ width: "100%", height: "100%", objectFit: "cover" }} />
-          )}
-          <div style={{ position: "absolute", inset: 0, background: "linear-gradient(180deg, rgba(10,20,34,0.15), transparent 40%, rgba(10,20,34,0.1))" }} />
+        {/* hero: cover photo with the avatar overlapping its bottom edge */}
+        <Reveal style={{ position: "relative" }}>
+          <div
+            style={{
+              position: "relative",
+              borderRadius: radius.lg,
+              overflow: "hidden",
+              height: "clamp(200px, 32vw, 340px)",
+              background: colors.primarySoft,
+            }}
+          >
+            {pro.cover && (
+              // eslint-disable-next-line @next/next/no-img-element
+              <img src={pro.cover} alt={pro.name} style={{ width: "100%", height: "100%", objectFit: "cover" }} />
+            )}
+            <div
+              style={{
+                position: "absolute",
+                inset: 0,
+                background: "linear-gradient(180deg, rgba(10,20,34,0.05) 0%, rgba(10,20,34,0.1) 55%, rgba(10,20,34,0.55) 100%)",
+              }}
+            />
+          </div>
+          <div style={{ position: "absolute", left: "clamp(20px, 4vw, 40px)", bottom: -48, zIndex: 3 }}>
+            <div className="pf-avatar" style={{ position: "relative", width: "clamp(96px, 12vw, 128px)", height: "clamp(96px, 12vw, 128px)" }}>
+              <span
+                className="pf-avatar-glow"
+                style={{
+                  position: "absolute",
+                  inset: -10,
+                  borderRadius: "50%",
+                  background: `radial-gradient(circle, ${colors.accent}55, transparent 70%)`,
+                  filter: "blur(10px)",
+                  zIndex: -1,
+                }}
+              />
+              {/* eslint-disable-next-line @next/next/no-img-element */}
+              <img
+                src={pro.avatar}
+                alt={pro.name}
+                style={{
+                  width: "100%",
+                  height: "100%",
+                  borderRadius: "50%",
+                  objectFit: "cover",
+                  border: `5px solid ${colors.card}`,
+                  boxShadow: shadow.lg,
+                  display: "block",
+                }}
+              />
+            </div>
+          </div>
         </Reveal>
 
-        {/* header card — overlaps the cover */}
+        {/* identity block */}
         <Reveal
           delay={80}
-          className="lg:-mt-16"
           style={{
-            position: "relative",
-            zIndex: 2,
             display: "flex",
             flexWrap: "wrap",
+            justifyContent: "space-between",
+            alignItems: "flex-end",
             gap: spacing.xl,
-            alignItems: "flex-start",
-            marginTop: -40,
-            marginLeft: spacing.lg,
-            marginRight: spacing.lg,
-            background: colors.card,
-            border: `1px solid ${colors.line}`,
-            borderRadius: radius.lg,
-            padding: spacing.xl,
-            boxShadow: shadow.md,
+            marginTop: 64,
+            paddingLeft: "clamp(4px, 1vw, 8px)",
           }}
         >
-          {/* eslint-disable-next-line @next/next/no-img-element */}
-          <img
-            src={pro.avatar}
-            alt={pro.name}
-            style={{
-              width: 96,
-              height: 96,
-              borderRadius: radius.md,
-              objectFit: "cover",
-              border: `4px solid ${colors.card}`,
-              boxShadow: shadow.sm,
-              flexShrink: 0,
-            }}
-          />
-          <div style={{ flex: 1, minWidth: 240 }}>
+          <div style={{ flex: 1, minWidth: 260 }}>
             <div style={{ display: "flex", flexWrap: "wrap", alignItems: "center", gap: spacing.sm }}>
-              <h1 style={{ fontFamily: "var(--font-display)", fontSize: "clamp(22px, 2.6vw, 30px)", letterSpacing: "-0.02em" }}>{pro.name}</h1>
+              <h1 style={{ fontFamily: "var(--font-display)", fontSize: "clamp(24px, 3vw, 34px)", letterSpacing: "-0.02em" }}>{pro.name}</h1>
               {pro.verified && (
                 <span
                   className="pd-badge-pulse"
@@ -422,7 +462,7 @@ export default function ProfessionalDetail({
                 </span>
               )}
             </div>
-            <p style={{ fontSize: fontSize.base, color: colors.ink2, marginTop: 5 }}>
+            <p style={{ fontSize: fontSize.md - 1, color: colors.ink2, marginTop: 6, fontWeight: 500 }}>
               {pro.profession} · {pro.categoryName}
             </p>
             <div style={{ display: "flex", flexWrap: "wrap", alignItems: "center", gap: spacing.md, marginTop: spacing.sm + 2, fontSize: fontSize.sm, color: colors.muted }}>
@@ -465,12 +505,12 @@ export default function ProfessionalDetail({
         {/* stat strip */}
         <Reveal stagger className="grid grid-cols-2 lg:grid-cols-4" style={{ gap: spacing.md, margin: `${spacing.xl}px 0 4px` }}>
           {[
-            { icon: "calendar" as const, label: "Experience", value: `${pro.experience} yrs` },
+            { icon: "calendar" as const, label: "Experience", value: `${pro.experience} yrs`, tint: colors.primarySoft, ink: colors.primary },
             ...(pro.projects > 0
-              ? [{ icon: "briefcase" as const, label: "Projects completed", value: `${pro.projects}+` }]
+              ? [{ icon: "briefcase" as const, label: "Projects completed", value: `${pro.projects}+`, tint: "rgba(41,151,255,0.12)", ink: colors.accent }]
               : []),
-            { icon: "star" as const, label: "Average rating", value: pro.rating > 0 ? pro.rating.toFixed(1) : "New" },
-            { icon: "sparkle" as const, label: pro.priceUnit || "Pricing", value: pro.price === "₹0" ? "Free" : pro.price },
+            { icon: "star" as const, label: "Average rating", value: pro.rating > 0 ? pro.rating.toFixed(1) : "New", tint: "rgba(245,166,35,0.14)", ink: colors.gold },
+            { icon: "sparkle" as const, label: pro.priceUnit || "Pricing", value: pro.price === "₹0" ? "Free" : pro.price, tint: "rgba(31,138,91,0.13)", ink: "#1F8A5B" },
           ].map((k) => (
             <div
               key={k.label}
@@ -488,7 +528,7 @@ export default function ProfessionalDetail({
             >
               <span
                 className="pd-key-fact-icon"
-                style={{ width: 44, height: 44, borderRadius: 12, background: colors.primarySoft, color: colors.primary, display: "grid", placeItems: "center", flexShrink: 0 }}
+                style={{ width: 44, height: 44, borderRadius: 12, background: k.tint, color: k.ink, display: "grid", placeItems: "center", flexShrink: 0 }}
               >
                 <Icon name={k.icon} size={20} />
               </span>
@@ -500,21 +540,39 @@ export default function ProfessionalDetail({
           ))}
         </Reveal>
 
-        {/* tabs */}
+        {/* tabs — sliding pill indicator behind the active label */}
         <div className="pd-subnav" style={{ borderRadius: radius.full, border: `1px solid ${colors.line}`, boxShadow: shadow.sm, padding: 6, margin: `${spacing.lg}px 0` }}>
-          <div className="pd-subnav-row" style={{ display: "flex", gap: 6, overflowX: "auto" }}>
+          <div className="pd-subnav-row" style={{ position: "relative", display: "flex", gap: 6, overflowX: "auto" }}>
+            <span
+              className="pf-tab-thumb"
+              style={{
+                position: "absolute",
+                top: 0,
+                bottom: 0,
+                left: indicator.left,
+                width: indicator.width,
+                background: colors.primary,
+                borderRadius: radius.full,
+                zIndex: 0,
+              }}
+            />
             {TABS.map((t) => (
               <button
                 key={t.key}
+                ref={(el) => {
+                  tabRefs.current[t.key] = el;
+                }}
                 onClick={() => setTab(t.key)}
-                className="pd-pill"
+                className="pd-pill pf-tab-btn"
                 style={{
+                  position: "relative",
+                  zIndex: 1,
                   flexShrink: 0,
                   fontSize: fontSize.sm,
                   fontWeight: 600,
                   padding: "9px 18px",
                   borderRadius: radius.full,
-                  background: tab === t.key ? colors.primary : "transparent",
+                  background: "transparent",
                   color: tab === t.key ? colors.white : colors.ink2,
                   cursor: "pointer",
                 }}
@@ -534,7 +592,7 @@ export default function ProfessionalDetail({
                   <button
                     key={i}
                     onClick={() => setLightbox(i)}
-                    className="card-hover"
+                    className="card-hover pf-portfolio-item"
                     style={{
                       position: "relative",
                       borderRadius: radius.md,
@@ -552,6 +610,32 @@ export default function ProfessionalDetail({
                       className="card-hover-img"
                       style={{ position: "absolute", inset: 0, width: "100%", height: "100%", objectFit: "cover" }}
                     />
+                    <div
+                      className="pf-portfolio-overlay"
+                      style={{
+                        position: "absolute",
+                        inset: 0,
+                        background: "linear-gradient(180deg, transparent 55%, rgba(10,20,34,0.55) 100%)",
+                        display: "flex",
+                        alignItems: "flex-end",
+                        justifyContent: "flex-end",
+                        padding: 12,
+                      }}
+                    >
+                      <span
+                        style={{
+                          width: 32,
+                          height: 32,
+                          borderRadius: "50%",
+                          background: "rgba(255,255,255,0.92)",
+                          color: colors.ink,
+                          display: "grid",
+                          placeItems: "center",
+                        }}
+                      >
+                        <Icon name="search" size={15} />
+                      </span>
+                    </div>
                   </button>
                 ))}
               </Reveal>
@@ -559,7 +643,7 @@ export default function ProfessionalDetail({
 
             {tab === "about" && (
               <Reveal style={{ display: "flex", flexDirection: "column", gap: spacing.xl }}>
-                <p style={{ fontSize: fontSize.base, lineHeight: 1.7, color: colors.ink2 }}>{pro.about}</p>
+                <p style={{ fontSize: fontSize.md - 1, lineHeight: 1.75, color: colors.ink2 }}>{pro.about}</p>
                 <div>
                   <h3 style={{ fontSize: fontSize.md, fontWeight: 700, marginBottom: spacing.md }}>Why clients choose us</h3>
                   <div style={{ display: "flex", flexDirection: "column", gap: spacing.sm + 2 }}>
@@ -599,7 +683,7 @@ export default function ProfessionalDetail({
             )}
 
             {tab === "services" && (
-              <Reveal style={{ display: "flex", flexDirection: "column", gap: spacing.md }}>
+              <Reveal stagger style={{ display: "flex", flexDirection: "column", gap: spacing.md }}>
                 {pro.services.map((s, i) => (
                   <div
                     key={s}
@@ -616,10 +700,17 @@ export default function ProfessionalDetail({
                       boxShadow: shadow.sm,
                     }}
                   >
-                    <div>
-                      <div style={{ fontWeight: 700, fontSize: fontSize.base + 1 }}>{s}</div>
-                      <div style={{ fontSize: fontSize.sm, color: colors.muted, marginTop: 2 }}>
-                        {["Inspection & quote included", "Materials billed separately", "Backed by HomeDot guarantee"][i % 3]}
+                    <div style={{ display: "flex", alignItems: "center", gap: spacing.md }}>
+                      <span
+                        style={{ width: 38, height: 38, borderRadius: 10, background: colors.primarySoft, color: colors.primary, display: "grid", placeItems: "center", flexShrink: 0 }}
+                      >
+                        <Icon name="briefcase" size={17} />
+                      </span>
+                      <div>
+                        <div style={{ fontWeight: 700, fontSize: fontSize.base + 1 }}>{s}</div>
+                        <div style={{ fontSize: fontSize.sm, color: colors.muted, marginTop: 2 }}>
+                          {["Inspection & quote included", "Materials billed separately", "Backed by HomeDot guarantee"][i % 3]}
+                        </div>
                       </div>
                     </div>
                     <Button variant="ghost" size="sm" onClick={focusContactForm}>
@@ -633,16 +724,24 @@ export default function ProfessionalDetail({
             {tab === "reviews" && (
               <Reveal style={{ display: "flex", flexDirection: "column", gap: spacing.lg }}>
                 <div style={{ display: "flex", gap: spacing.xxl - 6, alignItems: "center", background: colors.card, border: `1px solid ${colors.line}`, borderRadius: radius.md, padding: spacing.xl }}>
-                  <div style={{ textAlign: "center" }}>
-                    <div style={{ fontFamily: "var(--font-display)", fontSize: 44, fontWeight: 800, color: colors.primary, lineHeight: 1 }}>
-                      {pro.rating.toFixed(1)}
+                  <div
+                    style={{
+                      width: 88,
+                      height: 88,
+                      borderRadius: "50%",
+                      background: `conic-gradient(${colors.gold} ${ratingPct}%, ${colors.line} 0)`,
+                      display: "grid",
+                      placeItems: "center",
+                      flexShrink: 0,
+                    }}
+                  >
+                    <div style={{ width: 70, height: 70, borderRadius: "50%", background: colors.card, display: "flex", flexDirection: "column", alignItems: "center", justifyContent: "center", gap: 2 }}>
+                      <b style={{ fontFamily: "var(--font-display)", fontSize: 22, fontWeight: 800, color: colors.primary, lineHeight: 1 }}>{pro.rating.toFixed(1)}</b>
+                      <Icon name="star" size={11} filled color={colors.gold} />
                     </div>
-                    <span style={{ display: "inline-flex", alignItems: "center", gap: 4, marginTop: 4 }}>
-                      <Icon name="star" size={14} filled color={colors.gold} />
-                    </span>
-                    <div style={{ fontSize: fontSize.xs, color: colors.muted, marginTop: 4 }}>{pro.reviews} reviews</div>
                   </div>
                   <div style={{ flex: 1, display: "flex", flexDirection: "column", gap: 6 }}>
+                    <span style={{ fontSize: fontSize.xs, color: colors.muted, marginBottom: 2 }}>{pro.reviews} reviews</span>
                     {[5, 4, 3, 2, 1].map((n) => {
                       const pct = n === 5 ? 78 : n === 4 ? 16 : n === 3 ? 4 : n === 2 ? 1 : 1;
                       return (
@@ -658,7 +757,7 @@ export default function ProfessionalDetail({
                   </div>
                 </div>
                 {reviews.map((r, i) => (
-                  <div key={i} style={{ background: colors.card, border: `1px solid ${colors.line}`, borderRadius: radius.md, padding: spacing.lg + 2 }}>
+                  <div key={i} className="card-hover" style={{ background: colors.card, border: `1px solid ${colors.line}`, borderRadius: radius.md, padding: spacing.lg + 2, boxShadow: shadow.sm }}>
                     <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center", marginBottom: spacing.sm }}>
                       <div style={{ display: "flex", alignItems: "center", gap: 10 }}>
                         {/* eslint-disable-next-line @next/next/no-img-element */}
@@ -682,7 +781,7 @@ export default function ProfessionalDetail({
           {/* sidebar */}
           <Reveal delay={100} style={{ display: "flex", flexDirection: "column", gap: spacing.lg, position: "sticky", top: 100 }}>
             <div ref={contactCardRef} style={{ background: colors.card, border: `1px solid ${colors.line}`, borderRadius: radius.lg, overflow: "hidden", boxShadow: shadow.md }}>
-              <div style={{ height: 5, background: `linear-gradient(90deg, ${colors.primary}, ${colors.accent})` }} />
+              <div style={{ height: 6, background: `linear-gradient(90deg, ${colors.primary}, ${colors.accent})` }} />
               <div style={{ padding: spacing.xl, display: "flex", flexDirection: "column", gap: spacing.md }}>
                 <div style={{ display: "flex", alignItems: "baseline", justifyContent: "space-between" }}>
                   <span style={{ fontSize: fontSize.xs, color: colors.muted }}>Starting at</span>
@@ -695,9 +794,9 @@ export default function ProfessionalDetail({
                 </div>
 
                 {sent ? (
-                  <div style={{ display: "flex", flexDirection: "column", alignItems: "center", textAlign: "center", gap: 6, padding: "10px 0" }}>
-                    <span style={{ width: 48, height: 48, borderRadius: "50%", background: colors.primarySoft, color: colors.primary, display: "grid", placeItems: "center", marginBottom: 4 }}>
-                      <Icon name="check" size={24} />
+                  <div style={{ display: "flex", flexDirection: "column", alignItems: "center", textAlign: "center", gap: 6, padding: "14px 0" }}>
+                    <span className="pf-success-pop" style={{ width: 52, height: 52, borderRadius: "50%", background: "rgba(31,138,91,0.13)", color: "#1F8A5B", display: "grid", placeItems: "center", marginBottom: 4 }}>
+                      <Icon name="check" size={26} strokeWidth={2.4} />
                     </span>
                     <b style={{ fontSize: fontSize.base }}>Inquiry sent!</b>
                     <span style={{ fontSize: fontSize.sm, color: colors.muted }}>
@@ -710,11 +809,11 @@ export default function ProfessionalDetail({
 
                     <div ref={locationFieldRef} style={{ position: "relative" }}>
                       <div
+                        className="pf-field"
                         style={{
                           display: "flex",
                           alignItems: "center",
                           gap: 9,
-                          border: `1.5px solid ${colors.line}`,
                           borderRadius: radius.sm + 1,
                           padding: "0 13px",
                         }}
@@ -796,18 +895,19 @@ export default function ProfessionalDetail({
                     </div>
 
                     <textarea
+                      className="pf-textarea"
                       rows={3}
                       value={requirement}
                       onChange={(e) => setRequirement(e.target.value)}
                       placeholder={`Tell ${pro.name} what you need — e.g. "${pro.tags[0] ?? pro.profession} for a 3BHK renovation"…`}
-                      style={{ border: `1.5px solid ${colors.line}`, borderRadius: radius.sm + 1, padding: "11px 13px", fontSize: fontSize.sm + 1, outline: "none", resize: "vertical", fontFamily: "inherit" }}
+                      style={{ borderRadius: radius.sm + 1, padding: "11px 13px", fontSize: fontSize.sm + 1, resize: "vertical", fontFamily: "inherit" }}
                     />
 
                     {submitError && (
                       <p style={{ fontSize: fontSize.xs + 0.5, color: "#C0392B", margin: 0 }}>{submitError}</p>
                     )}
 
-                    <Button variant="primary" size="lg" full icon={<Icon name="chat" size={18} />} type="submit">
+                    <Button variant="primary" size="lg" full icon={submitting ? <span className="pf-spinner" /> : <Icon name="chat" size={18} />} type="submit">
                       {submitting ? "Sending…" : "Send Your Inquiry"}
                     </Button>
                   </form>
@@ -844,11 +944,14 @@ export default function ProfessionalDetail({
         {/* similar professionals */}
         {similar.length > 0 && (
           <div style={{ marginTop: spacing.huge - 20 }}>
-            <div style={{ marginBottom: spacing.xl }}>
-              <h2 style={{ fontFamily: "var(--font-display)", fontSize: fontSize.xxl - 4, fontWeight: 600 }}>Similar pros nearby</h2>
-              <p style={{ color: colors.muted, fontSize: fontSize.base, marginTop: spacing.sm }}>
-                More {pro.categoryName.toLowerCase()} you may like.
-              </p>
+            <div style={{ marginBottom: spacing.xl, display: "flex", alignItems: "center", gap: spacing.md }}>
+              <span style={{ width: 4, height: 26, borderRadius: 4, background: `linear-gradient(180deg, ${colors.primary}, ${colors.accent})` }} />
+              <div>
+                <h2 style={{ fontFamily: "var(--font-display)", fontSize: fontSize.xxl - 4, fontWeight: 600 }}>Similar pros nearby</h2>
+                <p style={{ color: colors.muted, fontSize: fontSize.base, marginTop: 4 }}>
+                  More {pro.categoryName.toLowerCase()} you may like.
+                </p>
+              </div>
             </div>
             <Reveal stagger className="grid grid-cols-1 md:grid-cols-3" style={{ gap: spacing.xl }}>
               {similar.map((p) => (
