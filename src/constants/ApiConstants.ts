@@ -79,4 +79,17 @@ export const API_ENDPOINTS = {
     // GET_FAVORITE_PROPERTY ("v1/property/get-favorite-properties").
     GET_FAVORITE_PROPERTIES: "property/get-favorite-properties",
   },
+  PROFESSIONALS: {
+    // Guest-accessible — no auth required. Mirrors homedot-mobile-app's
+    // GUEST_PROFESSIONAL_FILTER_SEARCH ("v1/search/filter-professional") —
+    // same "v1/" drop as MARKETPLACE.FILTER_SELL_PROPERTY above, since
+    // BASE_URL here already ends in /api/v1. Query params (page, category,
+    // lat, long, sqMin, sqMax) are appended by the caller; rating /
+    // minExperience / maxExperience / professionalType go in the POST body.
+    FILTER_SEARCH: "search/filter-professional",
+    // Requires a stored auth token. Mirrors AUTH_PROFESSIONAL_FILTER_SEARCH
+    // ("v1/search/filter-professional-auth") — same request shape as
+    // FILTER_SEARCH, just personalized for a signed-in user.
+    FILTER_SEARCH_AUTH: "search/filter-professional-auth",
+  },
 } as const;

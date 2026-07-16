@@ -1,6 +1,6 @@
 "use client";
 
-import { useMemo, useRef, useState, type CSSProperties, type ReactNode } from "react";
+import { useEffect, useMemo, useRef, useState, type CSSProperties, type ReactNode } from "react";
 import { useSearchParams, useRouter, usePathname } from "next/navigation";
 import { colors } from "@/constants/colors";
 import { spacing, radius, fontSize, shadow, maxWidth } from "@/utils/size";
@@ -15,18 +15,17 @@ import Cursor from "@/components/Cursor";
 import Reveal from "@/components/Reveal";
 import LoginModal, { type LoginModalHandle } from "@/components/LoginModal";
 import { getAuthToken } from "@/utils/authStorage";
+import LandingScreenService, {
+  toServiceCategoryCard,
+  type ServiceCategoryCard,
+} from "@/services/LandingScreenService";
+import ProfessionalsScreenService, {
+  toProfessionalRecord,
+  type ProfessionalsFilterQuery,
+  type ProfessionalsFilterPayload,
+} from "@/services/ProfessionalsScreenService";
 import ProfessionalDetail from "./ProfessionalDetail";
-import {
-  professionals,
-  categories,
-  ratingOptions,
-  experienceOptions,
-  budgetOptions,
-  inBudget,
-  minRatingFor,
-  minExperienceFor,
-  type ProfessionalRecord,
-} from "./data";
+import { professionals as mockProfessionals, ratingBuckets, experienceBuckets, budgetBuckets, type ProfessionalRecord } from "./data";
 
 const wrap: CSSProperties = {
   maxWidth,
@@ -39,23 +38,109 @@ export default function ProfessionalsScreen() {
   const router = useRouter();
   const pathname = usePathname();
 
+  const [categoryOptions, setCategoryOptions] = useState<ServiceCategoryCard[]>([]);
   const [category, setCategory] = useState<string>("all");
   const [query, setQuery] = useState("");
-  const [budget, setBudget] = useState("");
-  const [rating, setRating] = useState("");
-  const [experience, setExperience] = useState("");
+  const [budget, setBudget] = useState<number | null>(null); // index into budgetBuckets
+  const [rating, setRating] = useState<number | null>(null); // exact star value
+  const [experience, setExperience] = useState<number | null>(null); // index into experienceBuckets
   const [verifiedOnly, setVerifiedOnly] = useState(false);
-  const [sort, setSort] = useState<"recommended" | "rating" | "experience" | "reviews">("recommended");
+  const [sort, setSort] = useState<"recommended" | "rating" | "experience">("recommended");
   const [view, setView] = useState<"grid" | "list">("grid");
   const [saved, setSaved] = useState<string[]>([]);
   const loginModalRef = useRef<LoginModalHandle>(null);
 
-  const findBySlug = (slug: string | null) =>
-    slug ? (professionals.find((p) => p.slug === slug) ?? null) : null;
+  const [apiProfessionals, setApiProfessionals] = useState<ProfessionalRecord[]>(mockProfessionals);
+  const [page, setPage] = useState(1);
+  const [totalRows, setTotalRows] = useState(mockProfessionals.length);
+  const [loading, setLoading] = useState(false);
 
-  const [detail, setDetail] = useState<ProfessionalRecord | null>(() =>
-    findBySlug(searchParams.get("professional")),
-  );
+  const [detail, setDetail] = useState<ProfessionalRecord | null>(null);
+  const initialSlugHandled = useRef(false);
+
+  useEffect(() => {
+    LandingScreenService.getServiceCategories().then((res) => {
+      if (res.success && res.data?.status) {
+        setCategoryOptions(res.data.data.map(toServiceCategoryCard));
+      }
+    });
+  }, []);
+
+  const filterQuery = useMemo((): ProfessionalsFilterQuery => {
+    const b = budget != null ? budgetBuckets[budget] : null;
+    return {
+      category: category !== "all" ? category : null,
+      sqMin: b ? b.sqMin : null,
+      sqMax: b ? b.sqMax : null,
+    };
+  }, [category, budget]);
+
+  const filterPayload = useMemo((): ProfessionalsFilterPayload => {
+    const e = experience != null ? experienceBuckets[experience] : null;
+    return {
+      rating: rating != null ? [rating] : "",
+      minExperience: e ? e.min : "",
+      maxExperience: e ? e.max : "",
+      professionalType: "",
+    };
+  }, [rating, experience]);
+
+  // Reset to page 1 and refetch whenever a server-side filter changes —
+  // mirrors MarketplaceScreen's equivalent effect.
+  useEffect(() => {
+    let cancelled = false;
+    const load = async () => {
+      setLoading(true);
+      const res = await ProfessionalsScreenService.getProfessionalsFilter(1, filterQuery, filterPayload);
+      if (cancelled) return;
+      setLoading(false);
+      const result = res.data?.data?.[0];
+      if (res.success && res.data?.status) {
+        setApiProfessionals(result ? result.data.map(toProfessionalRecord) : []);
+        setTotalRows(result?.totalCount?.total_rows ?? 0);
+        setPage(1);
+      }
+    };
+    load();
+    return () => {
+      cancelled = true;
+    };
+  }, [filterQuery, filterPayload]);
+
+  const loadMore = async () => {
+    if (loading || apiProfessionals.length >= totalRows) return;
+    setLoading(true);
+    const res = await ProfessionalsScreenService.getProfessionalsFilter(page + 1, filterQuery, filterPayload);
+    setLoading(false);
+    const result = res.data?.data?.[0];
+    if (res.success && res.data?.status && result) {
+      setApiProfessionals((prev) => [...prev, ...result.data.map(toProfessionalRecord)]);
+      setPage((p) => p + 1);
+    }
+  };
+
+  const findBySlug = (slug: string | null) =>
+    slug ? (apiProfessionals.find((p) => p.slug === slug) ?? null) : null;
+
+  // Resolves a shared "?professional=<slug>" link once the first page of
+  // results has loaded — best-effort only: unlike properties, there's no
+  // confirmed guest "get professional by slug" endpoint yet, so this only
+  // finds a match if that professional happens to already be on the loaded
+  // page(s).
+  useEffect(() => {
+    const resolve = () => {
+      if (initialSlugHandled.current || loading) return;
+      const slug = searchParams.get("professional");
+      if (!slug) return;
+      const match = findBySlug(slug);
+      if (match) {
+        initialSlugHandled.current = true;
+        setDetail(match);
+      }
+    };
+    resolve();
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [apiProfessionals, loading]);
 
   const setProfessionalQueryParam = (slug: string | null) => {
     const params = new URLSearchParams(searchParams.toString());
@@ -66,6 +151,7 @@ export default function ProfessionalsScreen() {
   };
 
   const openDetail = (p: ProfessionalRecord) => {
+    initialSlugHandled.current = true;
     setDetail(p);
     window.scrollTo(0, 0);
     setProfessionalQueryParam(p.slug);
@@ -79,7 +165,7 @@ export default function ProfessionalsScreen() {
 
   // Mirrors MarketplaceScreen's toggleSave: gate behind login, then flip
   // local state optimistically. No backend call yet — professionals
-  // favoriting isn't wired to an API in this mock-data pass.
+  // favoriting isn't wired to an API in this pass.
   const toggleSave = (id: string) => {
     if (!getAuthToken()) {
       loginModalRef.current?.open();
@@ -88,9 +174,12 @@ export default function ProfessionalsScreen() {
     setSaved((s) => (s.includes(id) ? s.filter((x) => x !== id) : [...s, id]));
   };
 
+  // Client-side refinements only — the server already applied
+  // category/budget/rating/experience. Free-text search and "verified
+  // only" have no server param on this endpoint, and sort has none either,
+  // so all three are applied here over whatever page(s) are loaded.
   const list = useMemo(() => {
-    let out = professionals.slice();
-    if (category !== "all") out = out.filter((p) => p.category === category);
+    let out = apiProfessionals.slice();
     if (query.trim()) {
       const q = query.trim().toLowerCase();
       out = out.filter(
@@ -100,30 +189,27 @@ export default function ProfessionalsScreen() {
           p.tags.some((t) => t.toLowerCase().includes(q)),
       );
     }
-    if (budget) out = out.filter((p) => inBudget(p.price, budget));
-    if (rating) out = out.filter((p) => p.rating >= minRatingFor(rating));
-    if (experience) out = out.filter((p) => p.experience >= minExperienceFor(experience));
     if (verifiedOnly) out = out.filter((p) => p.verified);
     if (sort === "rating") out = [...out].sort((a, b) => b.rating - a.rating);
     if (sort === "experience") out = [...out].sort((a, b) => b.experience - a.experience);
-    if (sort === "reviews") out = [...out].sort((a, b) => b.reviews - a.reviews);
     return out;
-  }, [category, query, budget, rating, experience, verifiedOnly, sort]);
+  }, [apiProfessionals, query, verifiedOnly, sort]);
 
-  const activeCount =
-    (budget ? 1 : 0) + (rating ? 1 : 0) + (experience ? 1 : 0) + (verifiedOnly ? 1 : 0);
+  const activeCount = (budget != null ? 1 : 0) + (rating != null ? 1 : 0) + (experience != null ? 1 : 0) + (verifiedOnly ? 1 : 0);
   const clearAll = () => {
-    setBudget("");
-    setRating("");
-    setExperience("");
+    setBudget(null);
+    setRating(null);
+    setExperience(null);
     setVerifiedOnly(false);
   };
 
   const similarFor = (p: ProfessionalRecord) => {
-    const sameCat = professionals.filter((x) => x.id !== p.id && x.category === p.category);
-    const fallback = professionals.filter((x) => x.id !== p.id);
+    const sameCat = apiProfessionals.filter((x) => x.id !== p.id && x.category === p.category);
+    const fallback = apiProfessionals.filter((x) => x.id !== p.id);
     return (sameCat.length >= 3 ? sameCat : fallback).slice(0, 3);
   };
+
+  const hasMore = apiProfessionals.length < totalRows;
 
   return (
     <div style={{ background: colors.bg, color: colors.ink, position: "relative", zIndex: 0 }}>
@@ -293,7 +379,7 @@ export default function ProfessionalsScreen() {
               }}
             >
               <CategoryPill label="All" active={category === "all"} onClick={() => setCategory("all")} />
-              {categories.map((c) => (
+              {categoryOptions.map((c) => (
                 <CategoryPill
                   key={c.id}
                   label={c.name}
@@ -344,25 +430,30 @@ export default function ProfessionalsScreen() {
                   )}
                 </div>
 
-                <FilterGroup title="Budget">
-                  {budgetOptions.map((b) => (
-                    <RadioRow key={b} label={b} checked={budget === b} onChange={() => setBudget(budget === b ? "" : b)} />
+                <FilterGroup title="Budget (₹ / sqft)">
+                  {budgetBuckets.map((b, i) => (
+                    <RadioRow key={b.label} label={b.label} checked={budget === i} onChange={() => setBudget(budget === i ? null : i)} />
                   ))}
                 </FilterGroup>
 
                 <FilterGroup title="Rating">
-                  {ratingOptions.map((r) => (
-                    <RadioRow key={r} label={r} checked={rating === r} onChange={() => setRating(rating === r ? "" : r)} />
+                  {ratingBuckets.map((r) => (
+                    <RadioRow
+                      key={r.value}
+                      label={r.label}
+                      checked={rating === r.value}
+                      onChange={() => setRating(rating === r.value ? null : r.value)}
+                    />
                   ))}
                 </FilterGroup>
 
                 <FilterGroup title="Experience">
-                  {experienceOptions.map((e) => (
+                  {experienceBuckets.map((e, i) => (
                     <RadioRow
-                      key={e}
-                      label={e}
-                      checked={experience === e}
-                      onChange={() => setExperience(experience === e ? "" : e)}
+                      key={e.label}
+                      label={e.label}
+                      checked={experience === i}
+                      onChange={() => setExperience(experience === i ? null : i)}
                     />
                   ))}
                 </FilterGroup>
@@ -413,10 +504,10 @@ export default function ProfessionalsScreen() {
               <main>
                 <div style={{ marginBottom: spacing.lg }}>
                   <h2 style={{ fontFamily: "var(--font-display)", fontSize: "clamp(20px, 2.4vw, 28px)", fontWeight: 600 }}>
-                    {category === "all" ? "Professionals" : categories.find((c) => c.id === category)?.name} in Kochi
+                    {category === "all" ? "Professionals" : categoryOptions.find((c) => c.id === category)?.name} in Kochi
                   </h2>
                   <p style={{ color: colors.muted, fontSize: fontSize.base, marginTop: 5 }}>
-                    {list.length} {list.length === 1 ? "professional" : "professionals"} found · sorted by {sort}
+                    {totalRows} {totalRows === 1 ? "professional" : "professionals"} found · sorted by {sort}
                   </p>
                 </div>
 
@@ -484,7 +575,6 @@ export default function ProfessionalsScreen() {
                         <option value="recommended">Recommended</option>
                         <option value="rating">Highest rated</option>
                         <option value="experience">Most experienced</option>
-                        <option value="reviews">Most reviewed</option>
                       </select>
                     </label>
                   </div>
@@ -492,9 +582,9 @@ export default function ProfessionalsScreen() {
 
                 {activeCount > 0 && (
                   <div style={{ display: "flex", flexWrap: "wrap", gap: 8, marginBottom: spacing.lg }}>
-                    {budget && <Chip label={budget} onRemove={() => setBudget("")} />}
-                    {rating && <Chip label={rating} onRemove={() => setRating("")} />}
-                    {experience && <Chip label={experience} onRemove={() => setExperience("")} />}
+                    {budget != null && <Chip label={budgetBuckets[budget].label} onRemove={() => setBudget(null)} />}
+                    {rating != null && <Chip label={ratingBuckets.find((r) => r.value === rating)!.label} onRemove={() => setRating(null)} />}
+                    {experience != null && <Chip label={experienceBuckets[experience].label} onRemove={() => setExperience(null)} />}
                     {verifiedOnly && <Chip label="Verified only" onRemove={() => setVerifiedOnly(false)} />}
                     <button
                       onClick={clearAll}
@@ -561,6 +651,14 @@ export default function ProfessionalsScreen() {
                       />
                     ))}
                   </Reveal>
+                )}
+
+                {hasMore && list.length > 0 && (
+                  <div style={{ display: "flex", justifyContent: "center", marginTop: spacing.xxl }}>
+                    <Button variant="outline" size="lg" onClick={loadMore}>
+                      {loading ? "Loading…" : "Show more professionals"}
+                    </Button>
+                  </div>
                 )}
               </main>
             </div>
@@ -743,14 +841,16 @@ function ProfessionalRow({
             {pro.rating.toFixed(1)}
           </span>
           <span style={{ color: colors.line }}>·</span>
-          <span style={{ color: colors.muted }}>{pro.reviews} reviews</span>
-          <span style={{ color: colors.line }}>·</span>
           <span style={{ color: colors.muted }}>{pro.experience} yrs</span>
-          <span style={{ color: colors.line }}>·</span>
-          <span style={{ color: colors.muted }}>{pro.projects} projects</span>
+          {pro.projects > 0 && (
+            <>
+              <span style={{ color: colors.line }}>·</span>
+              <span style={{ color: colors.muted }}>{pro.projects} projects</span>
+            </>
+          )}
           <span style={{ marginLeft: "auto", display: "flex", alignItems: "baseline", gap: 4 }}>
-            <b style={{ fontSize: fontSize.lg - 1 }}>{pro.price}</b>
-            <em style={{ fontStyle: "normal", fontSize: fontSize.xs, color: colors.muted }}>/ {pro.priceUnit}</em>
+            <b style={{ fontSize: fontSize.lg - 1 }}>{pro.price === "₹0" ? "Free" : pro.price}</b>
+            {pro.priceUnit && <em style={{ fontStyle: "normal", fontSize: fontSize.xs, color: colors.muted }}>/ {pro.priceUnit}</em>}
           </span>
         </div>
       </div>

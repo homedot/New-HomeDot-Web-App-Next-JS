@@ -1,7 +1,4 @@
 import type { Professional } from "@/components/ProCard";
-import { categories } from "@/screens/LandingScreen/data";
-
-export { categories };
 
 const unsplash = (id: string, w = 900) => `https://images.unsplash.com/photo-${id}?auto=format&fit=crop&w=${w}&q=80`;
 
@@ -228,33 +225,34 @@ export const reviews: { by: string; when: string; stars: number; project: string
   },
 ];
 
-export const ratingOptions = ["4.5 & up", "4.0 & up", "3.5 & up"];
-export const experienceOptions = ["10+ years", "5+ years", "Any"];
-export const budgetOptions = ["Free consultation", "Under ₹1,000", "₹1,000 – ₹2,000", "₹2,000+"];
+// Filter buckets sent straight through to the real filter-professional API
+// (confirmed against staging) — this endpoint takes an exact star rating
+// (not "and up"), fixed experience min/max brackets, and a ₹/sqft min/max
+// range, so the UI options mirror those server-side semantics exactly
+// rather than inventing friendlier-but-inaccurate buckets.
+export const ratingBuckets: { label: string; value: number }[] = [
+  { label: "5 stars", value: 5 },
+  { label: "4 stars", value: 4 },
+  { label: "3 stars", value: 3 },
+  { label: "2 stars", value: 2 },
+  { label: "1 star", value: 1 },
+];
 
-export function parseProPrice(price: string): number {
-  const num = parseFloat(price.replace(/[₹,\s]/g, ""));
-  return Number.isFinite(num) ? num : 0;
-}
+// Matches homedot-mobile-app's FilterSearchScreen experienceData buckets
+// exactly (including the "Less than 3 years" bucket actually being min:1
+// max:2 server-side).
+export const experienceBuckets: { label: string; min: number; max: number }[] = [
+  { label: "Less than 3 years", min: 1, max: 2 },
+  { label: "3 – 6 years", min: 3, max: 6 },
+  { label: "6 – 9 years", min: 6, max: 9 },
+  { label: "9+ years", min: 9, max: 50 },
+];
 
-export function inBudget(price: string, bucket: string): boolean {
-  const v = parseProPrice(price);
-  if (bucket === "Free consultation") return v === 0;
-  if (bucket === "Under ₹1,000") return v > 0 && v < 1000;
-  if (bucket === "₹1,000 – ₹2,000") return v >= 1000 && v <= 2000;
-  if (bucket === "₹2,000+") return v > 2000;
-  return true;
-}
-
-export function minRatingFor(bucket: string): number {
-  if (bucket === "4.5 & up") return 4.5;
-  if (bucket === "4.0 & up") return 4.0;
-  if (bucket === "3.5 & up") return 3.5;
-  return 0;
-}
-
-export function minExperienceFor(bucket: string): number {
-  if (bucket === "10+ years") return 10;
-  if (bucket === "5+ years") return 5;
-  return 0;
-}
+// Matches homedot-mobile-app's sqftRateMin/sqftRateMax bracket pairs.
+export const budgetBuckets: { label: string; sqMin: number; sqMax: number }[] = [
+  { label: "Under ₹100/sqft", sqMin: 0, sqMax: 99 },
+  { label: "₹100 – ₹499/sqft", sqMin: 100, sqMax: 499 },
+  { label: "₹500 – ₹999/sqft", sqMin: 500, sqMax: 999 },
+  { label: "₹1,000 – ₹2,499/sqft", sqMin: 1000, sqMax: 2499 },
+  { label: "₹2,500+/sqft", sqMin: 2500, sqMax: 9999 },
+];

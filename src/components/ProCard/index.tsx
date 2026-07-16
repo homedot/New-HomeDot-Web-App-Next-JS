@@ -147,8 +147,12 @@ export default function ProCard({
             <Icon name="star" size={14} filled color={colors.gold} />
             {pro.rating.toFixed(1)}
           </span>
-          <span style={{ color: colors.line }}>·</span>
-          <span style={{ color: colors.muted }}>{pro.reviews} reviews</span>
+          {pro.reviews > 0 && (
+            <>
+              <span style={{ color: colors.line }}>·</span>
+              <span style={{ color: colors.muted }}>{pro.reviews} reviews</span>
+            </>
+          )}
         </div>
         <div
           style={{
@@ -161,8 +165,10 @@ export default function ProCard({
           }}
         >
           <span>
-            <b style={{ fontSize: fontSize.lg - 1 }}>{pro.price}</b>{" "}
-            <em style={{ fontStyle: "normal", fontSize: fontSize.xs, color: colors.muted }}>/ {pro.priceUnit}</em>
+            <b style={{ fontSize: fontSize.lg - 1 }}>{pro.price}</b>
+            {pro.priceUnit && (
+              <em style={{ fontStyle: "normal", fontSize: fontSize.xs, color: colors.muted }}> / {pro.priceUnit}</em>
+            )}
           </span>
           <button
             onClick={(e) => {

@@ -299,9 +299,11 @@ export default function ProfessionalDetail({
         <Reveal stagger className="grid grid-cols-2 lg:grid-cols-4" style={{ gap: spacing.md, margin: `${spacing.xl}px 0 4px` }}>
           {[
             { icon: "calendar" as const, label: "Experience", value: `${pro.experience} yrs` },
-            { icon: "briefcase" as const, label: "Projects completed", value: `${pro.projects}+` },
-            { icon: "star" as const, label: "Average rating", value: pro.rating.toFixed(1) },
-            { icon: "sparkle" as const, label: pro.priceUnit, value: pro.price === "₹0" ? "Free" : pro.price },
+            ...(pro.projects > 0
+              ? [{ icon: "briefcase" as const, label: "Projects completed", value: `${pro.projects}+` }]
+              : []),
+            { icon: "star" as const, label: "Average rating", value: pro.rating > 0 ? pro.rating.toFixed(1) : "New" },
+            { icon: "sparkle" as const, label: pro.priceUnit || "Pricing", value: pro.price === "₹0" ? "Free" : pro.price },
           ].map((k) => (
             <div
               key={k.label}
@@ -636,7 +638,7 @@ export default function ProfessionalDetail({
           <div style={{ fontFamily: "var(--font-display)", fontSize: fontSize.lg, fontWeight: 700, lineHeight: 1.1 }}>
             {pro.price === "₹0" ? "Free" : pro.price}
           </div>
-          <div style={{ fontSize: fontSize.xs, color: colors.muted }}>/ {pro.priceUnit}</div>
+          {pro.priceUnit && <div style={{ fontSize: fontSize.xs, color: colors.muted }}>/ {pro.priceUnit}</div>}
         </div>
         <button
           onClick={() => onSave(pro.id)}
