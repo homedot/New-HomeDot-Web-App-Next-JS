@@ -140,10 +140,17 @@ export default function MarketplaceScreen() {
   // login before ever calling the favorite API for them).
   useEffect(() => {
     if (!getAuthToken()) return;
-    MarketplaceScreenService.getFavoriteProperties().then((res) => {
-      if (res.success && res.data?.status && res.data.data) {
-        setSaved(res.data.data.map((r) => r._id));
-      }
+    // Buy and Rent favorites are separate endpoints server-side — fetch
+    // both so a heart shows filled regardless of which tab is active.
+    Promise.all([
+      MarketplaceScreenService.getFavoriteProperties("Buy"),
+      MarketplaceScreenService.getFavoriteProperties("Rent"),
+    ]).then(([buyRes, rentRes]) => {
+      const ids = [
+        ...(buyRes.success && buyRes.data?.status ? (buyRes.data.data ?? []) : []),
+        ...(rentRes.success && rentRes.data?.status ? (rentRes.data.data ?? []) : []),
+      ].map((r) => r._id);
+      setSaved(ids);
     });
   }, []);
 

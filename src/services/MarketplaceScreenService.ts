@@ -274,9 +274,17 @@ export const MarketplaceScreenService = {
       { property: propertyId },
     ),
 
-  // Requires a stored auth token.
-  getFavoriteProperties: (): Promise<ApiResponse<FavoritePropertiesBody>> =>
-    ApiService.get<FavoritePropertiesBody>(API_ENDPOINTS.MARKETPLACE.GET_FAVORITE_PROPERTIES),
+  // Requires a stored auth token. "Buy" and "Rent" favorites are separate
+  // endpoints server-side, same as toggleFavoriteProperty — callers that
+  // want a combined list call this once per purpose and merge the results.
+  getFavoriteProperties: (
+    purpose: "Buy" | "Rent" = "Buy",
+  ): Promise<ApiResponse<FavoritePropertiesBody>> =>
+    ApiService.get<FavoritePropertiesBody>(
+      purpose === "Rent"
+        ? API_ENDPOINTS.MARKETPLACE.GET_FAVORITE_PROPERTIES_RENT
+        : API_ENDPOINTS.MARKETPLACE.GET_FAVORITE_PROPERTIES,
+    ),
 };
 
 interface AmenityLike {

@@ -78,6 +78,11 @@ export const API_ENDPOINTS = {
     // Requires a stored auth token. Mirrors homedot-mobile-app's
     // GET_FAVORITE_PROPERTY ("v1/property/get-favorite-properties").
     GET_FAVORITE_PROPERTIES: "property/get-favorite-properties",
+    // Requires a stored auth token. Rent-side counterpart — homedot-mobile-app
+    // never actually wires a rent-specific favorites fetch (only the sell one
+    // above), same gap as TOGGLE_FAVORITE_RENT already notes, but this
+    // endpoint is confirmed live on the backend.
+    GET_FAVORITE_PROPERTIES_RENT: "rent/get-favorite-properties",
   },
   PROFESSIONALS: {
     // Guest-accessible — no auth required. Mirrors homedot-mobile-app's

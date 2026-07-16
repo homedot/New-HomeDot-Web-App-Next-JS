@@ -60,12 +60,21 @@ export default function FavoritesScreen() {
       setProfessionalsState("signed-out");
       return;
     }
-    MarketplaceScreenService.getFavoriteProperties().then((res) => {
-      if (res.success && res.data?.status) {
-        // The favorites endpoint doesn't say which are Buy vs Rent listings
-        // (no separate rent-side fetch exists, unlike create/toggle) — same
-        // gap homedot-mobile-app has, so this defaults to "Buy" like it does.
-        setFavorites((res.data.data ?? []).map((r) => toMarketplaceProperty(r, "Buy")));
+    // Buy and Rent favorites are separate endpoints server-side — fetch
+    // both and merge, tagging each with the purpose it actually came from
+    // (rather than defaulting everything to "Buy", which used to hide
+    // favorited Rent listings from this screen entirely).
+    Promise.all([
+      MarketplaceScreenService.getFavoriteProperties("Buy"),
+      MarketplaceScreenService.getFavoriteProperties("Rent"),
+    ]).then(([buyRes, rentRes]) => {
+      const buyOk = buyRes.success && buyRes.data?.status;
+      const rentOk = rentRes.success && rentRes.data?.status;
+      if (buyOk || rentOk) {
+        setFavorites([
+          ...(buyOk ? (buyRes.data?.data ?? []).map((r) => toMarketplaceProperty(r, "Buy")) : []),
+          ...(rentOk ? (rentRes.data?.data ?? []).map((r) => toMarketplaceProperty(r, "Rent")) : []),
+        ]);
         setState("ready");
       } else {
         setState("error");

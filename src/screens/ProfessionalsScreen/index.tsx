@@ -376,11 +376,13 @@ export default function ProfessionalsScreen() {
     }
     const userId = detail?.id === id ? detail.userId : apiProfessionals.find((p) => p.id === id)?.userId;
     if (!userId) return;
-    const wasSaved = saved.includes(id);
-    setSaved((s) => (wasSaved ? s.filter((x) => x !== id) : [...s, id]));
+    // `saved` holds userIds (seeded from favorites-list, which is keyed on
+    // userId) — not `id` (the inviteId), which is a different id space.
+    const wasSaved = saved.includes(userId);
+    setSaved((s) => (wasSaved ? s.filter((x) => x !== userId) : [...s, userId]));
     ProfessionalsScreenService.toggleFavoriteProfessional(userId).then((res) => {
       if (!res.success || !res.data?.status) {
-        setSaved((s) => (wasSaved ? [...s, id] : s.filter((x) => x !== id)));
+        setSaved((s) => (wasSaved ? [...s, userId] : s.filter((x) => x !== userId)));
       }
     });
   };
@@ -931,7 +933,7 @@ export default function ProfessionalsScreen() {
                       <ProCard
                         key={p.id}
                         pro={p}
-                        saved={saved.includes(p.id)}
+                        saved={!!p.userId && saved.includes(p.userId)}
                         onSave={toggleSave}
                         onOpen={() => openDetail(p)}
                       />
@@ -943,7 +945,7 @@ export default function ProfessionalsScreen() {
                       <ProfessionalRow
                         key={p.id}
                         pro={p}
-                        saved={saved.includes(p.id)}
+                        saved={!!p.userId && saved.includes(p.userId)}
                         onSave={toggleSave}
                         onOpen={() => openDetail(p)}
                       />

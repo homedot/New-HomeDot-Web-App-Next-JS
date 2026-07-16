@@ -232,7 +232,10 @@ export default function ProfessionalDetail({
     }
   };
 
-  const isSaved = saved.includes(pro.id);
+  // `saved` holds userIds (seeded from favorites-list), not the inviteId
+  // used as `pro.id` elsewhere on this screen — see ProfessionalsScreen's
+  // toggleSave for the same distinction.
+  const isSaved = !!pro.userId && saved.includes(pro.userId);
 
   useEffect(() => {
     if (lightbox === null) return;
@@ -955,7 +958,7 @@ export default function ProfessionalDetail({
             </div>
             <Reveal stagger className="grid grid-cols-1 md:grid-cols-3" style={{ gap: spacing.xl }}>
               {similar.map((p) => (
-                <ProCard key={p.id} pro={p} saved={saved.includes(p.id)} onSave={onSave} onOpen={() => onOpen(p)} />
+                <ProCard key={p.id} pro={p} saved={!!p.userId && saved.includes(p.userId)} onSave={onSave} onOpen={() => onOpen(p)} />
               ))}
             </Reveal>
           </div>
