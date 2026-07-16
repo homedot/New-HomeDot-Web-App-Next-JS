@@ -128,9 +128,14 @@ export const heroImage = unsplash("1600585154340-be6161a56a0c", 1200);
 export const trustImage = unsplash("1600585154340-be6161a56a0c", 900);
 export const exploreImage = unsplash("1580587771525-78b9dba3b914", 1800);
 
-export const blogPosts: { id: string; image: string; author: string; date: string; title: string; excerpt: string }[] = [
+// slug is "" for these fallback cards (shown only for an instant before the
+// first /data/home response resolves) — BlogCard/LatestInsights skip the
+// link wrapper when slug is empty, so they render as inert placeholders
+// rather than dead links.
+export const blogPosts: { id: string; slug: string; image: string; author: string; date: string; title: string; excerpt: string }[] = [
   {
     id: "b1",
+    slug: "",
     image: unsplash("1618221195710-dd6b41faaea6", 800),
     author: "Navya Menon",
     date: "02 Jul 2026",
@@ -139,6 +144,7 @@ export const blogPosts: { id: string; image: string; author: string; date: strin
   },
   {
     id: "b2",
+    slug: "",
     image: unsplash("1503387762-592deb58ef4e", 800),
     author: "Johncy Thomas",
     date: "18 Jun 2026",
@@ -147,6 +153,7 @@ export const blogPosts: { id: string; image: string; author: string; date: strin
   },
   {
     id: "b3",
+    slug: "",
     image: unsplash("1512917774080-9991f1c4c750", 800),
     author: "HomeDot Team",
     date: "03 Jun 2026",

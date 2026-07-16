@@ -1,6 +1,6 @@
 "use client";
 
-import { useEffect, useState, type CSSProperties } from "react";
+import { useEffect, useState, type CSSProperties, type ReactNode } from "react";
 import Link from "next/link";
 import { colors } from "@/constants/colors";
 import { spacing, radius, fontSize, shadow, maxWidth } from "@/utils/size";
@@ -1513,11 +1513,28 @@ function LatestInsights() {
       style={{ ...wrap, padding: `0 ${spacing.xl}px ${spacing.huge}px` }}
     >
       <ScrollScrub className="scrub-rise">
-        <SectionHead
-          eyebrow="From the blog"
-          title="Latest insights"
-          subtitle="Tips, guides and stories for every stage of your home journey."
-        />
+        <div style={{ display: "flex", alignItems: "flex-end", justifyContent: "space-between", gap: spacing.lg, flexWrap: "wrap" }}>
+          <SectionHead
+            eyebrow="From the blog"
+            title="Latest insights"
+            subtitle="Tips, guides and stories for every stage of your home journey."
+          />
+          <Link
+            href="/blog"
+            style={{
+              display: "inline-flex",
+              alignItems: "center",
+              gap: 6,
+              fontSize: fontSize.sm,
+              fontWeight: 600,
+              color: colors.primary,
+              whiteSpace: "nowrap",
+              paddingBottom: spacing.sm,
+            }}
+          >
+            View all articles <Icon name="arrow" size={15} />
+          </Link>
+        </div>
       </ScrollScrub>
       <Reveal
         stagger
@@ -1525,8 +1542,8 @@ function LatestInsights() {
         style={{ gap: spacing.xl }}
       >
         {posts.map((post) => (
+          <CardWrapper key={post.id} href={post.slug ? `/blog?post=${post.slug}` : undefined}>
           <article
-            key={post.id}
             className="card-hover"
             style={{
               background: colors.card,
@@ -1537,6 +1554,7 @@ function LatestInsights() {
               display: "flex",
               flexDirection: "column",
               cursor: "pointer",
+              height: "100%",
             }}
           >
             <div
@@ -1613,9 +1631,23 @@ function LatestInsights() {
               </span>
             </div>
           </article>
+          </CardWrapper>
         ))}
       </Reveal>
     </section>
+  );
+}
+
+// Wraps a card in a Link when href is given, otherwise renders children
+// unwrapped — LatestInsights' fallback mock posts have no slug yet (swapped
+// for real ones once /data/home resolves), so they stay inert placeholders
+// instead of linking nowhere.
+function CardWrapper({ href, children }: { href?: string; children: ReactNode }) {
+  if (!href) return <>{children}</>;
+  return (
+    <Link href={href} style={{ display: "block", height: "100%" }}>
+      {children}
+    </Link>
   );
 }
 

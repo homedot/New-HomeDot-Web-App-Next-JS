@@ -36,7 +36,9 @@ type IconName =
   | "share"
   | "clock"
   | "calendar"
-  | "briefcase";
+  | "briefcase"
+  | "book"
+  | "bookmark";
 
 const PATHS: Record<IconName, React.ReactNode> = {
   search: (
@@ -51,7 +53,9 @@ const PATHS: Record<IconName, React.ReactNode> = {
       <circle cx="12" cy="10.5" r="2.3" />
     </>
   ),
-  star: <path d="M12 3.5l2.6 5.3 5.9.9-4.3 4.1 1 5.8L12 17l-5.2 2.6 1-5.8L3.5 9.7l5.9-.9z" />,
+  star: (
+    <path d="M12 3.5l2.6 5.3 5.9.9-4.3 4.1 1 5.8L12 17l-5.2 2.6 1-5.8L3.5 9.7l5.9-.9z" />
+  ),
   check: <path d="M4 12.5l5 5L20 6.5" />,
   shield: (
     <>
@@ -65,7 +69,9 @@ const PATHS: Record<IconName, React.ReactNode> = {
       <path d="M13 6l6 6-6 6" />
     </>
   ),
-  heart: <path d="M12 20s-7-4.5-7-9.5A3.8 3.8 0 0 1 12 7.5 3.8 3.8 0 0 1 19 10.5C19 15.5 12 20 12 20Z" />,
+  heart: (
+    <path d="M12 20s-7-4.5-7-9.5A3.8 3.8 0 0 1 12 7.5 3.8 3.8 0 0 1 19 10.5C19 15.5 12 20 12 20Z" />
+  ),
   house: (
     <>
       <path d="M4 11.5 12 5l8 6.5" />
@@ -115,7 +121,9 @@ const PATHS: Record<IconName, React.ReactNode> = {
       <path d="M12 3v9m0 0 8-4.5M12 12 4 7.5M12 12v9" />
     </>
   ),
-  drop: <path d="M12 3.5c3 4 5.5 6.6 5.5 9.5a5.5 5.5 0 0 1-11 0c0-2.9 2.5-5.5 5.5-9.5Z" />,
+  drop: (
+    <path d="M12 3.5c3 4 5.5 6.6 5.5 9.5a5.5 5.5 0 0 1-11 0c0-2.9 2.5-5.5 5.5-9.5Z" />
+  ),
   bolt: <path d="M13 3 5 13h5l-1 8 8-10h-5z" />,
   saw: (
     <>
@@ -135,7 +143,9 @@ const PATHS: Record<IconName, React.ReactNode> = {
       <path d="M8 12h7M11 9V6h3M18 5v.01M20 7v.01M18 9v.01M16 7v.01" />
     </>
   ),
-  sparkle: <path d="M12 4l1.6 4.4L18 10l-4.4 1.6L12 16l-1.6-4.4L6 10l4.4-1.6z" />,
+  sparkle: (
+    <path d="M12 4l1.6 4.4L18 10l-4.4 1.6L12 16l-1.6-4.4L6 10l4.4-1.6z" />
+  ),
   verified: (
     <>
       <path d="M12 3l2 2.2 3-.3.6 3 2.6 1.6-1.4 2.7 1.4 2.7-2.6 1.6-.6 3-3-.3L12 21l-2-2.2-3 .3-.6-3L3.8 12.5l1.4-2.7L3.8 7.1l2.6-1.6.6-3 3 .3z" />
@@ -221,6 +231,13 @@ const PATHS: Record<IconName, React.ReactNode> = {
       <path d="M9 7.5V6a2 2 0 0 1 2-2h2a2 2 0 0 1 2 2v1.5M4 13h16" />
     </>
   ),
+  book: (
+    <>
+      <path d="M4 5.5a2 2 0 0 1 2-2h5.5v15H6a2 2 0 0 0-2 2z" />
+      <path d="M20 5.5a2 2 0 0 0-2-2h-5.5v15H18a2 2 0 0 1 2 2z" />
+    </>
+  ),
+  bookmark: <path d="M6 3.5h12v17l-6-4-6 4z" />,
 };
 
 export type { IconName };

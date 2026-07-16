@@ -1187,3 +1187,69 @@ body.has-cursor * {
     transition: none;
   }
 }
+
+/* Blog screen (BlogScreen list + BlogDetail article view). Save/heart pop
+   and the "Link copied" toast reuse the pdHeartPop/pdToastIn keyframes
+   already defined above for Marketplace's property detail — same motion,
+   scoped to this screen's own class names for consistency with the rest of
+   the file's per-screen prefixing (pd-/pf-/pa-). */
+.bl-heart-pop {
+  animation: pdHeartPop 0.4s cubic-bezier(0.2, 0.9, 0.3, 1.4) both;
+}
+
+.bl-toast {
+  animation: pdToastIn 0.18s ease both;
+}
+
+/* Article hero image + title block fade up on mount. */
+@keyframes blHeroIn {
+  from {
+    opacity: 0;
+    transform: translateY(14px);
+  }
+  to {
+    opacity: 1;
+    transform: translateY(0);
+  }
+}
+
+.bl-hero {
+  animation: blHeroIn 0.5s cubic-bezier(0.16, 1, 0.3, 1) both;
+}
+
+.bl-meta {
+  animation: blHeroIn 0.5s cubic-bezier(0.16, 1, 0.3, 1) 0.08s both;
+}
+
+.bl-body {
+  animation: blHeroIn 0.5s cubic-bezier(0.16, 1, 0.3, 1) 0.14s both;
+}
+
+/* Category pill row + featured card: same lift used by card-hover, plus a
+   pressed-state scale for the pill buttons themselves. */
+.bl-pill {
+  transition: transform 0.12s ease, filter 0.15s ease;
+}
+
+.bl-pill:active {
+  transform: scale(0.96);
+}
+
+/* Author card avatar ring glow — reuses the ambient glowPulse keyframe. */
+.bl-author-glow {
+  animation: glowPulse 4s ease-in-out infinite;
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .bl-heart-pop,
+  .bl-toast,
+  .bl-hero,
+  .bl-meta,
+  .bl-body,
+  .bl-author-glow {
+    animation: none;
+  }
+  .bl-pill {
+    transition: none;
+  }
+}

@@ -107,6 +107,7 @@ export interface FeaturedProfessionalsBody {
 
 export interface BlogPost {
   id: string;
+  slug: string;
   image: string;
   author: string;
   date: string;
@@ -245,6 +246,7 @@ function formatBlogDate(iso: string | undefined): string {
 export function toBlogPost(record: StoryRecord): BlogPost {
   return {
     id: record._id,
+    slug: record.slug,
     image: record.blogImage || FALLBACK_BLOG_IMAGE,
     author: record.authorData?.[0]?.name?.trim() || "HomeDot",
     date: formatBlogDate(record.publishDate),

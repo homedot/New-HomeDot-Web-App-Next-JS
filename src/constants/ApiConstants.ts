@@ -111,4 +111,31 @@ export const API_ENDPOINTS = {
     // FAVORITE_PROFESSIONALS ("v1/user/favorites-list").
     GET_FAVORITES: (page: number) => `user/favorites-list?page=${page}`,
   },
+  BLOG: {
+    // Guest-accessible — no auth required. Mirrors homedot-mobile-app's
+    // GUEST_USER_BLOGS ("v1/blog/get-all-blogs"). Works the same for
+    // signed-in visitors too (ApiService attaches the token automatically
+    // when present), so this single feed serves both guest and signed-in
+    // users — mobile branches to a separate auth-only endpoint here, but
+    // that one (commonblog/favorites-blog-list) returns the identical shape
+    // for a logged-in regular user, so there's no real behavior lost by not
+    // duplicating the branch.
+    LIST: (page: number) => `blog/get-all-blogs?page=${page}`,
+    // Guest-accessible — no auth required. Mirrors GUEST_USER_BLOG_KEY_SEARCH
+    // ("v1/commonblog/search-blogs"). keyString is one of the mobile app's
+    // fixed category tabs: "house" | "garden" | "home".
+    SEARCH_BY_TYPE: (keyString: string) => `commonblog/search-blogs?keyString=${encodeURIComponent(keyString)}`,
+    // Guest-accessible — no auth required. Mirrors BLOG_DETAILED
+    // ("v1/blog/get-single-blog/"). Returns { blog, user, relatedBlogs } —
+    // not the `data: [{...}]` wrapper most other list endpoints use.
+    DETAIL: (slug: string) => `blog/get-single-blog/${encodeURIComponent(slug)}`,
+    // Requires a stored auth token. Mirrors ADD_BLOG_FAVORITE
+    // ("v1/commonblog/add-favorite-blog") — POST { blog: id } toggles
+    // favorite/unfavorite (calling it again un-favorites it), same pattern
+    // as MARKETPLACE.TOGGLE_FAVORITE_SELL / PROFESSIONALS.TOGGLE_FAVORITE.
+    TOGGLE_FAVORITE: "commonblog/add-favorite-blog",
+    // Requires a stored auth token. Mirrors USERS_APIS.FAVORITE_BLOG
+    // ("v1/user/favorite-blogs") — seeds the saved/favorited set on load.
+    GET_FAVORITES: "user/favorite-blogs",
+  },
 } as const;
