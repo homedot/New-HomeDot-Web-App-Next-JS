@@ -683,19 +683,6 @@ body.has-cursor * {
   filter: brightness(1.08);
 }
 
-.login-social-btn {
-  transition: border-color 0.15s ease, background 0.15s ease, transform 0.12s ease;
-}
-
-.login-social-btn:hover {
-  border-color: #101c30;
-  background: #f5f5f7;
-}
-
-.login-social-btn:active {
-  transform: translateY(1px);
-}
-
 @media (max-width: 720px) {
   .login-modal {
     grid-template-columns: 1fr !important;
@@ -721,8 +708,7 @@ body.has-cursor * {
   }
   .login-tab-thumb,
   .login-otp-box,
-  .login-cta,
-  .login-social-btn {
+  .login-cta {
     transition: none;
   }
 }

@@ -852,68 +852,6 @@ function MethodStep({
         {!checking && <Icon name="arrow" size={18} color={colors.white} />}
       </button>
 
-      <div
-        style={{
-          display: "flex",
-          alignItems: "center",
-          gap: spacing.md,
-          margin: `${spacing.xl - 4}px 0`,
-          color: colors.muted,
-          fontSize: fontSize.xs + 0.5,
-        }}
-      >
-        <span style={{ flex: 1, height: 1, background: colors.line }} />
-        or continue with
-        <span style={{ flex: 1, height: 1, background: colors.line }} />
-      </div>
-
-      <div
-        style={{
-          display: "grid",
-          gridTemplateColumns: "1fr 1fr",
-          gap: spacing.md,
-        }}
-      >
-        <button
-          className="login-social-btn"
-          onClick={onSubmit}
-          style={{
-            display: "inline-flex",
-            alignItems: "center",
-            justifyContent: "center",
-            gap: 9,
-            height: 48,
-            border: `1.5px solid ${colors.line}`,
-            borderRadius: 13,
-            background: colors.white,
-            fontWeight: 600,
-            fontSize: fontSize.base,
-            color: colors.ink,
-          }}
-        >
-          <GoogleGlyph /> Google
-        </button>
-        <button
-          className="login-social-btn"
-          onClick={onSubmit}
-          style={{
-            display: "inline-flex",
-            alignItems: "center",
-            justifyContent: "center",
-            gap: 9,
-            height: 48,
-            border: `1.5px solid ${colors.line}`,
-            borderRadius: 13,
-            background: colors.white,
-            fontWeight: 600,
-            fontSize: fontSize.base,
-            color: colors.ink,
-          }}
-        >
-          <AppleGlyph /> Apple
-        </button>
-      </div>
-
       <p
         style={{
           fontSize: fontSize.xs - 1,
@@ -1183,39 +1121,3 @@ function SuccessStep({
   );
 }
 
-function GoogleGlyph() {
-  return (
-    <svg viewBox="0 0 24 24" width="18" height="18" aria-hidden="true">
-      <path
-        fill="#4285F4"
-        d="M21.6 12.2c0-.7-.06-1.4-.18-2H12v3.8h5.4a4.6 4.6 0 0 1-2 3v2.5h3.2c1.9-1.7 3-4.3 3-7.3z"
-      />
-      <path
-        fill="#34A853"
-        d="M12 22c2.7 0 5-.9 6.6-2.4l-3.2-2.5c-.9.6-2 1-3.4 1-2.6 0-4.8-1.7-5.6-4.1H3.1v2.6A10 10 0 0 0 12 22z"
-      />
-      <path
-        fill="#FBBC05"
-        d="M6.4 14c-.2-.6-.3-1.3-.3-2s.1-1.4.3-2V7.4H3.1a10 10 0 0 0 0 9.2L6.4 14z"
-      />
-      <path
-        fill="#EA4335"
-        d="M12 5.9c1.5 0 2.8.5 3.8 1.5l2.8-2.8A10 10 0 0 0 3.1 7.4L6.4 10c.8-2.4 3-4.1 5.6-4.1z"
-      />
-    </svg>
-  );
-}
-
-function AppleGlyph() {
-  return (
-    <svg
-      viewBox="0 0 24 24"
-      width="17"
-      height="17"
-      fill="currentColor"
-      aria-hidden="true"
-    >
-      <path d="M17.05 12.04c-.03-3.09 2.52-4.57 2.64-4.64-1.44-2.11-3.68-2.4-4.48-2.43-1.91-.19-3.72 1.12-4.69 1.12-.96 0-2.45-1.09-4.03-1.06-2.07.03-3.98 1.2-5.05 3.06-2.15 3.73-.55 9.25 1.55 12.28 1.03 1.48 2.25 3.14 3.86 3.08 1.55-.06 2.13-1 4-1 1.86 0 2.4 1 4.03.97 1.66-.03 2.72-1.51 3.74-3 1.18-1.72 1.66-3.38 1.69-3.47-.04-.02-3.24-1.25-3.27-4.91M14.13 3.5c.85-1.04 1.43-2.48 1.27-3.92-1.23.05-2.72.82-3.6 1.85-.79.92-1.49 2.39-1.3 3.8 1.37.11 2.78-.7 3.63-1.73" />
-    </svg>
-  );
-}
