@@ -126,10 +126,11 @@ export default function ProfessionalsScreen() {
   // results has loaded — best-effort only: unlike properties, there's no
   // confirmed guest "get professional by slug" endpoint yet, so this only
   // finds a match if that professional happens to already be on the loaded
-  // page(s).
+  // page(s). Guests never auto-open it either — the detail screen is
+  // signed-in only, same as clicking a card (see openDetail below).
   useEffect(() => {
     const resolve = () => {
-      if (initialSlugHandled.current || loading) return;
+      if (initialSlugHandled.current || loading || !getAuthToken()) return;
       const slug = searchParams.get("professional");
       if (!slug) return;
       const match = findBySlug(slug);
@@ -150,7 +151,14 @@ export default function ProfessionalsScreen() {
     router.push(qs ? `${pathname}?${qs}` : pathname, { scroll: false });
   };
 
+  // The professional detail screen is signed-in only — guests get the login
+  // popup instead (same gating pattern as toggleSave below). Only the list
+  // itself is guest-accessible.
   const openDetail = (p: ProfessionalRecord) => {
+    if (!getAuthToken()) {
+      loginModalRef.current?.open();
+      return;
+    }
     initialSlugHandled.current = true;
     setDetail(p);
     window.scrollTo(0, 0);
