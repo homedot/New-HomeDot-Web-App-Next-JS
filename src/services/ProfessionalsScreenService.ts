@@ -10,6 +10,10 @@ export interface ProfessionalSkillRecord {
 
 export interface ProfessionalInfoRecord {
   _id: string;
+  // The id an enquiry actually targets (`directEnquiry`'s `professional`
+  // field) — distinct from `_id` above, which identifies this professional
+  // *info* sub-document, not the user account itself.
+  userId?: string;
   professionalSlug: string;
   professionalCategory: string;
   professionalCategoryName: string;
@@ -87,6 +91,24 @@ function buildFilterEndpoint(
   return `${base}?${params.toString()}`;
 }
 
+// Sent as the POST body to enquiry/submit-enquiry — mirrors
+// homedot-mobile-app's directEnquiry (a professional's own detail screen
+// enquiry, as opposed to the untargeted "post a requirement" flow, which
+// omits `professional` and carries a category instead).
+export interface DirectEnquiryPayload {
+  professional: string;
+  latitude: number;
+  longitude: number;
+  location: string;
+  requirement: string;
+  terms: true;
+}
+
+export interface DirectEnquiryBody {
+  status: boolean;
+  message: string;
+}
+
 // All Professionals screen API calls live here. The screen only ever
 // imports this file — never ApiService or fetch directly.
 export const ProfessionalsScreenService = {
@@ -108,6 +130,12 @@ export const ProfessionalsScreenService = {
     );
     return ApiService.post<ProfessionalsFilterBody>(endpoint, payload);
   },
+
+  // Requires a stored auth token (ApiService attaches it automatically);
+  // the detail screen this is called from is itself signed-in only, so
+  // there's no guest path to branch on.
+  submitDirectEnquiry: (payload: DirectEnquiryPayload): Promise<ApiResponse<DirectEnquiryBody>> =>
+    ApiService.post<DirectEnquiryBody>(API_ENDPOINTS.PROFESSIONALS.ENQUIRE_SUBMIT, payload),
 };
 
 function truncate(text: string, max: number): string {
@@ -183,6 +211,7 @@ export function toProfessionalRecord(record: ProfessionalListRecord): Profession
 
   return {
     id: record.inviteId,
+    userId: info?.userId,
     slug: info?.professionalSlug || record.inviteId,
     name: record.name.trim(),
     profession: info?.subCategoryName || info?.professionalCategoryName || "Professional",

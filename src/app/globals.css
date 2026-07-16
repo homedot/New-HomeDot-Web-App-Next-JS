@@ -84,6 +84,31 @@ body {
   }
 }
 
+/* Skeleton loading cards (CardSkeleton component) — shown in place of a
+   listing grid while its first real API response is in flight, instead of
+   flashing mock/dummy data that then gets swapped for the real thing. */
+@keyframes skeletonShimmer {
+  0% {
+    background-position: -400px 0;
+  }
+  100% {
+    background-position: 400px 0;
+  }
+}
+
+.skeleton-shimmer {
+  background: linear-gradient(90deg, #eef0f3 25%, #f7f8fa 37%, #eef0f3 63%);
+  background-size: 400px 100%;
+  animation: skeletonShimmer 1.4s ease-in-out infinite;
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .skeleton-shimmer {
+    animation: none;
+    background: #eef0f3;
+  }
+}
+
 /* Ambient scroll/background animation: drifting, morphing gradient blobs + panning
    dot-grid used behind the whole page (AmbientBackground) and inside the hero
    (HeroScene). Blobs morph their border-radius as they drift for an organic,

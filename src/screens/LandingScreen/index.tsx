@@ -192,11 +192,13 @@ function Hero() {
               icon="house"
               title="Browse properties"
               subtitle="240+ verified homes, villas & plots"
+              href="/marketplace"
             />
             <HeroSegment
               icon="hardhat"
               title="Hire professionals"
               subtitle="180+ architects, designers & experts"
+              href="/professionals"
             />
           </div>
 
@@ -376,13 +378,16 @@ function HeroSegment({
   icon,
   title,
   subtitle,
+  href,
 }: {
   icon: "house" | "hardhat";
   title: string;
   subtitle: string;
+  href: string;
 }) {
   return (
-    <button
+    <Link
+      href={href}
       style={{
         display: "flex",
         alignItems: "center",
@@ -393,6 +398,7 @@ function HeroSegment({
         padding: "15px 17px",
         textAlign: "left",
         color: colors.white,
+        textDecoration: "none",
       }}
     >
       <span
@@ -443,7 +449,7 @@ function HeroSegment({
       >
         <Icon name="arrow" size={18} />
       </span>
-    </button>
+    </Link>
   );
 }
 

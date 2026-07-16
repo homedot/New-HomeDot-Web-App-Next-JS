@@ -14,6 +14,7 @@ import { spacing, radius, fontSize, shadow, maxWidth } from "@/utils/size";
 import Icon from "@/components/Icon";
 import Button from "@/components/Button";
 import PropertyCard from "@/components/PropertyCard";
+import CardSkeleton from "@/components/CardSkeleton";
 import SiteNav from "@/components/SiteNav";
 import SiteFooter from "@/components/SiteFooter";
 import AmbientBackground from "@/components/AmbientBackground";
@@ -35,7 +36,6 @@ import {
   type GoogleMapsAddressComponent,
 } from "@/utils/loadGoogleMapsScript";
 import {
-  properties,
   bedOptions,
   bathOptions,
   priceOptions,
@@ -118,10 +118,14 @@ export default function MarketplaceScreen() {
   const initialSlugHandled = useRef(false);
 
   const [apiProperties, setApiProperties] =
-    useState<MarketplaceProperty[]>(properties);
+    useState<MarketplaceProperty[]>([]);
   const [page, setPage] = useState(1);
   const [totalPages, setTotalPages] = useState(1);
   const [loading, setLoading] = useState(false);
+  // True until the very first properties-filter response comes back (success
+  // or failure) — drives the skeleton grid below instead of flashing mock
+  // data that then gets swapped for the real thing.
+  const [initialLoad, setInitialLoad] = useState(true);
 
   useEffect(() => {
     MarketplaceScreenService.getPropertyTypes().then((res) => {
@@ -291,6 +295,7 @@ export default function MarketplaceScreen() {
       );
       if (cancelled) return;
       setLoading(false);
+      setInitialLoad(false);
       // An empty `data` array (no page entry at all) means zero matches for
       // this search — must still clear stale results from a previous search,
       // not just leave them on screen.
@@ -873,9 +878,9 @@ export default function MarketplaceScreen() {
                       marginTop: 5,
                     }}
                   >
-                    {list.length}{" "}
-                    {list.length === 1 ? "property" : "properties"} found ·
-                    updated today
+                    {initialLoad
+                      ? "Finding properties for you…"
+                      : `${list.length} ${list.length === 1 ? "property" : "properties"} found · updated today`}
                   </p>
                 </div>
 
@@ -1025,7 +1030,13 @@ export default function MarketplaceScreen() {
                   </div>
                 )}
 
-                {list.length === 0 ? (
+                {initialLoad ? (
+                  <div className="grid grid-cols-1 sm:grid-cols-2 xl:grid-cols-3" style={{ gap: spacing.xl }}>
+                    {Array.from({ length: 6 }).map((_, i) => (
+                      <CardSkeleton key={i} />
+                    ))}
+                  </div>
+                ) : list.length === 0 ? (
                   <div
                     style={{
                       textAlign: "center",

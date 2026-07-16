@@ -91,5 +91,11 @@ export const API_ENDPOINTS = {
     // ("v1/search/filter-professional-auth") — same request shape as
     // FILTER_SEARCH, just personalized for a signed-in user.
     FILTER_SEARCH_AUTH: "search/filter-professional-auth",
+    // Requires a stored auth token. Mirrors homedot-mobile-app's
+    // ENQUIRE_SUBMIT ("v1/enquiry/submit-enquiry"), specifically the
+    // `directEnquiry` call from a professional's own detail screen — same
+    // endpoint also handles the untargeted "post a requirement" flow (no
+    // `professional` field), which this app doesn't implement.
+    ENQUIRE_SUBMIT: "enquiry/submit-enquiry",
   },
 } as const;

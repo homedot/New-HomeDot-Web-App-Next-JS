@@ -3,6 +3,9 @@ import type { Professional } from "@/components/ProCard";
 const unsplash = (id: string, w = 900) => `https://images.unsplash.com/photo-${id}?auto=format&fit=crop&w=${w}&q=80`;
 
 export type ProfessionalRecord = Professional & {
+  // The id a direct enquiry targets (see DirectEnquiryPayload) — absent on
+  // the mock fallback professionals below, which aren't real accounts.
+  userId?: string;
   category: string;
   categoryName: string;
   slug: string;

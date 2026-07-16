@@ -7,6 +7,7 @@ import { spacing, radius, fontSize, shadow, maxWidth } from "@/utils/size";
 import Icon from "@/components/Icon";
 import Button from "@/components/Button";
 import ProCard, { type Professional } from "@/components/ProCard";
+import CardSkeleton from "@/components/CardSkeleton";
 import SiteNav from "@/components/SiteNav";
 import SiteFooter from "@/components/SiteFooter";
 import AmbientBackground from "@/components/AmbientBackground";
@@ -30,7 +31,7 @@ import ProfessionalsScreenService, {
   type ProfessionalsFilterPayload,
 } from "@/services/ProfessionalsScreenService";
 import ProfessionalDetail from "./ProfessionalDetail";
-import { professionals as mockProfessionals, ratingBuckets, experienceBuckets, budgetBuckets, type ProfessionalRecord } from "./data";
+import { ratingBuckets, experienceBuckets, budgetBuckets, type ProfessionalRecord } from "./data";
 
 const wrap: CSSProperties = {
   maxWidth,
@@ -73,10 +74,14 @@ export default function ProfessionalsScreen() {
   const googleMapsRef = useRef<GoogleMapsNamespace | null>(null);
   const suggestTimer = useRef<ReturnType<typeof setTimeout> | null>(null);
 
-  const [apiProfessionals, setApiProfessionals] = useState<ProfessionalRecord[]>(mockProfessionals);
+  const [apiProfessionals, setApiProfessionals] = useState<ProfessionalRecord[]>([]);
   const [page, setPage] = useState(1);
-  const [totalRows, setTotalRows] = useState(mockProfessionals.length);
+  const [totalRows, setTotalRows] = useState(0);
   const [loading, setLoading] = useState(false);
+  // True until the very first filter-professional response comes back
+  // (success or failure) — drives the skeleton grid below instead of
+  // flashing mock data that then gets swapped for the real thing.
+  const [initialLoad, setInitialLoad] = useState(true);
 
   const [detail, setDetail] = useState<ProfessionalRecord | null>(null);
   const initialSlugHandled = useRef(false);
@@ -267,6 +272,7 @@ export default function ProfessionalsScreen() {
       const res = await ProfessionalsScreenService.getProfessionalsFilter(1, filterQuery, filterPayload);
       if (cancelled) return;
       setLoading(false);
+      setInitialLoad(false);
       const result = res.data?.data?.[0];
       if (res.success && res.data?.status) {
         setApiProfessionals(result ? result.data.map(toProfessionalRecord) : []);
@@ -766,7 +772,9 @@ export default function ProfessionalsScreen() {
                     {category === "all" ? "Professionals" : categoryOptions.find((c) => c.id === category)?.name} in Kochi
                   </h2>
                   <p style={{ color: colors.muted, fontSize: fontSize.base, marginTop: 5 }}>
-                    {totalRows} {totalRows === 1 ? "professional" : "professionals"} found · sorted by {sort}
+                    {initialLoad
+                      ? "Finding professionals for you…"
+                      : `${totalRows} ${totalRows === 1 ? "professional" : "professionals"} found · sorted by ${sort}`}
                   </p>
                 </div>
 
@@ -855,7 +863,13 @@ export default function ProfessionalsScreen() {
                   </div>
                 )}
 
-                {list.length === 0 ? (
+                {initialLoad ? (
+                  <div className="grid grid-cols-1 sm:grid-cols-2 xl:grid-cols-3" style={{ gap: spacing.xl }}>
+                    {Array.from({ length: 6 }).map((_, i) => (
+                      <CardSkeleton key={i} />
+                    ))}
+                  </div>
+                ) : list.length === 0 ? (
                   <div
                     style={{
                       textAlign: "center",

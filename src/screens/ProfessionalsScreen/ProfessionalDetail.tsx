@@ -7,6 +7,12 @@ import Icon from "@/components/Icon";
 import Button from "@/components/Button";
 import ProCard from "@/components/ProCard";
 import Reveal from "@/components/Reveal";
+import {
+  loadGoogleMapsScript,
+  type GoogleMapsNamespace,
+  type GoogleMapsPlacePrediction,
+} from "@/utils/loadGoogleMapsScript";
+import ProfessionalsScreenService from "@/services/ProfessionalsScreenService";
 import { reviews, type ProfessionalRecord } from "./data";
 
 type Tab = "portfolio" | "about" | "services" | "reviews";
@@ -36,8 +42,26 @@ export default function ProfessionalDetail({
   const [lightbox, setLightbox] = useState<number | null>(null);
   const [sent, setSent] = useState(false);
   const [copied, setCopied] = useState(false);
-  const nameInputRef = useRef<HTMLInputElement>(null);
   const contactCardRef = useRef<HTMLDivElement>(null);
+
+  // Enquiry form — mirrors homedot-mobile-app's directEnquiry, which needs
+  // a service location (address + lat/long, resolved via Places) and a
+  // requirement description; the professional themselves is identified by
+  // pro.userId and the requester by their auth token, so there's no
+  // name/phone field here.
+  const [locationText, setLocationText] = useState("");
+  const [appliedLocation, setAppliedLocation] = useState<{ address: string; lat: number; long: number } | null>(null);
+  const [requirement, setRequirement] = useState("");
+  const [suggestions, setSuggestions] = useState<GoogleMapsPlacePrediction[]>([]);
+  const [showSuggestions, setShowSuggestions] = useState(false);
+  const [locatingMe, setLocatingMe] = useState(false);
+  const [submitting, setSubmitting] = useState(false);
+  const [submitError, setSubmitError] = useState<string | null>(null);
+  const [successMessage, setSuccessMessage] = useState("");
+  const locationInputRef = useRef<HTMLInputElement>(null);
+  const locationFieldRef = useRef<HTMLDivElement>(null);
+  const googleMapsRef = useRef<GoogleMapsNamespace | null>(null);
+  const suggestTimer = useRef<ReturnType<typeof setTimeout> | null>(null);
 
   // Reset transient state whenever a different professional is opened —
   // this component is reused across navigations rather than remounted.
@@ -48,7 +72,150 @@ export default function ProfessionalDetail({
     setLightbox(null);
     setSent(false);
     setCopied(false);
+    setLocationText("");
+    setAppliedLocation(null);
+    setRequirement("");
+    setSuggestions([]);
+    setShowSuggestions(false);
+    setSubmitError(null);
   }
+
+  useEffect(() => {
+    let cancelled = false;
+    loadGoogleMapsScript()
+      .then((google) => {
+        if (!cancelled) googleMapsRef.current = google;
+      })
+      .catch(() => {
+        // Silently degrade — the location field still accepts free text,
+        // which submitDirectEnquiry sends as-is without lat/long.
+      });
+    return () => {
+      cancelled = true;
+    };
+  }, []);
+
+  useEffect(() => {
+    if (!showSuggestions) return;
+    const onDocClick = (e: MouseEvent) => {
+      if (!locationFieldRef.current?.contains(e.target as Node)) setShowSuggestions(false);
+    };
+    document.addEventListener("mousedown", onDocClick);
+    return () => document.removeEventListener("mousedown", onDocClick);
+  }, [showSuggestions]);
+
+  const onLocationInputChange = (value: string) => {
+    setLocationText(value);
+    setAppliedLocation(null);
+    if (suggestTimer.current) clearTimeout(suggestTimer.current);
+    const q = value.trim();
+    if (q.length < 3) {
+      setSuggestions([]);
+      setShowSuggestions(false);
+      return;
+    }
+    suggestTimer.current = setTimeout(() => {
+      const google = googleMapsRef.current;
+      if (!google) return;
+      new google.maps.places.AutocompleteService().getPlacePredictions(
+        { input: q, componentRestrictions: { country: "in" } },
+        (predictions, status) => {
+          if (status === "OK" && predictions?.length) {
+            setSuggestions(predictions);
+            setShowSuggestions(true);
+          } else {
+            setSuggestions([]);
+            setShowSuggestions(false);
+          }
+        },
+      );
+    }, 300);
+  };
+
+  const selectSuggestion = (prediction: GoogleMapsPlacePrediction) => {
+    setShowSuggestions(false);
+    setSuggestions([]);
+    const google = googleMapsRef.current;
+    if (!google) return;
+    new google.maps.Geocoder().geocode({ placeId: prediction.place_id }, (results, status) => {
+      if (status === "OK" && results?.[0]) {
+        setLocationText(results[0].formatted_address);
+        setAppliedLocation({
+          address: results[0].formatted_address,
+          lat: results[0].geometry.location.lat(),
+          long: results[0].geometry.location.lng(),
+        });
+      }
+    });
+  };
+
+  const locateCurrentPosition = () => {
+    if (typeof navigator === "undefined" || !navigator.geolocation) return;
+    setShowSuggestions(false);
+    setLocatingMe(true);
+    navigator.geolocation.getCurrentPosition(
+      ({ coords }) => {
+        const { latitude, longitude } = coords;
+        const google = googleMapsRef.current;
+        if (!google) {
+          setLocatingMe(false);
+          setLocationText("Current location");
+          setAppliedLocation({ address: "Current location", lat: latitude, long: longitude });
+          return;
+        }
+        new google.maps.Geocoder().geocode(
+          { location: { lat: latitude, lng: longitude } },
+          (results, status) => {
+            setLocatingMe(false);
+            const address = status === "OK" && results?.[0] ? results[0].formatted_address : "Current location";
+            setLocationText(address);
+            setAppliedLocation({ address, lat: latitude, long: longitude });
+          },
+        );
+      },
+      () => setLocatingMe(false),
+    );
+  };
+
+  const clearLocation = () => {
+    setLocationText("");
+    setAppliedLocation(null);
+    setSuggestions([]);
+    setShowSuggestions(false);
+  };
+
+  const submitEnquiry = async (e: React.FormEvent) => {
+    e.preventDefault();
+    if (!pro.userId) {
+      setSubmitError("This professional isn't available for enquiries right now.");
+      return;
+    }
+    if (!appliedLocation) {
+      setSubmitError("Pick your service location from the suggestions.");
+      return;
+    }
+    if (!requirement.trim()) {
+      setSubmitError("Tell the pro a bit about what you need.");
+      return;
+    }
+    setSubmitError(null);
+    setSubmitting(true);
+    const res = await ProfessionalsScreenService.submitDirectEnquiry({
+      professional: pro.userId,
+      latitude: appliedLocation.lat,
+      longitude: appliedLocation.long,
+      location: appliedLocation.address,
+      requirement: requirement.trim(),
+      terms: true,
+    });
+    setSubmitting(false);
+    if (res.success && res.data?.status) {
+      setSuccessMessage(res.data.message || "");
+      setSent(true);
+    } else {
+      setSubmitError(res.data?.message || res.message || "Something went wrong. Please try again.");
+    }
+  };
 
   const isSaved = saved.includes(pro.id);
 
@@ -78,7 +245,7 @@ export default function ProfessionalDetail({
 
   function focusContactForm() {
     contactCardRef.current?.scrollIntoView({ behavior: "smooth", block: "start" });
-    window.setTimeout(() => nameInputRef.current?.focus(), 450);
+    window.setTimeout(() => locationInputRef.current?.focus(), 450);
   }
 
   return (
@@ -283,7 +450,7 @@ export default function ProfessionalDetail({
           </div>
           <div style={{ display: "flex", flexDirection: "column", gap: spacing.sm, minWidth: 200 }}>
             <Button variant="primary" size="lg" icon={<Icon name="chat" size={18} />} onClick={focusContactForm}>
-              Request a quote
+              Send Your Inquiry
             </Button>
             <div style={{ display: "flex", gap: spacing.sm }}>
               <span style={{ flex: 1 }}>
@@ -532,42 +699,119 @@ export default function ProfessionalDetail({
                     <span style={{ width: 48, height: 48, borderRadius: "50%", background: colors.primarySoft, color: colors.primary, display: "grid", placeItems: "center", marginBottom: 4 }}>
                       <Icon name="check" size={24} />
                     </span>
-                    <b style={{ fontSize: fontSize.base }}>Request sent!</b>
-                    <span style={{ fontSize: fontSize.sm, color: colors.muted }}>{pro.name} will get back to you shortly.</span>
+                    <b style={{ fontSize: fontSize.base }}>Inquiry sent!</b>
+                    <span style={{ fontSize: fontSize.sm, color: colors.muted }}>
+                      {successMessage || `${pro.name} will get back to you shortly.`}
+                    </span>
                   </div>
                 ) : (
-                  <form
-                    onSubmit={(e) => {
-                      e.preventDefault();
-                      setSent(true);
-                    }}
-                    style={{ display: "flex", flexDirection: "column", gap: spacing.sm + 2 }}
-                  >
-                    <input
-                      ref={nameInputRef}
-                      required
-                      placeholder="Your name"
-                      style={{ border: `1.5px solid ${colors.line}`, borderRadius: radius.sm + 1, padding: "11px 13px", fontSize: fontSize.sm + 1, outline: "none" }}
-                    />
-                    <input
-                      required
-                      placeholder="Phone number"
-                      style={{ border: `1.5px solid ${colors.line}`, borderRadius: radius.sm + 1, padding: "11px 13px", fontSize: fontSize.sm + 1, outline: "none" }}
-                    />
+                  <form onSubmit={submitEnquiry} style={{ display: "flex", flexDirection: "column", gap: spacing.sm + 2 }}>
+                    <h3 style={{ fontSize: fontSize.base + 1, fontWeight: 700, margin: 0 }}>Send Your Inquiry</h3>
+
+                    <div ref={locationFieldRef} style={{ position: "relative" }}>
+                      <div
+                        style={{
+                          display: "flex",
+                          alignItems: "center",
+                          gap: 9,
+                          border: `1.5px solid ${colors.line}`,
+                          borderRadius: radius.sm + 1,
+                          padding: "0 13px",
+                        }}
+                      >
+                        <Icon name="location" size={16} color={colors.muted} />
+                        <input
+                          ref={locationInputRef}
+                          value={locationText}
+                          onChange={(e) => onLocationInputChange(e.target.value)}
+                          onFocus={() => suggestions.length > 0 && setShowSuggestions(true)}
+                          placeholder="Where do you need this service?"
+                          autoComplete="off"
+                          style={{
+                            flex: 1,
+                            minWidth: 0,
+                            border: "none",
+                            outline: "none",
+                            padding: "11px 0",
+                            fontSize: fontSize.sm + 1,
+                            color: colors.ink,
+                          }}
+                        />
+                        {appliedLocation ? (
+                          <button type="button" onClick={clearLocation} aria-label="Clear location" style={{ display: "flex", flexShrink: 0, color: colors.muted }}>
+                            <Icon name="close" size={13} />
+                          </button>
+                        ) : (
+                          <button
+                            type="button"
+                            onClick={locateCurrentPosition}
+                            disabled={locatingMe}
+                            aria-label="Use my current location"
+                            style={{ display: "flex", flexShrink: 0, color: colors.primary, opacity: locatingMe ? 0.5 : 1 }}
+                          >
+                            <Icon name="compass" size={16} />
+                          </button>
+                        )}
+                      </div>
+
+                      {showSuggestions && suggestions.length > 0 && (
+                        <div
+                          style={{
+                            position: "absolute",
+                            top: "calc(100% + 6px)",
+                            left: 0,
+                            right: 0,
+                            background: colors.card,
+                            border: `1px solid ${colors.line}`,
+                            borderRadius: radius.md,
+                            boxShadow: shadow.lg,
+                            zIndex: 20,
+                            maxHeight: 220,
+                            overflowY: "auto",
+                          }}
+                        >
+                          {suggestions.map((s, i) => (
+                            <button
+                              key={s.place_id}
+                              type="button"
+                              onClick={() => selectSuggestion(s)}
+                              style={{
+                                display: "flex",
+                                alignItems: "center",
+                                gap: 9,
+                                width: "100%",
+                                padding: "10px 13px",
+                                textAlign: "left",
+                                fontSize: fontSize.sm,
+                                color: colors.ink2,
+                                borderBottom: i < suggestions.length - 1 ? `1px solid ${colors.line}` : "none",
+                              }}
+                            >
+                              <Icon name="location" size={15} color={colors.accent} />
+                              <span style={{ overflow: "hidden", textOverflow: "ellipsis", whiteSpace: "nowrap" }}>{s.description}</span>
+                            </button>
+                          ))}
+                        </div>
+                      )}
+                    </div>
+
                     <textarea
-                      rows={2}
-                      defaultValue={`I'm interested in "${pro.tags[0] ?? pro.profession}" for my project…`}
+                      rows={3}
+                      value={requirement}
+                      onChange={(e) => setRequirement(e.target.value)}
+                      placeholder={`Tell ${pro.name} what you need — e.g. "${pro.tags[0] ?? pro.profession} for a 3BHK renovation"…`}
                       style={{ border: `1.5px solid ${colors.line}`, borderRadius: radius.sm + 1, padding: "11px 13px", fontSize: fontSize.sm + 1, outline: "none", resize: "vertical", fontFamily: "inherit" }}
                     />
+
+                    {submitError && (
+                      <p style={{ fontSize: fontSize.xs + 0.5, color: "#C0392B", margin: 0 }}>{submitError}</p>
+                    )}
+
                     <Button variant="primary" size="lg" full icon={<Icon name="chat" size={18} />} type="submit">
-                      Request a quote
+                      {submitting ? "Sending…" : "Send Your Inquiry"}
                     </Button>
                   </form>
                 )}
-
-                <Button variant="outline" size="md" full icon={<Icon name="calendar" size={16} />}>
-                  Book a site visit
-                </Button>
 
                 <div style={{ display: "flex", flexDirection: "column", gap: 10, marginTop: spacing.sm, paddingTop: spacing.md, borderTop: `1px solid ${colors.line}` }}>
                   {[
@@ -649,7 +893,7 @@ export default function ProfessionalDetail({
         </button>
         <span style={{ flexShrink: 0 }}>
           <Button variant="primary" size="md" icon={<Icon name="chat" size={16} />} onClick={focusContactForm}>
-            Request a quote
+            Send Inquiry
           </Button>
         </span>
       </div>
