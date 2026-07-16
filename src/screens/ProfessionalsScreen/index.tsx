@@ -94,6 +94,19 @@ export default function ProfessionalsScreen() {
     });
   }, []);
 
+  // Seeds the saved/favorited set from the backend on load, for signed-in
+  // users, so the heart state persists across sessions — mirrors
+  // MarketplaceScreen's identical favorites-seeding effect.
+  useEffect(() => {
+    if (!getAuthToken()) return;
+    ProfessionalsScreenService.getFavoriteProfessionals(1).then((res) => {
+      const result = res.data?.data?.[0];
+      if (res.success && res.data?.status && result) {
+        setSaved(result.data.map((r) => r.professionalId));
+      }
+    });
+  }, []);
+
   // Loads the Maps JS SDK once — used purely for its data services
   // (AutocompleteService + Geocoder), no widget UI attached to the input.
   useEffect(() => {
@@ -351,14 +364,25 @@ export default function ProfessionalsScreen() {
   };
 
   // Mirrors MarketplaceScreen's toggleSave: gate behind login, then flip
-  // local state optimistically. No backend call yet — professionals
-  // favoriting isn't wired to an API in this pass.
+  // local state optimistically, fire the call, and revert on failure. The
+  // favorite endpoint is keyed on the professional's userId, not the
+  // inviteId used as `id` throughout this screen, so it's resolved from
+  // wherever that professional is currently visible (open detail, or the
+  // loaded grid/list).
   const toggleSave = (id: string) => {
     if (!getAuthToken()) {
       loginModalRef.current?.open();
       return;
     }
-    setSaved((s) => (s.includes(id) ? s.filter((x) => x !== id) : [...s, id]));
+    const userId = detail?.id === id ? detail.userId : apiProfessionals.find((p) => p.id === id)?.userId;
+    if (!userId) return;
+    const wasSaved = saved.includes(id);
+    setSaved((s) => (wasSaved ? s.filter((x) => x !== id) : [...s, id]));
+    ProfessionalsScreenService.toggleFavoriteProfessional(userId).then((res) => {
+      if (!res.success || !res.data?.status) {
+        setSaved((s) => (wasSaved ? [...s, id] : s.filter((x) => x !== id)));
+      }
+    });
   };
 
   // Client-side refinements only — the server already applied

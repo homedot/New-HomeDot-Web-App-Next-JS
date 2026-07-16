@@ -97,5 +97,13 @@ export const API_ENDPOINTS = {
     // endpoint also handles the untargeted "post a requirement" flow (no
     // `professional` field), which this app doesn't implement.
     ENQUIRE_SUBMIT: "enquiry/submit-enquiry",
+    // Requires a stored auth token. Mirrors homedot-mobile-app's
+    // ADD_FAVORITE_PROFESSIONAL ("v1/user/add-favorite") — a single POST
+    // { professional: userId } that toggles favorite/unfavorite (calling it
+    // again un-favorites it), same pattern as MARKETPLACE.TOGGLE_FAVORITE_SELL.
+    TOGGLE_FAVORITE: "user/add-favorite",
+    // Requires a stored auth token. Mirrors homedot-mobile-app's
+    // FAVORITE_PROFESSIONALS ("v1/user/favorites-list").
+    GET_FAVORITES: (page: number) => `user/favorites-list?page=${page}`,
   },
 } as const;

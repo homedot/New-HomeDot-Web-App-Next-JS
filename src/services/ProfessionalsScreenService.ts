@@ -109,6 +109,45 @@ export interface DirectEnquiryBody {
   message: string;
 }
 
+// Sent by user/add-favorite — mirrors homedot-mobile-app's
+// addFavoriteProfessional, keyed on the same userId directEnquiry uses.
+export interface ToggleFavoriteBody {
+  status: boolean;
+  message: string;
+}
+
+// The favorites-list endpoint returns a much flatter, denormalized record
+// than filter-professional's nested professionalInfo[] shape — reverse
+// engineered from homedot-mobile-app's FavoriteScreenTabNavigator
+// (transformProfessionalData) and ProfessionalsListingCards, which both
+// destructure these exact "professionalXxx"-prefixed field names directly
+// off a favorites-list record. Not confirmed against a live response (this
+// endpoint needs a real signed-in user's token, which isn't available here).
+export interface FavoriteProfessionalRecord {
+  _id?: string;
+  professionalId: string;
+  professionalName: string;
+  professionalCategoryName?: string;
+  professionalCategory?: string;
+  professionalExperience?: number;
+  professionalLocation?: string;
+  professionalRating?: number;
+  professionalFeatured?: boolean;
+  professionalSlug?: string;
+  professionalProfile?: string;
+}
+
+export interface FavoriteProfessionalsPage {
+  totalCount?: { total_rows: number };
+  data: FavoriteProfessionalRecord[];
+}
+
+export interface FavoriteProfessionalsBody {
+  status: boolean;
+  message: string;
+  data: FavoriteProfessionalsPage[];
+}
+
 // All Professionals screen API calls live here. The screen only ever
 // imports this file — never ApiService or fetch directly.
 export const ProfessionalsScreenService = {
@@ -136,6 +175,16 @@ export const ProfessionalsScreenService = {
   // there's no guest path to branch on.
   submitDirectEnquiry: (payload: DirectEnquiryPayload): Promise<ApiResponse<DirectEnquiryBody>> =>
     ApiService.post<DirectEnquiryBody>(API_ENDPOINTS.PROFESSIONALS.ENQUIRE_SUBMIT, payload),
+
+  // Requires a stored auth token. A single endpoint toggles favorite/
+  // unfavorite for that professional — calling it again un-favorites them,
+  // same as MarketplaceScreenService.toggleFavoriteProperty.
+  toggleFavoriteProfessional: (userId: string): Promise<ApiResponse<ToggleFavoriteBody>> =>
+    ApiService.post<ToggleFavoriteBody>(API_ENDPOINTS.PROFESSIONALS.TOGGLE_FAVORITE, { professional: userId }),
+
+  // Requires a stored auth token.
+  getFavoriteProfessionals: (page = 1): Promise<ApiResponse<FavoriteProfessionalsBody>> =>
+    ApiService.get<FavoriteProfessionalsBody>(API_ENDPOINTS.PROFESSIONALS.GET_FAVORITES(page)),
 };
 
 function truncate(text: string, max: number): string {
@@ -233,6 +282,48 @@ export function toProfessionalRecord(record: ProfessionalListRecord): Profession
     gallery,
     about: info?.description || `${record.name.trim()} is a HomeDot professional based in ${record.city || "Kerala"}.`,
     services: skillNames.length > 0 ? skillNames : [info?.subCategoryName || "General consultation"],
+  };
+}
+
+// Maps a favorites-list record (thin, flat) onto the same ProfessionalRecord
+// shape toProfessionalRecord produces, so FavoritesScreen can reuse ProCard
+// and the detail screen unmodified. Far less is known about a favorited
+// professional than one just returned from a live filter search (no skills,
+// no rate, no verified flag) — those fields fall back the same way
+// toProfessionalRecord's do for a filter record missing them.
+export function toProfessionalRecordFromFavorite(record: FavoriteProfessionalRecord): ProfessionalRecord {
+  const categoryName = record.professionalCategoryName || "Professional";
+  const id = record.professionalId;
+  const gallery = record.professionalProfile ? [record.professionalProfile] : [];
+  const first = gallery[0] ?? pickFallbackCover(categoryName, id);
+  const second = FALLBACK_POOL[(FALLBACK_POOL.indexOf(first) + 1) % FALLBACK_POOL.length];
+  if (gallery.length === 0) gallery.push(first);
+  gallery.push(second);
+
+  return {
+    id,
+    userId: record.professionalId,
+    slug: record.professionalSlug || id,
+    name: record.professionalName.trim(),
+    profession: categoryName,
+    category: record.professionalCategory || "",
+    categoryName,
+    location: record.professionalLocation?.trim() || "Kerala, India",
+    avatar: record.professionalProfile || undefined,
+    cover: record.professionalProfile || pickFallbackCover(categoryName, id),
+    rating: record.professionalRating ?? 0,
+    reviews: 0,
+    verified: true,
+    experience: record.professionalExperience ?? 0,
+    projects: 0,
+    price: "Contact",
+    priceUnit: "",
+    responds: "within a day",
+    tagline: "",
+    tags: [],
+    gallery,
+    about: `${record.professionalName.trim()} is a HomeDot professional based in ${record.professionalLocation || "Kerala"}.`,
+    services: [categoryName],
   };
 }
 

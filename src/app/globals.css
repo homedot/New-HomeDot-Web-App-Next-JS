@@ -941,6 +941,126 @@ body.has-cursor * {
   }
 }
 
+/* Professional detail page (ProfessionalDetail component): cover+avatar
+   header, animated tab indicator, portfolio hover overlay, and the
+   inquiry form's field focus glow / submit spinner / success pop. */
+@keyframes pfAvatarIn {
+  from {
+    opacity: 0;
+    transform: translateY(10px) scale(0.94);
+  }
+  to {
+    opacity: 1;
+    transform: translateY(0) scale(1);
+  }
+}
+
+.pf-avatar {
+  animation: pfAvatarIn 0.5s cubic-bezier(0.2, 0.8, 0.3, 1.1) both;
+}
+
+.pf-avatar-glow {
+  animation: glowPulse 4s ease-in-out infinite;
+}
+
+/* Sliding pill behind the active tab — the component measures the active
+   button's offset/width and sets them inline; only the motion is CSS. */
+.pf-tab-thumb {
+  transition: transform 0.32s cubic-bezier(0.2, 0.8, 0.3, 1), width 0.32s cubic-bezier(0.2, 0.8, 0.3, 1);
+}
+
+.pf-tab-btn {
+  transition: color 0.2s ease;
+}
+
+/* Portfolio tile hover: darken + fade in a zoom affordance. */
+.pf-portfolio-overlay {
+  opacity: 0;
+  transition: opacity 0.25s ease;
+}
+
+.pf-portfolio-item:hover .pf-portfolio-overlay {
+  opacity: 1;
+}
+
+.pf-portfolio-item:hover .card-hover-img {
+  transform: scale(1.06);
+}
+
+/* Inquiry form fields: focus glow matching the app's other inputs. */
+.pf-field {
+  border: 1.5px solid #d7d9de;
+  transition: border-color 0.15s ease, box-shadow 0.15s ease;
+}
+
+.pf-field:focus-within {
+  border-color: #2997ff;
+  box-shadow: 0 0 0 4px rgba(41, 151, 255, 0.12);
+}
+
+.pf-textarea {
+  border: 1.5px solid #d7d9de;
+  transition: border-color 0.15s ease, box-shadow 0.15s ease;
+}
+
+.pf-textarea:focus {
+  border-color: #2997ff;
+  box-shadow: 0 0 0 4px rgba(41, 151, 255, 0.12);
+  outline: none;
+}
+
+/* Submit-button loading spinner. */
+@keyframes pfSpin {
+  to {
+    transform: rotate(360deg);
+  }
+}
+
+.pf-spinner {
+  width: 16px;
+  height: 16px;
+  border-radius: 50%;
+  border: 2px solid rgba(255, 255, 255, 0.4);
+  border-top-color: #fff;
+  animation: pfSpin 0.7s linear infinite;
+}
+
+/* Success checkmark: pop in with a soft overshoot. */
+@keyframes pfSuccessPop {
+  0% {
+    transform: scale(0.5);
+    opacity: 0;
+  }
+  60% {
+    transform: scale(1.12);
+    opacity: 1;
+  }
+  100% {
+    transform: scale(1);
+  }
+}
+
+.pf-success-pop {
+  animation: pfSuccessPop 0.5s cubic-bezier(0.2, 0.9, 0.3, 1.3) both;
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .pf-avatar,
+  .pf-avatar-glow,
+  .pf-spinner,
+  .pf-success-pop {
+    animation: none;
+  }
+  .pf-tab-thumb,
+  .pf-tab-btn,
+  .pf-field,
+  .pf-textarea,
+  .pf-portfolio-overlay,
+  .pf-portfolio-item:hover .card-hover-img {
+    transition: none;
+  }
+}
+
 /* PropertyAddScreen (list-your-property wizard): purpose cards, step
    progress indicator, amenity chips and the publish success screen. */
 @keyframes paCardIn {
