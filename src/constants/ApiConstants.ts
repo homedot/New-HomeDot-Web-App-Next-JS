@@ -9,6 +9,23 @@ export const API_ENDPOINTS = {
     // Called by ApiService itself whenever a request comes back 401 — trades
     // the locally stored refresh token for a new access token.
     REFRESH_TOKEN: "auth/refresh-token",
+    // Requires a stored auth token. Mirrors homedot-mobile-app's
+    // USERS_APIS.PROFILE_DETAILS ("v1/auth/profile-data") — the signed-in
+    // user's own record (name, email, mobile, location, profileImage, ...).
+    PROFILE_DETAILS: "auth/profile-data",
+    // Requires a stored auth token. Mirrors USERS_APIS.PROFILE_EDIT
+    // ("v1/auth/profile-update") — PUT { name, location, latitude,
+    // longitude, google_address_string }.
+    PROFILE_UPDATE: "auth/profile-update",
+    // Requires a stored auth token. Mirrors BACKEND_AUTH_URL.LOGOUT
+    // ("v1/auth/logout") — POST with no body.
+    LOGOUT: "auth/logout",
+  },
+  USER: {
+    // Requires a stored auth token. Mirrors USERS_APIS.PROFILE_IMAGE_UPDATE
+    // ("v1/user/profile-image-update") — PUT multipart form, field name
+    // `profileImage`.
+    PROFILE_IMAGE_UPDATE: "user/profile-image-update",
   },
   LANDING: {
     FEATURED_PROPERTIES: "/landing/featured-properties",

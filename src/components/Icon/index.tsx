@@ -38,7 +38,11 @@ type IconName =
   | "calendar"
   | "briefcase"
   | "book"
-  | "bookmark";
+  | "bookmark"
+  | "user"
+  | "camera"
+  | "logout"
+  | "edit";
 
 const PATHS: Record<IconName, React.ReactNode> = {
   search: (
@@ -238,6 +242,31 @@ const PATHS: Record<IconName, React.ReactNode> = {
     </>
   ),
   bookmark: <path d="M6 3.5h12v17l-6-4-6 4z" />,
+  user: (
+    <>
+      <circle cx="12" cy="8" r="3.6" />
+      <path d="M4.5 20c0-4.1 3.4-6.5 7.5-6.5s7.5 2.4 7.5 6.5" />
+    </>
+  ),
+  camera: (
+    <>
+      <path d="M4 8.5A1.5 1.5 0 0 1 5.5 7h2l1.1-1.8A1.5 1.5 0 0 1 9.9 4.5h4.2a1.5 1.5 0 0 1 1.3.7L16.5 7h2A1.5 1.5 0 0 1 20 8.5v9A1.5 1.5 0 0 1 18.5 19h-13A1.5 1.5 0 0 1 4 17.5z" />
+      <circle cx="12" cy="12.5" r="3.4" />
+    </>
+  ),
+  logout: (
+    <>
+      <path d="M9 21H5.5A1.5 1.5 0 0 1 4 19.5v-15A1.5 1.5 0 0 1 5.5 3H9" />
+      <path d="M16 16.5 21 12l-5-4.5" />
+      <path d="M21 12H9" />
+    </>
+  ),
+  edit: (
+    <>
+      <path d="M4 20l.7-4L16.6 4.1a1.7 1.7 0 0 1 2.4 0l1 1a1.7 1.7 0 0 1 0 2.4L8 19.3z" />
+      <path d="M14.5 6.5l3 3" />
+    </>
+  ),
 };
 
 export type { IconName };

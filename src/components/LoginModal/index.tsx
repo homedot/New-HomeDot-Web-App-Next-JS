@@ -8,12 +8,14 @@ import {
   useRef,
   useState,
 } from "react";
+import { useRouter } from "next/navigation";
 import { colors } from "@/constants/colors";
 import { spacing, radius, fontSize, shadow } from "@/utils/size";
 import Icon from "@/components/Icon";
 import Button from "@/components/Button";
 import AuthService from "@/services/AuthService";
 import { useAuthStore } from "@/store/useAuthStore";
+import { useProfileStore } from "@/store/useProfileStore";
 import type { LocationValue } from "@/components/LocationMapPicker";
 import RoleStep from "./RoleStep";
 import UserFormStep, { type UserFormValues } from "./UserFormStep";
@@ -73,6 +75,8 @@ export interface LoginModalProps {
  * client island so the rest of LandingScreen can stay a Server Component. */
 const LoginModal = forwardRef<LoginModalHandle, LoginModalProps>(
   function LoginModal({ hideTrigger }, ref) {
+    const router = useRouter();
+    const profile = useProfileStore((s) => s.profile);
     const [open, setOpen] = useState(false);
     const [loggedIn, setLoggedIn] = useState(false);
     const [step, setStep] = useState<Step>("method");
@@ -103,8 +107,11 @@ const LoginModal = forwardRef<LoginModalHandle, LoginModalProps>(
     // "Log in" on the server but "My account" on the client and trigger a
     // hydration mismatch.
     useEffect(() => {
-      // eslint-disable-next-line react-hooks/set-state-in-effect -- see comment above; this mirrors an external (localStorage-backed) system, not derivable render state
-      if (useAuthStore.getState().token) setLoggedIn(true);
+      if (useAuthStore.getState().token) {
+        // eslint-disable-next-line react-hooks/set-state-in-effect -- see comment above; this mirrors an external (localStorage-backed) system, not derivable render state
+        setLoggedIn(true);
+        useProfileStore.getState().fetch();
+      }
     }, []);
 
     useEffect(() => {
@@ -267,6 +274,7 @@ const LoginModal = forwardRef<LoginModalHandle, LoginModalProps>(
 
     const finishSuccess = () => {
       setStep("success");
+      useProfileStore.getState().fetch();
       setTimeout(() => {
         setLoggedIn(true);
         close();
@@ -302,7 +310,7 @@ const LoginModal = forwardRef<LoginModalHandle, LoginModalProps>(
         {!hideTrigger &&
           (loggedIn ? (
             <button
-              onClick={() => setOpen(true)}
+              onClick={() => router.push("/profile")}
               aria-label="My account"
               style={{
                 width: 40,
@@ -314,9 +322,19 @@ const LoginModal = forwardRef<LoginModalHandle, LoginModalProps>(
                 placeItems: "center",
                 border: `1.5px solid ${colors.line}`,
                 flexShrink: 0,
+                overflow: "hidden",
               }}
             >
-              <Icon name="check" size={18} strokeWidth={2.4} />
+              {profile?.profileImage ? (
+                // eslint-disable-next-line @next/next/no-img-element
+                <img
+                  src={profile.profileImage}
+                  alt=""
+                  style={{ width: "100%", height: "100%", objectFit: "cover" }}
+                />
+              ) : (
+                <Icon name="user" size={18} strokeWidth={2.2} />
+              )}
             </button>
           ) : (
             <Button
