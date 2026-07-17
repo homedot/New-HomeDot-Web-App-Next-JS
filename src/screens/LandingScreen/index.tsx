@@ -1,7 +1,8 @@
 "use client";
 
-import { useEffect, useState, type CSSProperties, type ReactNode } from "react";
+import { useEffect, useRef, useState, type CSSProperties, type ReactNode, type RefObject } from "react";
 import Link from "next/link";
+import { useRouter } from "next/navigation";
 import { colors } from "@/constants/colors";
 import { spacing, radius, fontSize, shadow, maxWidth } from "@/utils/size";
 import Icon, { type IconName } from "@/components/Icon";
@@ -20,6 +21,8 @@ import ScrollPin from "@/components/ScrollPin";
 import Parallax from "@/components/Parallax";
 import SiteNav from "@/components/SiteNav";
 import SiteFooter from "@/components/SiteFooter";
+import LoginModal, { type LoginModalHandle } from "@/components/LoginModal";
+import { getAuthToken } from "@/utils/authStorage";
 import LandingScreenService, {
   toProCardProfessional,
   pickTestimonials,
@@ -31,7 +34,6 @@ import LandingScreenService, {
   type ServiceCategoryCard,
   type PropertyCategoryCard,
 } from "@/services/LandingScreenService";
-import { useAuthStore } from "@/store/useAuthStore";
 import appHomeImg from "@/assets/images/app-home.png";
 import {
   categories,
@@ -52,27 +54,7 @@ const wrap: CSSProperties = {
 };
 
 export default function LandingScreen() {
-  const token = useAuthStore((s) => s.token);
-  const refreshToken = useAuthStore((s) => s.refreshToken);
-  console.log("Stored auth token zustand:", token);
-  console.log("Stored refresh token zustand:", refreshToken);
-  // useEffect(() => {
-  // console.log("Stored auth token:", token);
-  // console.log("Stored refresh token:", refreshToken);
-  // }, [token, refreshToken]);
-
-  useEffect(() => {
-    // Sample API call — every request goes through LandingScreenService,
-    // which delegates to the shared ApiService instead of calling fetch directly.
-    LandingScreenService.getFeaturedProperties().then((response) => {
-      console.log("Featured properties status code:", response.statusCode);
-      if (response.success) {
-        console.log("Featured properties data:", response.data);
-      } else {
-        console.warn("Featured properties request failed:", response.message);
-      }
-    });
-  }, []);
+  const loginModalRef = useRef<LoginModalHandle>(null);
 
   return (
     <div
@@ -87,19 +69,20 @@ export default function LandingScreen() {
       <ScrollProgress />
       <Cursor />
       <SiteNav />
+      <LoginModal ref={loginModalRef} hideTrigger />
       <Hero />
       <MarqueeStrip />
       <FeaturedProperties />
       <Categories />
       <PropertyCategories />
       <PosterShowcase />
-      <TopProfessionals />
+      <TopProfessionals loginModalRef={loginModalRef} />
       <HowItWorks />
       <ExploreScroll />
       <TrustBanner />
       <AppPromo />
       <ProCta />
-      <LatestInsights />
+      <LatestInsights loginModalRef={loginModalRef} />
       <Testimonials />
       <SiteFooter />
     </div>
@@ -535,6 +518,8 @@ function SectionHead({
 }
 
 function FeaturedProperties() {
+  const router = useRouter();
+
   return (
     <section style={{ ...wrap, padding: `${spacing.huge}px ${spacing.xl}px` }}>
       <ScrollScrub
@@ -567,7 +552,8 @@ function FeaturedProperties() {
             Handpicked homes, villas and plots — updated today.
           </p>
         </div>
-        <span
+        <Link
+          href="/marketplace"
           style={{
             display: "inline-flex",
             alignItems: "center",
@@ -579,7 +565,7 @@ function FeaturedProperties() {
           }}
         >
           Explore all <Icon name="arrow" size={16} />
-        </span>
+        </Link>
       </ScrollScrub>
       <Reveal
         stagger
@@ -587,7 +573,14 @@ function FeaturedProperties() {
         style={{ gap: spacing.xl }}
       >
         {properties.map((p) => (
-          <PropertyCard key={p.id} property={p} />
+          // This section still renders the data.ts mock properties (unlike
+          // the other sections here, it isn't yet wired to a real listings
+          // endpoint), which have no propertySlug to deep link to — so a
+          // card click goes to the marketplace in general rather than that
+          // specific listing. Viewing a property doesn't require auth
+          // (MarketplaceScreen.openDetail isn't gated either), so no login
+          // check is needed here.
+          <PropertyCard key={p.id} property={p} onOpen={() => router.push("/marketplace")} />
         ))}
       </Reveal>
     </section>
@@ -619,8 +612,9 @@ function Categories() {
         style={{ gap: spacing.lg }}
       >
         {items.map((c) => (
-          <button
+          <Link
             key={c.id}
+            href={`/professionals?category=${encodeURIComponent(c.id)}`}
             className="card-hover"
             style={{
               background: colors.card,
@@ -628,6 +622,8 @@ function Categories() {
               borderRadius: radius.md,
               padding: "22px 20px",
               textAlign: "left",
+              textDecoration: "none",
+              color: "inherit",
               display: "flex",
               flexDirection: "column",
               gap: 6,
@@ -660,7 +656,7 @@ function Categories() {
             <span style={{ fontSize: fontSize.xs, color: colors.muted }}>
               {c.count.toLocaleString()} pros
             </span>
-          </button>
+          </Link>
         ))}
       </Reveal>
     </section>
@@ -926,7 +922,8 @@ function PosterShowcase() {
   );
 }
 
-function TopProfessionals() {
+function TopProfessionals({ loginModalRef }: { loginModalRef: RefObject<LoginModalHandle | null> }) {
+  const router = useRouter();
   const [pros, setPros] = useState<Professional[]>(professionals);
 
   useEffect(() => {
@@ -936,6 +933,20 @@ function TopProfessionals() {
       }
     });
   }, []);
+
+  // The professional detail screen is signed-in only (same convention as
+  // ProfessionalsScreen.openDetail) — guests get the login popup instead of
+  // navigating. Featured-professional records from /data/get-featured-professionals
+  // don't include a slug (unlike the full filter-professional list), so even
+  // a signed-in click can't deep-link to that specific person yet; it opens
+  // the professionals list instead.
+  const openProfessional = () => {
+    if (!getAuthToken()) {
+      loginModalRef.current?.open();
+      return;
+    }
+    router.push("/professionals");
+  };
 
   return (
     <section
@@ -976,7 +987,8 @@ function TopProfessionals() {
               Hand-picked professionals in Kochi this week.
             </p>
           </div>
-          <span
+          <Link
+            href="/professionals"
             style={{
               display: "inline-flex",
               alignItems: "center",
@@ -988,7 +1000,7 @@ function TopProfessionals() {
             }}
           >
             See all <Icon name="arrow" size={16} />
-          </span>
+          </Link>
         </ScrollScrub>
         <Reveal
           stagger
@@ -996,7 +1008,7 @@ function TopProfessionals() {
           style={{ gap: spacing.xl }}
         >
           {pros.map((p) => (
-            <ProCard key={p.id} pro={p} />
+            <ProCard key={p.id} pro={p} onOpen={openProfessional} />
           ))}
         </Reveal>
       </div>
@@ -1496,7 +1508,8 @@ function ProCta() {
   );
 }
 
-function LatestInsights() {
+function LatestInsights({ loginModalRef }: { loginModalRef: RefObject<LoginModalHandle | null> }) {
+  const router = useRouter();
   const [posts, setPosts] = useState<BlogPost[]>(blogPosts);
 
   useEffect(() => {
@@ -1542,7 +1555,21 @@ function LatestInsights() {
         style={{ gap: spacing.xl }}
       >
         {posts.map((post) => (
-          <CardWrapper key={post.id} href={post.slug ? `/blog?post=${post.slug}` : undefined}>
+          <CardWrapper
+            key={post.id}
+            clickable={!!post.slug}
+            onClick={() => {
+              if (!post.slug) return;
+              // Full-article reading is signed-in only (same gating
+              // convention as BlogScreen.openDetail) — guests get the login
+              // popup here instead of landing on /blog with nothing to show.
+              if (!getAuthToken()) {
+                loginModalRef.current?.open();
+                return;
+              }
+              router.push(`/blog?post=${post.slug}`);
+            }}
+          >
           <article
             className="card-hover"
             style={{
@@ -1638,16 +1665,18 @@ function LatestInsights() {
   );
 }
 
-// Wraps a card in a Link when href is given, otherwise renders children
-// unwrapped — LatestInsights' fallback mock posts have no slug yet (swapped
-// for real ones once /data/home resolves), so they stay inert placeholders
-// instead of linking nowhere.
-function CardWrapper({ href, children }: { href?: string; children: ReactNode }) {
-  if (!href) return <>{children}</>;
+// Wraps a card in a click handler when `clickable`, otherwise renders
+// children unwrapped — LatestInsights' fallback mock posts have no slug yet
+// (swapped for real ones once /data/home resolves), so they stay inert
+// placeholders instead of triggering a login popup or navigating nowhere.
+// A plain onClick (not a Link) is used here rather than navigating straight
+// away, since guests need to be intercepted with the login popup instead.
+function CardWrapper({ clickable, onClick, children }: { clickable: boolean; onClick: () => void; children: ReactNode }) {
+  if (!clickable) return <>{children}</>;
   return (
-    <Link href={href} style={{ display: "block", height: "100%" }}>
+    <div onClick={onClick} style={{ display: "block", height: "100%", cursor: "pointer" }}>
       {children}
-    </Link>
+    </div>
   );
 }
 

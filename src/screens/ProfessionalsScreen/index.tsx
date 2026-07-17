@@ -94,6 +94,21 @@ export default function ProfessionalsScreen() {
     });
   }, []);
 
+  // Pre-selects the category passed in via "?category=<id>" (e.g. from
+  // LandingScreen's "Design & build professionals" cards) once the category
+  // taxonomy has loaded and a matching option can be resolved — same
+  // pattern as MarketplaceScreen's requestedPropertyTypeId.
+  const requestedCategoryId = searchParams.get("category");
+  useEffect(() => {
+    const applyRequestedCategory = () => {
+      if (!requestedCategoryId || categoryOptions.length === 0) return;
+      if (categoryOptions.some((c) => c.id === requestedCategoryId)) {
+        setCategory(requestedCategoryId);
+      }
+    };
+    applyRequestedCategory();
+  }, [requestedCategoryId, categoryOptions]);
+
   // Seeds the saved/favorited set from the backend on load, for signed-in
   // users, so the heart state persists across sessions — mirrors
   // MarketplaceScreen's identical favorites-seeding effect.
