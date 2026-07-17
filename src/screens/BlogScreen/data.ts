@@ -1,21 +1,8 @@
-import type { IconName } from "@/components/Icon";
-import type { BlogCategory } from "@/services/BlogScreenService";
 import type { BlogCard } from "@/services/BlogScreenService";
 
 const unsplash = (id: string, w = 900) => `https://images.unsplash.com/photo-${id}?auto=format&fit=crop&w=${w}&q=80`;
 
 export const heroImage = unsplash("1600585154340-be6161a56a0c", 1600);
-
-// Mirrors homedot-mobile-app's fixed BlogScreen tabs (all / house / garden /
-// home) — the API's keyString search only recognizes these three category
-// values, so, unlike Professionals' server-driven category list, this one
-// is a fixed local set rather than fetched from an endpoint.
-export const categoryTabs: { id: "all" | BlogCategory; label: string; icon: IconName }[] = [
-  { id: "all", label: "All stories", icon: "grid" },
-  { id: "house", label: "Houses", icon: "house" },
-  { id: "garden", label: "Garden", icon: "leaf" },
-  { id: "home", label: "Home Design", icon: "sofa" },
-];
 
 // Shown for an instant before the first API response resolves, so the page
 // never flashes empty — same pattern as LandingScreen's `blogPosts` mock.

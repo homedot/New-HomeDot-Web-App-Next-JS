@@ -20,10 +20,9 @@ import BlogScreenService, {
   toBlogArticle,
   type BlogCard as BlogCardData,
   type BlogArticle,
-  type BlogCategory,
 } from "@/services/BlogScreenService";
 import BlogDetail from "./BlogDetail";
-import { categoryTabs, fallbackPosts, heroImage } from "./data";
+import { fallbackPosts, heroImage } from "./data";
 
 const wrap: CSSProperties = {
   maxWidth,
@@ -37,7 +36,6 @@ export default function BlogScreen() {
   const pathname = usePathname();
   const loginModalRef = useRef<LoginModalHandle>(null);
 
-  const [category, setCategory] = useState<"all" | BlogCategory>("all");
   const [query, setQuery] = useState("");
   const [posts, setPosts] = useState<BlogCardData[]>(fallbackPosts);
   const [page, setPage] = useState(1);
@@ -55,12 +53,16 @@ export default function BlogScreen() {
   const autoOpenHandled = useRef(false);
 
   // Seeds the saved/favorited set from the backend for signed-in visitors,
-  // same pattern as ProfessionalsScreen/MarketplaceScreen.
+  // same pattern as ProfessionalsScreen/MarketplaceScreen. FAVORITE_BLOG
+  // ("user/favorite-blogs") rows carry both `_id` (the favorite-relation
+  // document's own id) and `blogId` (the actual blog's id) — blogId must
+  // win, or the seeded id never matches the blog's real id used elsewhere
+  // on this screen, and the heart never shows filled for it. See toBlogCard.
   useEffect(() => {
     if (!getAuthToken()) return;
     BlogScreenService.getFavoriteBlogs().then((res) => {
       if (res.success && res.data?.status && res.data.data) {
-        setSaved(res.data.data.map((b) => b._id));
+        setSaved(res.data.data.map((b) => b.blogId || b._id || ""));
       }
     });
   }, []);
@@ -69,10 +71,7 @@ export default function BlogScreen() {
     let cancelled = false;
     const load = async () => {
       setLoading(true);
-      const res =
-        category === "all"
-          ? await BlogScreenService.getBlogList(1)
-          : await BlogScreenService.getBlogsByCategory(category);
+      const res = await BlogScreenService.getBlogList(1);
       if (cancelled) return;
       setLoading(false);
       setInitialLoad(false);
@@ -81,7 +80,7 @@ export default function BlogScreen() {
         const list = result ? result.data.map(toBlogCard) : [];
         setPosts(list);
         setPage(1);
-        setHasMore(category === "all" && list.length > 0 && (result?.totalCount ? list.length < result.totalCount.total_rows : true));
+        setHasMore(list.length > 0 && (result?.totalCount ? list.length < result.totalCount.total_rows : true));
       } else {
         setPosts([]);
         setHasMore(false);
@@ -91,10 +90,10 @@ export default function BlogScreen() {
     return () => {
       cancelled = true;
     };
-  }, [category]);
+  }, []);
 
   const loadMore = async () => {
-    if (loading || loadingMore || category !== "all") return;
+    if (loading || loadingMore) return;
     setLoadingMore(true);
     const res = await BlogScreenService.getBlogList(page + 1);
     setLoadingMore(false);
@@ -168,7 +167,12 @@ export default function BlogScreen() {
     const wasSaved = saved.includes(id);
     setSaved((s) => (wasSaved ? s.filter((x) => x !== id) : [...s, id]));
     BlogScreenService.toggleFavoriteBlog(id).then((res) => {
-      if (!res.success || !res.data?.status) {
+      // ADD_BLOG_FAVORITE ("commonblog/add-favorite-blog") doesn't reliably
+      // echo a `status` flag in its body — homedot-mobile-app's addBlogFavorite
+      // only ever checks the HTTP status (response.status === 200), never a
+      // nested field. Requiring res.data?.status here was reverting the
+      // optimistic heart-fill right back to empty on every real toggle.
+      if (!res.success) {
         setSaved((s) => (wasSaved ? [...s, id] : s.filter((x) => x !== id)));
       }
     });
@@ -306,50 +310,13 @@ export default function BlogScreen() {
                 />
               </label>
             </div>
-
-            {/* category pills */}
-            <div
-              className="no-scrollbar"
-              style={{
-                display: "flex",
-                gap: 9,
-                overflowX: "auto",
-                marginTop: spacing.xl,
-                paddingBottom: 2,
-              }}
-            >
-              {categoryTabs.map((c) => (
-                <button
-                  key={c.id}
-                  className="bl-pill"
-                  onClick={() => setCategory(c.id)}
-                  style={{
-                    flexShrink: 0,
-                    display: "inline-flex",
-                    alignItems: "center",
-                    gap: 7,
-                    fontSize: fontSize.sm,
-                    fontWeight: 600,
-                    color: category === c.id ? colors.white : colors.ink2,
-                    background: category === c.id ? colors.primary : colors.card,
-                    border: `1px solid ${category === c.id ? colors.primary : colors.line}`,
-                    padding: "9px 16px",
-                    borderRadius: radius.full,
-                    boxShadow: shadow.sm,
-                  }}
-                >
-                  <Icon name={c.icon} size={15} />
-                  {c.label}
-                </button>
-              ))}
-            </div>
           </section>
 
           {/* results */}
           <section style={{ ...wrap, paddingTop: spacing.xxl + 6, paddingBottom: spacing.huge }}>
             <div style={{ marginBottom: spacing.lg }}>
               <h2 style={{ fontFamily: "var(--font-display)", fontSize: "clamp(20px, 2.4vw, 28px)", fontWeight: 600 }}>
-                {categoryTabs.find((c) => c.id === category)?.label}
+                All stories
               </h2>
               <p style={{ color: colors.muted, fontSize: fontSize.base, marginTop: 5 }}>
                 {initialLoad ? "Finding the latest stories for you…" : `${list.length} ${list.length === 1 ? "article" : "articles"}`}

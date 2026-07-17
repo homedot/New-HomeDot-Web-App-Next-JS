@@ -1225,19 +1225,28 @@ body.has-cursor * {
   animation: blHeroIn 0.5s cubic-bezier(0.16, 1, 0.3, 1) 0.14s both;
 }
 
-/* Category pill row + featured card: same lift used by card-hover, plus a
-   pressed-state scale for the pill buttons themselves. */
-.bl-pill {
-  transition: transform 0.12s ease, filter 0.15s ease;
-}
-
-.bl-pill:active {
-  transform: scale(0.96);
-}
-
 /* Author card avatar ring glow — reuses the ambient glowPulse keyframe. */
 .bl-author-glow {
   animation: glowPulse 4s ease-in-out infinite;
+}
+
+/* BlogCard "Read more"/"Explore article" arrow nudges forward and the save
+   button lifts slightly on hover — both ride the existing .card-hover hover
+   trigger so the whole card feels clickable, not just the image. */
+.bl-cta-arrow {
+  transition: transform 0.25s ease;
+}
+
+.card-hover:hover .bl-cta-arrow {
+  transform: translateX(4px);
+}
+
+.bl-heart-btn {
+  transition: transform 0.2s ease;
+}
+
+.bl-heart-btn:hover {
+  transform: scale(1.1);
 }
 
 @media (prefers-reduced-motion: reduce) {
@@ -1249,7 +1258,11 @@ body.has-cursor * {
   .bl-author-glow {
     animation: none;
   }
-  .bl-pill {
+  .bl-cta-arrow,
+  .bl-heart-btn {
     transition: none;
+  }
+  .card-hover:hover .bl-cta-arrow {
+    transform: none;
   }
 }

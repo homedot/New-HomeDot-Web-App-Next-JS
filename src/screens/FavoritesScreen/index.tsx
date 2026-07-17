@@ -8,6 +8,7 @@ import Icon from "@/components/Icon";
 import Button from "@/components/Button";
 import PropertyCard from "@/components/PropertyCard";
 import ProCard from "@/components/ProCard";
+import BlogCard from "@/components/BlogCard";
 import SiteNav from "@/components/SiteNav";
 import SiteFooter from "@/components/SiteFooter";
 import AmbientBackground from "@/components/AmbientBackground";
@@ -21,6 +22,7 @@ import MarketplaceScreenService, {
 import ProfessionalsScreenService, {
   toProfessionalRecordFromFavorite,
 } from "@/services/ProfessionalsScreenService";
+import BlogScreenService, { toBlogCard, type BlogCard as BlogCardData } from "@/services/BlogScreenService";
 import { getAuthToken } from "@/utils/authStorage";
 import type { MarketplaceProperty } from "@/screens/MarketplaceScreen/data";
 import type { ProfessionalRecord } from "@/screens/ProfessionalsScreen/data";
@@ -28,12 +30,11 @@ import type { ProfessionalRecord } from "@/screens/ProfessionalsScreen/data";
 const wrap: CSSProperties = { maxWidth, margin: "0 auto", padding: `0 ${spacing.xl}px` };
 
 type LoadState = "signed-out" | "loading" | "ready" | "error";
-type Tab = "properties" | "professionals";
+type Tab = "properties" | "professionals" | "blogs";
 
-// homedot-mobile-app's favorites screen also has favorite blogs and
-// portfolio photos tabs, each their own endpoint — added one at a time.
-// This screen now covers properties and professionals; blogs/photos are
-// still scoped out until those get their turn.
+// homedot-mobile-app's favorites screen also has a portfolio photos tab
+// (FavoriteScreenTabNavigator's "Photos" route) — still scoped out until
+// that gets its turn. Properties, professionals and blogs are covered here.
 export default function FavoritesScreen() {
   const router = useRouter();
   const [tab, setTab] = useState<Tab>("properties");
@@ -51,6 +52,10 @@ export default function FavoritesScreen() {
   const [professionals, setProfessionals] = useState<ProfessionalRecord[]>([]);
   const [removingProfessional, setRemovingProfessional] = useState<string[]>([]);
 
+  const [blogsState, setBlogsState] = useState<LoadState>("loading");
+  const [blogs, setBlogs] = useState<BlogCardData[]>([]);
+  const [removingBlog, setRemovingBlog] = useState<string[]>([]);
+
   const loginModalRef = useRef<LoginModalHandle>(null);
 
   useEffect(() => {
@@ -58,6 +63,7 @@ export default function FavoritesScreen() {
       // eslint-disable-next-line react-hooks/set-state-in-effect -- see comment above the state declaration
       setState("signed-out");
       setProfessionalsState("signed-out");
+      setBlogsState("signed-out");
       return;
     }
     // Buy and Rent favorites are separate endpoints server-side — fetch
@@ -88,6 +94,17 @@ export default function FavoritesScreen() {
         setProfessionalsState("ready");
       } else {
         setProfessionalsState("error");
+      }
+    });
+
+    // FAVORITE_BLOG ("user/favorite-blogs") returns a flat array under
+    // `data`, same shape BlogScreen already reads for seeding its saved set.
+    BlogScreenService.getFavoriteBlogs().then((res) => {
+      if (res.success && res.data?.status) {
+        setBlogs((res.data.data ?? []).map(toBlogCard));
+        setBlogsState("ready");
+      } else {
+        setBlogsState("error");
       }
     });
   }, []);
@@ -122,8 +139,23 @@ export default function FavoritesScreen() {
     });
   };
 
-  const activeState = tab === "properties" ? state : professionalsState;
-  const activeCount = tab === "properties" ? favorites.length : professionals.length;
+  // Same optimistic-removal pattern as unfavorite/unfavoriteProfessional —
+  // toggling the same favorite endpoint again un-favorites it. Checked on
+  // res.success alone (HTTP status), not a nested data.status flag — see
+  // the matching comment in BlogScreen's toggleSave for why.
+  const unfavoriteBlog = (id: string) => {
+    if (removingBlog.includes(id)) return;
+    setRemovingBlog((r) => [...r, id]);
+    BlogScreenService.toggleFavoriteBlog(id).then((res) => {
+      setRemovingBlog((r) => r.filter((x) => x !== id));
+      if (res.success) {
+        setBlogs((b) => b.filter((p) => p.id !== id));
+      }
+    });
+  };
+
+  const activeState = tab === "properties" ? state : tab === "professionals" ? professionalsState : blogsState;
+  const activeCount = tab === "properties" ? favorites.length : tab === "professionals" ? professionals.length : blogs.length;
 
   return (
     <div style={{ background: colors.bg, color: colors.ink, position: "relative", zIndex: 0 }}>
@@ -184,8 +216,10 @@ export default function FavoritesScreen() {
             {activeState === "ready"
               ? tab === "properties"
                 ? `${activeCount} ${activeCount === 1 ? "property" : "properties"} saved for later`
-                : `${activeCount} ${activeCount === 1 ? "professional" : "professionals"} saved for later`
-              : "Properties and professionals you save show up here for quick access."}
+                : tab === "professionals"
+                  ? `${activeCount} ${activeCount === 1 ? "professional" : "professionals"} saved for later`
+                  : `${activeCount} ${activeCount === 1 ? "article" : "articles"} saved for later`
+              : "Properties, professionals and articles you save show up here for quick access."}
           </p>
         </Reveal>
 
@@ -195,6 +229,7 @@ export default function FavoritesScreen() {
             [
               { key: "properties" as const, label: "Properties", icon: "house" as const },
               { key: "professionals" as const, label: "Professionals", icon: "hardhat" as const },
+              { key: "blogs" as const, label: "Blogs", icon: "book" as const },
             ]
           ).map((t) => (
             <button
@@ -254,7 +289,9 @@ export default function FavoritesScreen() {
             subtitle={
               tab === "properties"
                 ? "Properties you save while signed in are stored to your account, so they're waiting for you next time."
-                : "Professionals you save while signed in are stored to your account, so they're waiting for you next time."
+                : tab === "professionals"
+                  ? "Professionals you save while signed in are stored to your account, so they're waiting for you next time."
+                  : "Articles you save while signed in are stored to your account, so they're waiting for you next time."
             }
             action={
               <Button variant="primary" size="lg" icon={<Icon name="check" size={18} />} onClick={() => loginModalRef.current?.open()}>
@@ -332,6 +369,34 @@ export default function FavoritesScreen() {
                   saved
                   onSave={unfavoriteProfessional}
                   onOpen={() => router.push(`/professionals?professional=${p.slug}`)}
+                />
+              </div>
+            ))}
+          </Reveal>
+        )}
+
+        {tab === "blogs" && blogsState === "ready" && blogs.length === 0 && (
+          <EmptyState
+            icon="heart"
+            title="No favorite blogs yet"
+            subtitle="Tap the heart on any article to save it here for quick access later."
+            action={
+              <Button variant="primary" size="lg" icon={<Icon name="search" size={18} />} onClick={() => router.push("/blog")}>
+                Browse blog
+              </Button>
+            }
+          />
+        )}
+
+        {tab === "blogs" && blogsState === "ready" && blogs.length > 0 && (
+          <Reveal stagger className="grid grid-cols-1 sm:grid-cols-2 xl:grid-cols-3" style={{ gap: spacing.xl }}>
+            {blogs.map((b) => (
+              <div key={b.id} style={{ opacity: removingBlog.includes(b.id) ? 0.5 : 1, transition: "opacity 0.2s ease" }}>
+                <BlogCard
+                  post={b}
+                  saved
+                  onSave={unfavoriteBlog}
+                  onOpen={() => router.push(b.slug ? `/blog?post=${b.slug}` : "/blog")}
                 />
               </div>
             ))}

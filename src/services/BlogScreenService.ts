@@ -21,6 +21,16 @@ export interface BlogRecord {
   publishDate?: string;
   authorData?: BlogAuthorRecord[];
   fav?: boolean;
+  // FAVORITE_BLOG ("user/favorite-blogs") returns id/title/description/
+  // image/slug under these alternate names instead of the usual ones —
+  // confirmed against homedot-mobile-app's BlogScreenGradeningandHomeDesignCards
+  // and AllBlogListTabNavigation, which both read `item.title || item.blogtitle`
+  // (and the _id/description/blogImage/slug equivalents) for exactly this reason.
+  blogId?: string;
+  blogtitle?: string;
+  blogdesctription?: string;
+  blogimage?: RawBlogImage;
+  blogslug?: string;
 }
 
 export interface BlogListPage {
@@ -152,17 +162,28 @@ export interface BlogCard {
 }
 
 // Maps a raw list/search/favorites record onto the card shape BlogCard and
-// BlogScreen render.
+// BlogScreen render. Falls back to the FAVORITE_BLOG endpoint's alternate
+// field names (see BlogRecord) when the usual ones are absent.
+//
+// `id` prefers `blogId` over `_id` — on FAVORITE_BLOG records the two
+// coexist (`_id` is the favorite-relation document's own id, `blogId` is
+// the actual blog's id), confirmed by homedot-mobile-app's addBlogFavorite,
+// which is called as `addBlogFavorite(token, _id, blogId)` and builds its
+// request body as `blogId ? blogId : _id` — i.e. blogId wins whenever it's
+// present. Picking `_id` first here matched favorite-list rows to the
+// wrong id and silently broke the saved/heart state for them.
 export function toBlogCard(record: BlogRecord): BlogCard {
+  const title = record.title || record.blogtitle || "";
+  const description = record.description || record.blogdesctription;
   return {
-    id: record._id,
-    slug: record.slug,
-    image: normalizeBlogImage(record.blogImage),
+    id: record.blogId || record._id || "",
+    slug: record.slug || record.blogslug || "",
+    image: normalizeBlogImage(record.blogImage ?? record.blogimage),
     author: record.authorData?.[0]?.name?.trim() || "HomeDot",
     authorAvatar: record.authorData?.[0]?.profileImage,
     date: formatBlogDate(record.publishDate),
-    title: record.title.trim(),
-    excerpt: record.description ? truncate(record.description, 150) : "",
+    title: title.trim(),
+    excerpt: description ? truncate(description, 150) : "",
     fav: !!record.fav,
   };
 }
