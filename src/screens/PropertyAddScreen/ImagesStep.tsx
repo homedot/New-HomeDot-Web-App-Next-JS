@@ -9,22 +9,37 @@ import type { UploadedImage } from "./shared";
 
 interface ImageItem {
   key: string;
-  file: File;
+  // Absent for images that came in pre-loaded via `initialImages` (an
+  // existing property's photos, in the edit flow) — there's no local File to
+  // retry from, only an already-uploaded server id.
+  file?: File;
   previewUrl: string;
   status: "uploading" | "done" | "error";
   imageId?: string;
 }
 
 export default function ImagesStep({
+  initialImages,
   setImages,
   onBack,
   onContinue,
 }: {
+  // Existing photos to seed the grid with — used when editing a property
+  // that already has images, so the owner sees (and can remove) them instead
+  // of a blank uploader implying there are none.
+  initialImages?: UploadedImage[];
   setImages: (images: UploadedImage[]) => void;
   onBack: () => void;
   onContinue: () => void;
 }) {
-  const [items, setItems] = useState<ImageItem[]>([]);
+  const [items, setItems] = useState<ImageItem[]>(() =>
+    (initialImages ?? []).map((img) => ({
+      key: img.id,
+      previewUrl: img.url,
+      status: "done" as const,
+      imageId: img.id,
+    })),
+  );
   const [dragActive, setDragActive] = useState(false);
   const inputRef = useRef<HTMLInputElement | null>(null);
 
@@ -45,6 +60,7 @@ export default function ImagesStep({
   }, [items]);
 
   const uploadOne = async (item: ImageItem) => {
+    if (!item.file) return;
     const res = await MarketplaceScreenService.uploadPropertyImage(item.file);
     setItems((prev) =>
       prev.map((i) =>

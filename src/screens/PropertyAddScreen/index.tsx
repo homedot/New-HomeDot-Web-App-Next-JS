@@ -12,7 +12,6 @@ import ScrollProgress from "@/components/ScrollProgress";
 import Cursor from "@/components/Cursor";
 import Reveal from "@/components/Reveal";
 import MarketplaceScreenService, {
-  type CreatePropertyPayload,
   type PropertyTypeRecord,
 } from "@/services/MarketplaceScreenService";
 import PurposeStep from "./PurposeStep";
@@ -22,9 +21,8 @@ import ImagesStep from "./ImagesStep";
 import ReviewStep from "./ReviewStep";
 import {
   FLOW_STEPS,
-  KIND_FIELDS,
   StepProgress,
-  bedroomsToApi,
+  buildPropertyPayload,
   initialFormState,
   resolveKind,
   type ListingPurpose,
@@ -34,51 +32,6 @@ import {
 } from "./shared";
 
 const wrap: CSSProperties = { maxWidth, margin: "0 auto", padding: `0 ${spacing.xl}px` };
-
-function buildPayload(
-  propertyType: PropertyTypeRecord,
-  form: PropertyFormState,
-  imageIds: string[],
-): CreatePropertyPayload {
-  const kind = resolveKind(propertyType.propertyType);
-  const fields = KIND_FIELDS[kind];
-  const has = (key: (typeof fields)[number]) => fields.includes(key);
-  const num = (v: string) => (v.trim() ? parseInt(v, 10) : undefined);
-  const location = form.location;
-
-  return {
-    property_name: form.title.trim(),
-    property_ad_title: form.title.trim(),
-    description: form.description.trim(),
-    property_state: form.state.trim(),
-    property_district: form.city.trim(),
-    listed_by: "owner",
-    property_location: location?.address ?? "",
-    property_sub_location: location?.address ?? "",
-    property_city: form.city.trim(),
-    property_country: form.country.trim(),
-    google_address_string: location?.address ?? "",
-    latitude: location?.lat ?? 0,
-    longitude: location?.lng ?? 0,
-    property_type: propertyType._id,
-    price: num(form.price) ?? 0,
-    property_images: imageIds,
-    bedrooms: has("bedrooms") && form.bedrooms ? bedroomsToApi(form.bedrooms) : undefined,
-    bathrooms: has("bathrooms") ? num(form.bathrooms) : undefined,
-    balcony: has("balcony") ? num(form.balcony) : undefined,
-    furnished: has("furnished") ? form.furnished || undefined : undefined,
-    build_up_area: has("buildUpArea") ? num(form.buildUpArea) : undefined,
-    carpet_area: has("carpetArea") ? num(form.carpetArea) : undefined,
-    plot_area: has("plotArea") ? num(form.plotArea) : undefined,
-    no_of_floors: has("noOfFloors") ? num(form.noOfFloors) : undefined,
-    road_width: has("roadWidth") ? num(form.roadWidth) : undefined,
-    maintenanceCharge: has("maintenanceCharge") ? num(form.maintenanceCharge) : undefined,
-    garage: has("garage") ? num(form.garage) : undefined,
-    amenities: has("amenities") && form.amenities.length ? form.amenities : undefined,
-    length: has("length") ? num(form.length) : undefined,
-    breadth: has("breadth") ? num(form.breadth) : undefined,
-  };
-}
 
 export default function PropertyAddScreen() {
   const router = useRouter();
@@ -97,7 +50,7 @@ export default function PropertyAddScreen() {
     setSubmitting(true);
     setError(null);
     const res = await MarketplaceScreenService.createProperty(
-      buildPayload(propertyType, form, images.map((i) => i.id)),
+      buildPropertyPayload(propertyType, form, images.map((i) => i.id)),
       purpose,
     );
     setSubmitting(false);

@@ -105,6 +105,13 @@ export interface PropertyDetailRecord {
   status: string;
   featured?: boolean;
   propertyTypeDetails?: PropertyTypeDetailRecord[];
+  // Not confirmed against a live response (homedot-mobile-app's own detail
+  // screen never reads these back out), but the create/update payload always
+  // requires them, so the record almost certainly carries them too — used to
+  // prefill the edit form's map pin without forcing the owner to re-pick
+  // their location just to change the price.
+  latitude?: number;
+  longitude?: number;
 }
 
 export interface PropertyDetailEntry {
@@ -203,6 +210,11 @@ export interface FavoritePropertiesBody {
   data: PropertyRecord[];
 }
 
+export interface PropertyActionBody {
+  status: boolean;
+  message: string;
+}
+
 // All Marketplace screen API calls live here. The screen only ever imports
 // this file — never ApiService or fetch directly.
 export const MarketplaceScreenService = {
@@ -285,6 +297,55 @@ export const MarketplaceScreenService = {
         ? API_ENDPOINTS.MARKETPLACE.GET_FAVORITE_PROPERTIES_RENT
         : API_ENDPOINTS.MARKETPLACE.GET_FAVORITE_PROPERTIES,
     ),
+
+  // Requires a stored auth token. The signed-in user's own posted listings
+  // (My Property screen) — same response shape as getPropertiesFilter
+  // (data[0].data), but GET with no filter body, matching homedot-mobile-app's
+  // get_Properties/get_Rent_Properties.
+  getMyProperties: (purpose: "Buy" | "Rent" = "Buy"): Promise<ApiResponse<PropertiesFilterBody>> =>
+    ApiService.get<PropertiesFilterBody>(
+      purpose === "Rent" ? API_ENDPOINTS.MARKETPLACE.GET_MY_RENT_PROPERTIES : API_ENDPOINTS.MARKETPLACE.GET_MY_PROPERTIES,
+    ),
+
+  // Requires a stored auth token. Owner-authed detail route, for prefilling
+  // the edit form — distinct from the guest getPropertyBySlug route.
+  getMyPropertyDetail: (slug: string, purpose: "Buy" | "Rent" = "Buy"): Promise<ApiResponse<PropertyDetailBody>> =>
+    ApiService.get<PropertyDetailBody>(
+      purpose === "Rent"
+        ? API_ENDPOINTS.MARKETPLACE.RENT_PROPERTY_DETAIL_AUTH(slug)
+        : API_ENDPOINTS.MARKETPLACE.PROPERTY_DETAIL_AUTH(slug),
+    ),
+
+  // Requires a stored auth token. Same request body shape as createProperty
+  // — mirrors homedot-mobile-app's update_SellProperty_*/update_RentProperty_*
+  // (one payload shape shared across every property kind).
+  updateProperty: (
+    slug: string,
+    payload: CreatePropertyPayload,
+    purpose: "Buy" | "Rent" = "Buy",
+  ): Promise<ApiResponse<PropertyActionBody>> =>
+    ApiService.put<PropertyActionBody>(
+      purpose === "Rent" ? API_ENDPOINTS.MARKETPLACE.UPDATE_RENT_PROPERTY(slug) : API_ENDPOINTS.MARKETPLACE.UPDATE_SELL_PROPERTY(slug),
+      payload,
+    ),
+
+  // Requires a stored auth token. One-way — mirrors homedot-mobile-app's
+  // property_Sold_Out/property_Rent_Sold_Out, which have no reverse endpoint
+  // (the owner has to contact HomeDot to undo it).
+  markPropertySoldOut: (slug: string, purpose: "Buy" | "Rent" = "Buy"): Promise<ApiResponse<PropertyActionBody>> =>
+    ApiService.post<PropertyActionBody>(
+      purpose === "Rent" ? API_ENDPOINTS.MARKETPLACE.RENT_PROPERTY_SOLD_OUT(slug) : API_ENDPOINTS.MARKETPLACE.PROPERTY_SOLD_OUT(slug),
+      {},
+    ),
+
+  // Requires a stored auth token. A soft delete — mirrors homedot-mobile-app's
+  // delete_Property/delete_RentProperty, which PUT (not DELETE) keyed by the
+  // property's _id.
+  deleteProperty: (id: string, purpose: "Buy" | "Rent" = "Buy"): Promise<ApiResponse<PropertyActionBody>> =>
+    ApiService.put<PropertyActionBody>(
+      purpose === "Rent" ? API_ENDPOINTS.MARKETPLACE.RENT_PROPERTY_DELETE(id) : API_ENDPOINTS.MARKETPLACE.PROPERTY_DELETE(id),
+      {},
+    ),
 };
 
 interface AmenityLike {
@@ -296,8 +357,10 @@ interface AmenityLike {
 //   1. ["[{\"id\":1,\"title\":\"Club House\",\"checked\":true}, ...]"]  (double-JSON-encoded, may omit `checked`)
 //   2. [{ amenityId, title, _id }, ...]                                 (plain array of objects)
 //   3. []                                                               (none set)
-// Normalize all three into a flat string[] of amenity titles.
-function parseAmenities(raw: unknown[] | undefined): string[] {
+// Normalize all three into a flat string[] of amenity titles. Exported so
+// the edit flow can prefill its {id, title} form field by matching these
+// titles back against AMENITY_CATALOG.
+export function parseAmenities(raw: unknown[] | undefined): string[] {
   if (!raw || raw.length === 0) return [];
 
   let items: AmenityLike[];
@@ -390,13 +453,14 @@ export function toMarketplaceProperty(
 // is just an id).
 export function toMarketplacePropertyDetail(
   record: PropertyDetailRecord,
+  purpose: "Buy" | "Rent" = "Buy",
 ): MarketplaceProperty {
   const gallery = extractImages(record.propertyImages);
   return {
     id: record._id,
     propertySlug: record.propertySlug,
-    status: record.status === "Listed" ? "For Sale" : record.status,
-    purpose: "Buy",
+    status: record.status === "Listed" ? (purpose === "Rent" ? "For Rent" : "For Sale") : record.status,
+    purpose,
     category: record.propertyTypeDetails?.[0]?.propertyType || "Property",
     title: record.propertyAdTitle.trim(),
     location: (

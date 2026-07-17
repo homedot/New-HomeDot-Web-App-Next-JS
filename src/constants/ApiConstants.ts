@@ -26,6 +26,15 @@ export const API_ENDPOINTS = {
     // ("v1/user/profile-image-update") — PUT multipart form, field name
     // `profileImage`.
     PROFILE_IMAGE_UPDATE: "user/profile-image-update",
+    // Requires a stored auth token. Mirrors USERS_APIS.NUMBER_UPDATE_OTP_VALIDATION
+    // ("v1/user/user-phone-number-update") — same endpoint sends the OTP
+    // (PUT { phone, countryCode }) or verifies it (PUT { phone, otp,
+    // countryCode }), same pattern as AUTH.USER_LOGIN_OTP.
+    PHONE_UPDATE: "user/user-phone-number-update",
+    // Requires a stored auth token. Mirrors USERS_APIS.EMAIL_UPDATE_OTP_VALIDATION
+    // ("v1/user/user-email-update") — PUT { email } to send, PUT { email,
+    // otp } to verify.
+    EMAIL_UPDATE: "user/user-email-update",
   },
   LANDING: {
     FEATURED_PROPERTIES: "/landing/featured-properties",
@@ -100,6 +109,44 @@ export const API_ENDPOINTS = {
     // above), same gap as TOGGLE_FAVORITE_RENT already notes, but this
     // endpoint is confirmed live on the backend.
     GET_FAVORITE_PROPERTIES_RENT: "rent/get-favorite-properties",
+    // Requires a stored auth token. Mirrors homedot-mobile-app's
+    // GET_PROPERTY ("v1/property/get-properties") — the signed-in user's own
+    // posted sell listings (My Property screen), not the public search feed.
+    GET_MY_PROPERTIES: "property/get-properties",
+    // Requires a stored auth token. Mirrors homedot-mobile-app's
+    // GET_RENT_PROPERTY ("v1/rent/get-properties") — same as above, for the
+    // user's own rent listings.
+    GET_MY_RENT_PROPERTIES: "rent/get-properties",
+    // Requires a stored auth token. Mirrors homedot-mobile-app's
+    // GET_PROPERTY_DETAILS ("v1/property/get-property/") — the owner-authed
+    // detail route (as opposed to PROPERTY_BY_SLUG's guest route), used to
+    // prefill the edit form.
+    PROPERTY_DETAIL_AUTH: (slug: string) => `property/get-property/${encodeURIComponent(slug)}`,
+    // Requires a stored auth token. Mirrors homedot-mobile-app's
+    // GET_RENT_PROPERTY_DETAILED ("v1/rent/get-property/").
+    RENT_PROPERTY_DETAIL_AUTH: (slug: string) => `rent/get-property/${encodeURIComponent(slug)}`,
+    // Requires a stored auth token. Mirrors homedot-mobile-app's
+    // UPDATE_SELL_PROPERTY ("v1/property/update-property-info/") — PUT, same
+    // request body shape as CREATE_PROPERTY.
+    UPDATE_SELL_PROPERTY: (slug: string) => `property/update-property-info/${encodeURIComponent(slug)}`,
+    // Requires a stored auth token. Mirrors homedot-mobile-app's
+    // UPDATE_RENT_PROPERTY ("v1/rent/update-property-info/").
+    UPDATE_RENT_PROPERTY: (slug: string) => `rent/update-property-info/${encodeURIComponent(slug)}`,
+    // Requires a stored auth token. Mirrors homedot-mobile-app's
+    // PROPERTY_SOLD_OUT ("v1/property/sold-out-property/") — POST, empty
+    // body, toggles the listing to "Sold Out". One-way: there's no reverse
+    // endpoint (mobile tells the owner to contact HomeDot to undo it).
+    PROPERTY_SOLD_OUT: (slug: string) => `property/sold-out-property/${encodeURIComponent(slug)}`,
+    // Requires a stored auth token. Mirrors homedot-mobile-app's
+    // RENT_PROPERTY_SOLD_OUT ("v1/rent/sold-out-property/").
+    RENT_PROPERTY_SOLD_OUT: (slug: string) => `rent/sold-out-property/${encodeURIComponent(slug)}`,
+    // Requires a stored auth token. Mirrors homedot-mobile-app's
+    // PROPERTY_DELETE ("v1/property/delete-property/") — PUT (soft delete,
+    // not a real DELETE), keyed by the property's _id.
+    PROPERTY_DELETE: (id: string) => `property/delete-property/${encodeURIComponent(id)}`,
+    // Requires a stored auth token. Mirrors homedot-mobile-app's
+    // RENT_PROPERTY_DELETE ("v1/rent/delete-property/").
+    RENT_PROPERTY_DELETE: (id: string) => `rent/delete-property/${encodeURIComponent(id)}`,
   },
   PROFESSIONALS: {
     // Guest-accessible — no auth required. Mirrors homedot-mobile-app's
@@ -154,5 +201,27 @@ export const API_ENDPOINTS = {
     // Requires a stored auth token. Mirrors USERS_APIS.FAVORITE_BLOG
     // ("v1/user/favorite-blogs") — seeds the saved/favorited set on load.
     GET_FAVORITES: "user/favorite-blogs",
+  },
+  PROJECTS: {
+    // Requires a stored auth token. Mirrors USERS_APIS.ALL_PROJECTS
+    // ("v1/user/my-projects") — returns `data: [{ ongoing, completed,
+    // cancelled }]`, one flat page shared across all three status buckets
+    // (mirrors homedot-mobile-app's UserSideProjectsTabNavigator).
+    LIST: (page: number) => `user/my-projects?page=${page}`,
+    // Requires a stored auth token. Mirrors USERS_APIS.PROJECT_DETAILED
+    // ("v1/user/get-project/") — returns `data: [{...}]`, read as data[0].
+    DETAIL: (slug: string) => `user/get-project/${encodeURIComponent(slug)}`,
+    // Requires a stored auth token. Mirrors USERS_APIS.PROJECT_COMPLETED
+    // ("v1/user/update-project-complete/") — POST { completedDate }.
+    COMPLETE: (id: string) => `user/update-project-complete/${encodeURIComponent(id)}`,
+    // Requires a stored auth token. Mirrors USERS_APIS.PROJECT_ADD_RATING
+    // ("v1/user/add-rating/") — POST { rating, review } for the professional
+    // who worked the project.
+    ADD_RATING: (id: string) => `user/add-rating/${encodeURIComponent(id)}`,
+    // Requires a stored auth token. Mirrors USERS_APIS.HOMEDOT_APP_RATING
+    // ("v1/review/create-review-user") — POST { rating, reviews } (plural),
+    // a separate review of the HomeDot app itself, prompted right after a
+    // project's professional review.
+    APP_REVIEW: "review/create-review-user",
   },
 } as const;

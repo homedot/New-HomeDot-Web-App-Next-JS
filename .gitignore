@@ -2,6 +2,8 @@
 
 # dependencies
 /node_modules
+/HomeDot_Web_UI_Reference
+/hommedot-mobile-app
 /.pnp
 .pnp.*
 .yarn/*

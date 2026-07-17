@@ -4,8 +4,9 @@ import { useEffect, useRef, useState, type CSSProperties } from "react";
 import { useRouter } from "next/navigation";
 import { colors } from "@/constants/colors";
 import { spacing, radius, fontSize, shadow, maxWidth } from "@/utils/size";
-import Icon from "@/components/Icon";
+import Icon, { type IconName } from "@/components/Icon";
 import Button from "@/components/Button";
+import StoreButtons from "@/components/StoreButtons";
 import LocationMapPicker, { type LocationValue } from "@/components/LocationMapPicker";
 import SiteNav from "@/components/SiteNav";
 import SiteFooter from "@/components/SiteFooter";
@@ -14,12 +15,39 @@ import ScrollProgress from "@/components/ScrollProgress";
 import Cursor from "@/components/Cursor";
 import Reveal from "@/components/Reveal";
 import LoginModal, { type LoginModalHandle } from "@/components/LoginModal";
-import ProfileService from "@/services/ProfileService";
+import ContactUpdateModal from "./ContactUpdateModal";
+import ProfileService, { resolveLatLng } from "@/services/ProfileService";
 import { useProfileStore } from "@/store/useProfileStore";
 import { useAuthStore } from "@/store/useAuthStore";
 import { getAuthToken } from "@/utils/authStorage";
+import { loadGoogleMapsScript } from "@/utils/loadGoogleMapsScript";
 
 const wrap: CSSProperties = { maxWidth, margin: "0 auto", padding: `0 ${spacing.xl}px` };
+
+type MainTab = "profile" | "enquiries" | "invite" | "help";
+
+// These three don't have real screens/APIs wired up yet (unlike Profile,
+// Favorites, My Projects, and now My Property) — shown as a "coming soon"
+// panel instead of a dead link or fabricated data. See
+// HomeDot_Web_UI_Reference's screen-account.jsx for the original design
+// these mirror.
+const COMING_SOON: Record<Exclude<MainTab, "profile">, { icon: IconName; title: string; subtitle: string }> = {
+  enquiries: {
+    icon: "mail",
+    title: "Enquiries",
+    subtitle: "Your conversations with professionals and agents will show up here.",
+  },
+  invite: {
+    icon: "user",
+    title: "Invite a Friend",
+    subtitle: "Share HomeDot with friends and family.",
+  },
+  help: {
+    icon: "shield",
+    title: "Help & Support",
+    subtitle: "Get help with your account and bookings.",
+  },
+};
 
 const fieldStyle: CSSProperties = {
   height: 46,
@@ -41,6 +69,7 @@ export default function ProfileScreen() {
   const profile = useProfileStore((s) => s.profile);
   const loaded = useProfileStore((s) => s.loaded);
 
+  const [tab, setTab] = useState<MainTab>("profile");
   const [uploadingAvatar, setUploadingAvatar] = useState(false);
   const [editing, setEditing] = useState(false);
   const [name, setName] = useState("");
@@ -48,6 +77,7 @@ export default function ProfileScreen() {
   const [saving, setSaving] = useState(false);
   const [saveError, setSaveError] = useState<string | null>(null);
   const [loggingOut, setLoggingOut] = useState(false);
+  const [contactModal, setContactModal] = useState<"phone" | "email" | null>(null);
 
   useEffect(() => {
     if (getAuthToken()) {
@@ -66,9 +96,14 @@ export default function ProfileScreen() {
     setName(profile?.name || "");
     setLocation(
       profile?.location
-        ? { address: profile.location, lat: profile.locationKey?.coordinates?.[0] ?? 0, lng: profile.locationKey?.coordinates?.[1] ?? 0 }
+        ? { address: profile.location, ...resolveLatLng(profile.locationKey?.coordinates ?? [0, 0]) }
         : null,
     );
+  };
+
+  const goToTab = (t: MainTab) => {
+    setEditing(false);
+    setTab(t);
   };
 
   const startEdit = () => {
@@ -135,6 +170,12 @@ export default function ProfileScreen() {
     router.push("/");
   };
 
+  // [0, 0] means the location was never actually geocoded (a placeholder,
+  // not a real spot on Earth) — showing a map centered there would just be
+  // a confusing patch of Atlantic ocean, so skip the map section entirely.
+  const mapLatLng = profile?.locationKey?.coordinates ? resolveLatLng(profile.locationKey.coordinates) : null;
+  const hasRealMapLocation = !!mapLatLng && (mapLatLng.lat !== 0 || mapLatLng.lng !== 0);
+
   const showLoading = signedIn && !loaded;
 
   return (
@@ -144,6 +185,21 @@ export default function ProfileScreen() {
       <Cursor />
       <SiteNav />
       <LoginModal ref={loginModalRef} hideTrigger />
+      {contactModal && (
+        <ContactUpdateModal
+          mode={contactModal}
+          currentCountryCode={profile?.countryCode}
+          onClose={() => setContactModal(null)}
+          onSuccess={(value, cc) => {
+            if (profile) {
+              useProfileStore.getState().setProfile(
+                contactModal === "phone" ? { ...profile, mobile: value, countryCode: cc } : { ...profile, email: value },
+              );
+            }
+            setContactModal(null);
+          }}
+        />
+      )}
 
       <section style={{ ...wrap, paddingTop: spacing.xl, paddingBottom: spacing.huge }}>
         {signedIn === false && (
@@ -210,45 +266,63 @@ export default function ProfileScreen() {
         )}
 
         {signedIn && loaded && (
-          <>
-            {/* hero */}
+          <div className="grid grid-cols-1 xl:grid-cols-[264px_1fr_280px]" style={{ gap: spacing.xl, alignItems: "start" }}>
+            {/* sidebar */}
             <Reveal
+              className="relative xl:sticky xl:top-24"
               style={{
-                position: "relative",
-                borderRadius: radius.lg,
                 overflow: "hidden",
-                padding: "clamp(28px, 5vw, 44px)",
-                background: `linear-gradient(120deg, ${colors.primary} 0%, #1c3155 60%, ${colors.price} 130%)`,
+                background: `linear-gradient(165deg, ${colors.primary} 0%, ${colors.primaryDeep} 100%)`,
+                borderRadius: radius.lg,
+                padding: "24px 20px",
                 boxShadow: shadow.md,
-                marginBottom: spacing.xl,
+                display: "flex",
+                flexDirection: "column",
+                gap: spacing.lg,
               }}
             >
               <span
-                className="pd-map-glow"
                 style={{
                   position: "absolute",
-                  right: -60,
+                  right: -50,
                   top: -60,
-                  width: 220,
-                  height: 220,
+                  width: 180,
+                  height: 180,
                   borderRadius: "50%",
                   background: colors.accent,
-                  filter: "blur(70px)",
-                  opacity: 0.35,
+                  filter: "blur(60px)",
+                  opacity: 0.3,
                 }}
               />
-              <div style={{ position: "relative", display: "flex", alignItems: "center", gap: spacing.lg, flexWrap: "wrap" }}>
-                <div style={{ position: "relative", flexShrink: 0 }}>
+              <button
+                onClick={() => router.push("/")}
+                aria-label="Back home"
+                style={{
+                  position: "relative",
+                  width: 36,
+                  height: 36,
+                  borderRadius: "50%",
+                  background: "rgba(255,255,255,0.12)",
+                  color: colors.white,
+                  display: "grid",
+                  placeItems: "center",
+                  flexShrink: 0,
+                }}
+              >
+                <Icon name="arrowLeft" size={17} />
+              </button>
+
+              <div style={{ position: "relative", display: "flex", flexDirection: "column", alignItems: "center", textAlign: "center", gap: 4 }}>
+                <div style={{ position: "relative", marginBottom: 10 }}>
                   <span
                     style={{
                       display: "block",
-                      width: 92,
-                      height: 92,
+                      width: 96,
+                      height: 96,
                       borderRadius: "50%",
                       overflow: "hidden",
-                      border: "3px solid rgba(255,255,255,0.85)",
+                      border: "3px solid rgba(255,255,255,0.9)",
                       background: "rgba(255,255,255,0.14)",
-                      boxShadow: shadow.md,
                     }}
                   >
                     {profile?.profileImage ? (
@@ -256,10 +330,19 @@ export default function ProfileScreen() {
                       <img src={profile.profileImage} alt="" style={{ width: "100%", height: "100%", objectFit: "cover" }} />
                     ) : (
                       <span style={{ width: "100%", height: "100%", display: "grid", placeItems: "center", color: colors.white }}>
-                        <Icon name="user" size={38} />
+                        <Icon name="user" size={40} />
                       </span>
                     )}
                   </span>
+                  <span
+                    style={{
+                      position: "absolute",
+                      inset: -4,
+                      borderRadius: "50%",
+                      border: "1.5px solid rgba(255,255,255,0.25)",
+                      pointerEvents: "none",
+                    }}
+                  />
                   <button
                     aria-label="Change profile photo"
                     onClick={() => avatarInputRef.current?.click()}
@@ -268,8 +351,8 @@ export default function ProfileScreen() {
                       position: "absolute",
                       right: -2,
                       bottom: -2,
-                      width: 32,
-                      height: 32,
+                      width: 30,
+                      height: 30,
                       borderRadius: "50%",
                       background: colors.white,
                       color: colors.primary,
@@ -278,52 +361,32 @@ export default function ProfileScreen() {
                       placeItems: "center",
                     }}
                   >
-                    <Icon name="camera" size={15} />
+                    <Icon name="camera" size={14} />
                   </button>
-                  <input
-                    ref={avatarInputRef}
-                    type="file"
-                    accept="image/*"
-                    onChange={onAvatarSelected}
-                    style={{ display: "none" }}
-                  />
+                  <input ref={avatarInputRef} type="file" accept="image/*" onChange={onAvatarSelected} style={{ display: "none" }} />
                 </div>
-                <div style={{ color: colors.white }}>
-                  <h1
-                    style={{
-                      fontFamily: "var(--font-display)",
-                      fontSize: "clamp(22px, 3vw, 30px)",
-                      fontWeight: 600,
-                      letterSpacing: "-0.02em",
-                    }}
-                  >
-                    {uploadingAvatar ? "Uploading photo…" : profile?.name || "Your account"}
-                  </h1>
-                  {profile?.location && (
-                    <p style={{ display: "flex", alignItems: "center", gap: 6, color: "rgba(255,255,255,0.82)", marginTop: 6, fontSize: fontSize.sm }}>
-                      <Icon name="location" size={15} /> {profile.location}
-                    </p>
-                  )}
-                </div>
-                <button
-                  onClick={logout}
-                  disabled={loggingOut}
-                  style={{
-                    marginLeft: "auto",
-                    display: "inline-flex",
-                    alignItems: "center",
-                    gap: 7,
-                    fontSize: fontSize.sm,
-                    fontWeight: 600,
-                    color: colors.white,
-                    background: "rgba(255,255,255,0.14)",
-                    border: "1px solid rgba(255,255,255,0.3)",
-                    padding: "10px 18px",
-                    borderRadius: radius.full,
-                  }}
-                >
-                  <Icon name="logout" size={16} /> {loggingOut ? "Logging out…" : "Log out"}
-                </button>
+                <h3 style={{ color: colors.white, fontSize: fontSize.lg, fontWeight: 700 }}>
+                  {uploadingAvatar ? "Uploading…" : profile?.name || "Your account"}
+                </h3>
+                {profile?.location && (
+                  <span style={{ fontSize: fontSize.xs, color: "rgba(255,255,255,0.65)" }}>{profile.location}</span>
+                )}
+              </div>
+
+              <div
+                style={{
+                  position: "relative",
+                  borderTop: "1px solid rgba(255,255,255,0.14)",
+                  paddingTop: spacing.md,
+                  display: "flex",
+                  flexDirection: "column",
+                  gap: 2,
+                }}
+              >
+                <SidebarNavItem icon="user" label="Profile" active={tab === "profile"} onClick={() => goToTab("profile")} />
+                <SidebarNavItem icon="briefcase" label="My Project" active={false} onClick={() => router.push("/projects")} />
+                <SidebarNavItem icon="house" label="My Property" active={false} onClick={() => router.push("/property/my")} />
+                <SidebarNavItem icon="mail" label="Enquiries" active={tab === "enquiries"} onClick={() => goToTab("enquiries")} />
               </div>
             </Reveal>
 
@@ -334,55 +397,164 @@ export default function ProfileScreen() {
                 border: `1px solid ${colors.line}`,
                 borderRadius: radius.lg,
                 boxShadow: shadow.sm,
-                padding: "clamp(20px, 3vw, 32px)",
+                padding: "clamp(20px, 3vw, 30px)",
               }}
             >
-              <div style={{ display: "flex", justifyContent: "space-between", alignItems: "flex-start", gap: spacing.md, marginBottom: spacing.lg }}>
-                <div>
-                  <h2 style={{ fontFamily: "var(--font-display)", fontSize: fontSize.xl, fontWeight: 600 }}>Profile information</h2>
-                  <p style={{ color: colors.muted, fontSize: fontSize.sm, marginTop: 4 }}>Manage your personal details and location.</p>
-                </div>
-                {!editing && (
-                  <Button variant="outline" size="sm" icon={<Icon name="edit" size={15} />} onClick={startEdit}>
-                    Edit profile
-                  </Button>
-                )}
-              </div>
+              {tab === "profile" ? (
+                <>
+                  <div
+                    style={{
+                      display: "flex",
+                      justifyContent: "space-between",
+                      alignItems: "flex-start",
+                      gap: spacing.md,
+                      paddingBottom: spacing.lg,
+                      marginBottom: spacing.lg,
+                      borderBottom: `1px solid ${colors.line}`,
+                    }}
+                  >
+                    <div>
+                      <h1 style={{ fontFamily: "var(--font-display)", fontSize: "clamp(21px, 2.4vw, 26px)", fontWeight: 600 }}>
+                        Profile Information
+                      </h1>
+                      <p style={{ color: colors.muted, fontSize: fontSize.sm, marginTop: 6 }}>Manage your personal details and address.</p>
+                    </div>
+                    {!editing && (
+                      <button
+                        onClick={startEdit}
+                        style={{
+                          display: "inline-flex",
+                          alignItems: "center",
+                          gap: 7,
+                          fontSize: fontSize.sm - 0.5,
+                          fontWeight: 600,
+                          color: colors.primary,
+                          background: colors.primarySoft,
+                          padding: "10px 16px",
+                          borderRadius: radius.full,
+                          whiteSpace: "nowrap",
+                        }}
+                      >
+                        <Icon name="edit" size={15} /> Edit profile
+                      </button>
+                    )}
+                  </div>
 
-              {!editing ? (
-                <div style={{ display: "flex", flexDirection: "column", gap: spacing.md }}>
-                  <InfoRow icon="user" label="Name" value={profile?.name || "—"} />
-                  <InfoRow icon="mail" label="Email" value={profile?.email || "—"} />
-                  <InfoRow icon="phone" label="Contact" value={profile?.mobile || "—"} />
-                  <InfoRow icon="location" label="Location" value={profile?.location || "—"} />
-                </div>
+                  {!editing ? (
+                    <>
+                      <div className="grid grid-cols-1 sm:grid-cols-2" style={{ gap: spacing.md }}>
+                        <InfoField icon="user" label="Name" value={profile?.name || "—"} />
+                        <InfoField icon="mail" label="Email" value={profile?.email || "—"} onChangeClick={() => setContactModal("email")} />
+                        <InfoField icon="phone" label="Contact" value={profile?.mobile || "—"} onChangeClick={() => setContactModal("phone")} />
+                        <InfoField icon="location" label="Location" value={profile?.location || "—"} />
+                      </div>
+                      {profile?.location && hasRealMapLocation && mapLatLng && (
+                        <div style={{ marginTop: spacing.lg, display: "flex", flexDirection: "column", gap: spacing.sm }}>
+                          <span style={{ display: "inline-flex", alignItems: "center", gap: 7, fontSize: fontSize.sm, fontWeight: 600, color: colors.ink2 }}>
+                            <Icon name="location" size={16} /> Location on map
+                          </span>
+                          <LocationMapView {...mapLatLng} address={profile.location} />
+                        </div>
+                      )}
+                    </>
+                  ) : (
+                    <div style={{ display: "flex", flexDirection: "column", gap: spacing.lg }}>
+                      {/* Email/phone go through their own OTP-verified update flow
+                          (see ContactUpdateModal), not the name/location save below —
+                          shown here too so they're not hidden while editing. */}
+                      <div className="grid grid-cols-1 sm:grid-cols-2" style={{ gap: spacing.md }}>
+                        <InfoField icon="mail" label="Email" value={profile?.email || "—"} onChangeClick={() => setContactModal("email")} />
+                        <InfoField icon="phone" label="Contact" value={profile?.mobile || "—"} onChangeClick={() => setContactModal("phone")} />
+                      </div>
+                      <label style={{ display: "flex", flexDirection: "column", gap: 6 }}>
+                        <span style={{ fontSize: fontSize.xs, fontWeight: 700, color: colors.muted, textTransform: "uppercase", letterSpacing: 0.5 }}>
+                          Name
+                        </span>
+                        <input value={name} onChange={(e) => setName(e.target.value)} style={fieldStyle} />
+                      </label>
+                      <div style={{ display: "flex", flexDirection: "column", gap: 6 }}>
+                        <span style={{ fontSize: fontSize.xs, fontWeight: 700, color: colors.muted, textTransform: "uppercase", letterSpacing: 0.5 }}>
+                          Location
+                        </span>
+                        <LocationMapPicker value={location} onChange={setLocation} height={200} />
+                      </div>
+                      {saveError && <p style={{ color: "#C0392B", fontSize: fontSize.sm }}>{saveError}</p>}
+                      <div style={{ display: "flex", gap: spacing.sm }}>
+                        <Button variant="primary" size="md" onClick={saveEdit} icon={saving ? undefined : <Icon name="check" size={16} />}>
+                          {saving ? "Saving…" : "Save changes"}
+                        </Button>
+                        <Button variant="outline" size="md" onClick={cancelEdit}>
+                          Cancel
+                        </Button>
+                      </div>
+                    </div>
+                  )}
+                </>
               ) : (
-                <div style={{ display: "flex", flexDirection: "column", gap: spacing.lg }}>
-                  <label style={{ display: "flex", flexDirection: "column", gap: 6 }}>
-                    <span style={{ fontSize: fontSize.xs, fontWeight: 700, color: colors.muted, textTransform: "uppercase", letterSpacing: 0.5 }}>
-                      Name
-                    </span>
-                    <input value={name} onChange={(e) => setName(e.target.value)} style={fieldStyle} />
-                  </label>
-                  <div style={{ display: "flex", flexDirection: "column", gap: 6 }}>
-                    <span style={{ fontSize: fontSize.xs, fontWeight: 700, color: colors.muted, textTransform: "uppercase", letterSpacing: 0.5 }}>
-                      Location
-                    </span>
-                    <LocationMapPicker value={location} onChange={setLocation} height={200} />
-                  </div>
-                  {saveError && <p style={{ color: "#C0392B", fontSize: fontSize.sm }}>{saveError}</p>}
-                  <div style={{ display: "flex", gap: spacing.sm }}>
-                    <Button variant="primary" size="md" onClick={saveEdit} icon={saving ? undefined : <Icon name="check" size={16} />}>
-                      {saving ? "Saving…" : "Save changes"}
-                    </Button>
-                    <Button variant="outline" size="md" onClick={cancelEdit}>
-                      Cancel
-                    </Button>
-                  </div>
-                </div>
+                <ComingSoon {...COMING_SOON[tab]} />
               )}
             </Reveal>
-          </>
+
+            {/* quick links rail */}
+            <Reveal className="relative xl:sticky xl:top-24" style={{ display: "flex", flexDirection: "column", gap: spacing.md }}>
+              <div
+                style={{
+                  background: colors.card,
+                  border: `1px solid ${colors.line}`,
+                  borderRadius: radius.lg,
+                  boxShadow: shadow.sm,
+                  padding: 8,
+                  display: "flex",
+                  flexDirection: "column",
+                  gap: 2,
+                }}
+              >
+                <RailItem icon="heart" label="Favorites" active={false} onClick={() => router.push("/favorites")} />
+                <RailItem icon="user" label="Invite a Friend" active={tab === "invite"} onClick={() => goToTab("invite")} />
+                <RailItem icon="shield" label="Help" active={tab === "help"} onClick={() => goToTab("help")} />
+                <RailItem
+                  icon="logout"
+                  label={loggingOut ? "Logging out…" : "Log out"}
+                  danger
+                  active={false}
+                  onClick={logout}
+                  disabled={loggingOut}
+                />
+              </div>
+
+              <div
+                style={{
+                  background: `linear-gradient(150deg, ${colors.primaryDeep}, ${colors.primary})`,
+                  borderRadius: radius.lg,
+                  padding: 20,
+                  color: colors.white,
+                  textAlign: "center",
+                  boxShadow: shadow.sm,
+                }}
+              >
+                <span
+                  style={{
+                    width: 44,
+                    height: 44,
+                    borderRadius: 12,
+                    background: "rgba(255,255,255,0.14)",
+                    display: "grid",
+                    placeItems: "center",
+                    margin: "0 auto 12px",
+                  }}
+                >
+                  <Icon name="sparkle" size={18} />
+                </span>
+                <b style={{ fontSize: fontSize.sm + 1, display: "block", marginBottom: 5 }}>Get the HomeDot app</b>
+                <p style={{ fontSize: fontSize.xs, color: "rgba(255,255,255,0.72)", lineHeight: 1.45, marginBottom: 14 }}>
+                  Track projects &amp; chat on the go.
+                </p>
+                <div style={{ display: "flex", justifyContent: "center" }}>
+                  <StoreButtons size="sm" />
+                </div>
+              </div>
+            </Reveal>
+          </div>
         )}
       </section>
 
@@ -391,23 +563,217 @@ export default function ProfileScreen() {
   );
 }
 
-function InfoRow({ icon, label, value }: { icon: "user" | "mail" | "phone" | "location"; label: string; value: string }) {
+function RailItem({
+  icon,
+  label,
+  onClick,
+  danger,
+  active,
+  disabled,
+}: {
+  icon: "heart" | "logout" | "user" | "shield";
+  label: string;
+  onClick?: () => void;
+  danger?: boolean;
+  active: boolean;
+  disabled?: boolean;
+}) {
+  return (
+    <button
+      onClick={onClick}
+      disabled={disabled}
+      className="pr-railitem"
+      style={{
+        display: "flex",
+        alignItems: "center",
+        gap: 12,
+        padding: "12px 12px",
+        borderRadius: 11,
+        textAlign: "left",
+        background: active ? colors.primarySoft : undefined,
+      }}
+    >
+      <span
+        style={{
+          width: 34,
+          height: 34,
+          borderRadius: 9,
+          background: danger ? "rgba(229,72,77,0.1)" : active ? colors.card : colors.bg,
+          color: danger ? "#E5484D" : active ? colors.primary : colors.ink2,
+          display: "grid",
+          placeItems: "center",
+          flexShrink: 0,
+        }}
+      >
+        <Icon name={icon} size={17} />
+      </span>
+      <span style={{ flex: 1, fontSize: fontSize.sm, fontWeight: 500, color: danger ? "#E5484D" : active ? colors.primary : colors.ink }}>
+        {label}
+      </span>
+      <Icon name="chevronDown" size={14} className="pr-railchev" color={colors.muted} />
+    </button>
+  );
+}
+
+function SidebarNavItem({
+  icon,
+  label,
+  active,
+  onClick,
+}: {
+  icon: IconName;
+  label: string;
+  active: boolean;
+  onClick: () => void;
+}) {
+  return (
+    <button
+      onClick={onClick}
+      className={active ? undefined : "pr-navitem"}
+      style={{
+        display: "flex",
+        alignItems: "center",
+        gap: 12,
+        padding: "13px 14px",
+        borderRadius: 12,
+        background: active ? colors.white : "transparent",
+        color: active ? colors.primary : "rgba(255,255,255,0.82)",
+        fontSize: fontSize.sm,
+        fontWeight: active ? 600 : 500,
+        textAlign: "left",
+      }}
+    >
+      <Icon name={icon} size={18} />
+      <span style={{ flex: 1 }}>{label}</span>
+      {active && <Icon name="arrow" size={14} />}
+    </button>
+  );
+}
+
+function ComingSoon({ icon, title, subtitle }: { icon: IconName; title: string; subtitle: string }) {
+  return (
+    <div style={{ textAlign: "center", padding: "56px 16px" }}>
+      <span
+        style={{
+          width: 64,
+          height: 64,
+          borderRadius: "50%",
+          background: colors.primarySoft,
+          color: colors.primary,
+          display: "grid",
+          placeItems: "center",
+          margin: "0 auto 18px",
+        }}
+      >
+        <Icon name={icon} size={28} />
+      </span>
+      <h2 style={{ fontFamily: "var(--font-display)", fontSize: fontSize.xl, fontWeight: 600, marginBottom: 8 }}>{title}</h2>
+      <p style={{ color: colors.muted, maxWidth: 380, marginInline: "auto" }}>{subtitle}</p>
+      <span
+        style={{
+          display: "inline-flex",
+          alignItems: "center",
+          gap: 6,
+          marginTop: 18,
+          fontSize: fontSize.xs,
+          fontWeight: 700,
+          color: colors.primary,
+          background: colors.primarySoft,
+          padding: "6px 14px",
+          borderRadius: radius.full,
+        }}
+      >
+        <Icon name="sparkle" size={13} /> Coming soon
+      </span>
+    </div>
+  );
+}
+
+function LocationMapView({ lat, lng, address }: { lat: number; lng: number; address: string }) {
+  const mapDivRef = useRef<HTMLDivElement | null>(null);
+
+  useEffect(() => {
+    let cancelled = false;
+    loadGoogleMapsScript()
+      .then((google) => {
+        if (cancelled || !mapDivRef.current) return;
+        const map = new google.maps.Map(mapDivRef.current, {
+          center: { lat, lng },
+          zoom: 14,
+          disableDefaultUI: true,
+          gestureHandling: "none",
+          keyboardShortcuts: false,
+        });
+        new google.maps.Marker({ position: { lat, lng }, map });
+      })
+      .catch(() => null);
+    return () => {
+      cancelled = true;
+    };
+  }, [lat, lng]);
+
+  return (
+    <div style={{ position: "relative", borderRadius: radius.md, overflow: "hidden", border: `1px solid ${colors.line}`, height: 220 }}>
+      <div ref={mapDivRef} style={{ width: "100%", height: "100%", background: colors.bg }} />
+      <div
+        style={{
+          position: "absolute",
+          left: 16,
+          bottom: 16,
+          right: 16,
+          display: "flex",
+          alignItems: "center",
+          gap: 8,
+          background: colors.card,
+          padding: "11px 15px",
+          borderRadius: 11,
+          boxShadow: shadow.md,
+          fontSize: fontSize.sm - 0.5,
+          fontWeight: 500,
+          color: colors.ink2,
+        }}
+      >
+        <Icon name="location" size={15} color={colors.primary} />
+        <span style={{ overflow: "hidden", textOverflow: "ellipsis", whiteSpace: "nowrap" }}>{address}</span>
+      </div>
+    </div>
+  );
+}
+
+function InfoField({
+  icon,
+  label,
+  value,
+  onChangeClick,
+}: {
+  icon: "user" | "mail" | "phone" | "location";
+  label: string;
+  value: string;
+  onChangeClick?: () => void;
+}) {
   return (
     <div
       style={{
+        background: colors.bg,
+        border: `1px solid ${colors.line}`,
+        borderRadius: radius.md,
+        padding: "16px 18px",
         display: "flex",
-        justifyContent: "space-between",
-        alignItems: "center",
-        gap: spacing.md,
-        paddingBottom: spacing.md,
-        borderBottom: `1px solid ${colors.line}`,
-        flexWrap: "wrap",
+        flexDirection: "column",
+        gap: 8,
       }}
     >
-      <span style={{ display: "inline-flex", alignItems: "center", gap: 8, fontSize: fontSize.sm, color: colors.muted }}>
-        <Icon name={icon} size={16} /> {label}
-      </span>
-      <span style={{ fontSize: fontSize.base, fontWeight: 600, color: colors.ink }}>{value}</span>
+      <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center" }}>
+        <span style={{ display: "inline-flex", alignItems: "center", gap: 7, fontSize: fontSize.xs, fontWeight: 600, color: colors.muted }}>
+          <Icon name={icon} size={15} /> {label}
+        </span>
+        {onChangeClick && (
+          <button onClick={onChangeClick} style={{ fontSize: fontSize.xs, fontWeight: 700, color: colors.primary }}>
+            Change
+          </button>
+        )}
+      </div>
+      <span style={{ fontSize: fontSize.md, fontWeight: 600, color: colors.ink, wordBreak: "break-word" }}>{value}</span>
     </div>
   );
 }

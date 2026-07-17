@@ -1266,3 +1266,44 @@ body.has-cursor * {
     transform: none;
   }
 }
+
+/* ProfileScreen sidebar nav rows (Profile / My Project / My Property /
+   Enquiries) — subtle white-wash hover fill for inactive rows, matching the
+   design reference's .acct-navitem. */
+.pr-navitem {
+  transition: background-color 0.15s ease;
+}
+
+.pr-navitem:hover {
+  background: rgba(255, 255, 255, 0.08);
+}
+
+/* ProfileScreen quick-links rail (Favorites / Log out) — subtle hover fill
+   plus a chevron nudge, matching the design reference's .acct-railitem. */
+.pr-railitem {
+  transition: background-color 0.15s ease;
+}
+
+.pr-railitem:hover {
+  background: #f5f5f7;
+}
+
+.pr-railchev {
+  transform: rotate(-90deg);
+  transition: transform 0.15s ease;
+}
+
+.pr-railitem:hover .pr-railchev {
+  transform: rotate(-90deg) translateX(2px);
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .pr-navitem,
+  .pr-railitem,
+  .pr-railchev {
+    transition: none;
+  }
+  .pr-railitem:hover .pr-railchev {
+    transform: rotate(-90deg);
+  }
+}
