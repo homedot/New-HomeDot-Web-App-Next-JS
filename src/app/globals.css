@@ -1307,3 +1307,53 @@ body.has-cursor * {
     transform: rotate(-90deg);
   }
 }
+
+/* ProfileScreen Enquiries tab (EnquiriesPanel/EnquiryCard/EnquiryEditModal/
+   EnquiryResponseModal). Pin pop and toast reuse the pdHeartPop/pdToastIn
+   keyframes already defined above for Marketplace's property detail, and
+   the edit/response modals reuse pdLightboxFade/pdLightboxImgIn for their
+   overlay + card entrance — same motion, scoped to this screen's own class
+   names, same convention BlogScreen's bl- classes already follow. */
+.eq-pin-pop {
+  animation: pdHeartPop 0.4s cubic-bezier(0.2, 0.9, 0.3, 1.4) both;
+}
+
+.eq-toast {
+  animation: pdToastIn 0.18s ease both;
+}
+
+.eq-modal-overlay {
+  animation: pdLightboxFade 0.2s ease both;
+}
+
+.eq-modal-card {
+  animation: pdLightboxImgIn 0.35s cubic-bezier(0.16, 1, 0.3, 1) both;
+}
+
+.eq-icon-btn {
+  transition: transform 0.15s ease, filter 0.15s ease;
+}
+
+.eq-icon-btn:hover {
+  filter: brightness(1.1);
+  transform: translateY(-1px);
+}
+
+.eq-icon-btn:active {
+  transform: scale(0.94);
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .eq-pin-pop,
+  .eq-toast,
+  .eq-modal-overlay,
+  .eq-modal-card,
+  .eq-icon-btn {
+    animation: none;
+    transition: none;
+  }
+  .eq-icon-btn:hover,
+  .eq-icon-btn:active {
+    transform: none;
+  }
+}

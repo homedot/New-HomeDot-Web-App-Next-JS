@@ -148,6 +148,18 @@ export interface FavoriteProfessionalsBody {
   data: FavoriteProfessionalsPage[];
 }
 
+// Mirrors homedot-mobile-app's inviteaFriend response — a single-element
+// array wrapping the raw link.
+export interface InviteFriendRecord {
+  inviteLink: string;
+}
+
+export interface InviteFriendBody {
+  status: boolean;
+  message: string;
+  data: InviteFriendRecord[];
+}
+
 // All Professionals screen API calls live here. The screen only ever
 // imports this file — never ApiService or fetch directly.
 export const ProfessionalsScreenService = {
@@ -185,7 +197,20 @@ export const ProfessionalsScreenService = {
   // Requires a stored auth token.
   getFavoriteProfessionals: (page = 1): Promise<ApiResponse<FavoriteProfessionalsBody>> =>
     ApiService.get<FavoriteProfessionalsBody>(API_ENDPOINTS.PROFESSIONALS.GET_FAVORITES(page)),
+
+  // Requires a stored auth token.
+  getInviteLink: (): Promise<ApiResponse<InviteFriendBody>> =>
+    ApiService.get<InviteFriendBody>(API_ENDPOINTS.PROFESSIONALS.REFER_A_FRIEND),
 };
+
+// The raw inviteLink the API returns embeds the referral code after a "="
+// (e.g. a deep-link URL with a query param) — homedot-mobile-app's
+// InviteaFriendScreen pulls just that code back out and rebuilds a plain
+// homedotapp.com/invite/<code> link from it, so this mirrors that exactly.
+export function toInviteUrl(rawInviteLink: string): string | null {
+  const code = rawInviteLink.split("=")[1];
+  return code ? `https://homedotapp.com/invite/${code}` : null;
+}
 
 function truncate(text: string, max: number): string {
   const clean = text.trim().replace(/\s+/g, " ");

@@ -1,6 +1,13 @@
 "use client";
 
-import { useEffect, useRef, useState, type CSSProperties, type ReactNode, type RefObject } from "react";
+import {
+  useEffect,
+  useRef,
+  useState,
+  type CSSProperties,
+  type ReactNode,
+  type RefObject,
+} from "react";
 import Link from "next/link";
 import { useRouter } from "next/navigation";
 import { colors } from "@/constants/colors";
@@ -580,7 +587,11 @@ function FeaturedProperties() {
           // specific listing. Viewing a property doesn't require auth
           // (MarketplaceScreen.openDetail isn't gated either), so no login
           // check is needed here.
-          <PropertyCard key={p.id} property={p} onOpen={() => router.push("/marketplace")} />
+          <PropertyCard
+            key={p.id}
+            property={p}
+            onOpen={() => router.push("/marketplace")}
+          />
         ))}
       </Reveal>
     </section>
@@ -922,7 +933,11 @@ function PosterShowcase() {
   );
 }
 
-function TopProfessionals({ loginModalRef }: { loginModalRef: RefObject<LoginModalHandle | null> }) {
+function TopProfessionals({
+  loginModalRef,
+}: {
+  loginModalRef: RefObject<LoginModalHandle | null>;
+}) {
   const router = useRouter();
   const [pros, setPros] = useState<Professional[]>(professionals);
 
@@ -1508,7 +1523,11 @@ function ProCta() {
   );
 }
 
-function LatestInsights({ loginModalRef }: { loginModalRef: RefObject<LoginModalHandle | null> }) {
+function LatestInsights({
+  loginModalRef,
+}: {
+  loginModalRef: RefObject<LoginModalHandle | null>;
+}) {
   const router = useRouter();
   const [posts, setPosts] = useState<BlogPost[]>(blogPosts);
 
@@ -1526,7 +1545,15 @@ function LatestInsights({ loginModalRef }: { loginModalRef: RefObject<LoginModal
       style={{ ...wrap, padding: `0 ${spacing.xl}px ${spacing.huge}px` }}
     >
       <ScrollScrub className="scrub-rise">
-        <div style={{ display: "flex", alignItems: "flex-end", justifyContent: "space-between", gap: spacing.lg, flexWrap: "wrap" }}>
+        <div
+          style={{
+            display: "flex",
+            alignItems: "flex-end",
+            justifyContent: "space-between",
+            gap: spacing.lg,
+            flexWrap: "wrap",
+          }}
+        >
           <SectionHead
             eyebrow="From the blog"
             title="Latest insights"
@@ -1570,94 +1597,94 @@ function LatestInsights({ loginModalRef }: { loginModalRef: RefObject<LoginModal
               router.push(`/blog?post=${post.slug}`);
             }}
           >
-          <article
-            className="card-hover"
-            style={{
-              background: colors.card,
-              border: `1px solid ${colors.line}`,
-              borderRadius: radius.lg,
-              overflow: "hidden",
-              boxShadow: shadow.sm,
-              display: "flex",
-              flexDirection: "column",
-              cursor: "pointer",
-              height: "100%",
-            }}
-          >
-            <div
+            <article
+              className="card-hover"
               style={{
-                position: "relative",
-                aspectRatio: "16/10",
+                background: colors.card,
+                border: `1px solid ${colors.line}`,
+                borderRadius: radius.lg,
                 overflow: "hidden",
-              }}
-            >
-              {/* eslint-disable-next-line @next/next/no-img-element */}
-              <img
-                src={post.image}
-                alt={post.title}
-                loading="lazy"
-                className="card-hover-img"
-                style={{ width: "100%", height: "100%", objectFit: "cover" }}
-              />
-            </div>
-            <div
-              style={{
-                padding: spacing.xl,
+                boxShadow: shadow.sm,
                 display: "flex",
                 flexDirection: "column",
-                gap: spacing.sm,
-                flex: 1,
+                cursor: "pointer",
+                height: "100%",
               }}
             >
               <div
                 style={{
-                  display: "flex",
-                  justifyContent: "space-between",
-                  alignItems: "center",
-                  fontSize: fontSize.xs,
-                  color: colors.muted,
+                  position: "relative",
+                  aspectRatio: "16/10",
+                  overflow: "hidden",
                 }}
               >
-                <span style={{ fontWeight: 600, color: colors.ink2 }}>
-                  {post.author}
-                </span>
-                <span>{post.date}</span>
+                {/* eslint-disable-next-line @next/next/no-img-element */}
+                <img
+                  src={post.image}
+                  alt={post.title}
+                  loading="lazy"
+                  className="card-hover-img"
+                  style={{ width: "100%", height: "100%", objectFit: "cover" }}
+                />
               </div>
-              <h3
+              <div
                 style={{
-                  fontSize: fontSize.lg - 1,
-                  fontWeight: 700,
-                  fontFamily: "var(--font-display)",
-                  lineHeight: 1.3,
+                  padding: spacing.xl,
+                  display: "flex",
+                  flexDirection: "column",
+                  gap: spacing.sm,
+                  flex: 1,
                 }}
               >
-                {post.title}
-              </h3>
-              <p
-                style={{
-                  fontSize: fontSize.sm + 1,
-                  color: colors.muted,
-                  lineHeight: 1.5,
-                }}
-              >
-                {post.excerpt}
-              </p>
-              <span
-                style={{
-                  display: "inline-flex",
-                  alignItems: "center",
-                  gap: 5,
-                  fontSize: fontSize.sm,
-                  fontWeight: 600,
-                  color: colors.primary,
-                  marginTop: "auto",
-                  paddingTop: spacing.sm,
-                }}
-              >
-                Read more <Icon name="arrow" size={15} />
-              </span>
-            </div>
-          </article>
+                <div
+                  style={{
+                    display: "flex",
+                    justifyContent: "space-between",
+                    alignItems: "center",
+                    fontSize: fontSize.xs,
+                    color: colors.muted,
+                  }}
+                >
+                  <span style={{ fontWeight: 600, color: colors.ink2 }}>
+                    {post.author}
+                  </span>
+                  <span>{post.date}</span>
+                </div>
+                <h3
+                  style={{
+                    fontSize: fontSize.lg - 1,
+                    fontWeight: 700,
+                    fontFamily: "var(--font-display)",
+                    lineHeight: 1.3,
+                  }}
+                >
+                  {post.title}
+                </h3>
+                <p
+                  style={{
+                    fontSize: fontSize.sm + 1,
+                    color: colors.muted,
+                    lineHeight: 1.5,
+                  }}
+                >
+                  {post.excerpt}
+                </p>
+                <span
+                  style={{
+                    display: "inline-flex",
+                    alignItems: "center",
+                    gap: 5,
+                    fontSize: fontSize.sm,
+                    fontWeight: 600,
+                    color: colors.primary,
+                    marginTop: "auto",
+                    paddingTop: spacing.sm,
+                  }}
+                >
+                  Read more <Icon name="arrow" size={15} />
+                </span>
+              </div>
+            </article>
           </CardWrapper>
         ))}
       </Reveal>
@@ -1671,10 +1698,21 @@ function LatestInsights({ loginModalRef }: { loginModalRef: RefObject<LoginModal
 // placeholders instead of triggering a login popup or navigating nowhere.
 // A plain onClick (not a Link) is used here rather than navigating straight
 // away, since guests need to be intercepted with the login popup instead.
-function CardWrapper({ clickable, onClick, children }: { clickable: boolean; onClick: () => void; children: ReactNode }) {
+function CardWrapper({
+  clickable,
+  onClick,
+  children,
+}: {
+  clickable: boolean;
+  onClick: () => void;
+  children: ReactNode;
+}) {
   if (!clickable) return <>{children}</>;
   return (
-    <div onClick={onClick} style={{ display: "block", height: "100%", cursor: "pointer" }}>
+    <div
+      onClick={onClick}
+      style={{ display: "block", height: "100%", cursor: "pointer" }}
+    >
       {children}
     </div>
   );

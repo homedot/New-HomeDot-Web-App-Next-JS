@@ -16,6 +16,8 @@ import Cursor from "@/components/Cursor";
 import Reveal from "@/components/Reveal";
 import LoginModal, { type LoginModalHandle } from "@/components/LoginModal";
 import ContactUpdateModal from "./ContactUpdateModal";
+import InviteFriendPanel from "./InviteFriendPanel";
+import HelpPanel from "./HelpPanel";
 import ProfileService, { resolveLatLng } from "@/services/ProfileService";
 import { useProfileStore } from "@/store/useProfileStore";
 import { useAuthStore } from "@/store/useAuthStore";
@@ -24,30 +26,7 @@ import { loadGoogleMapsScript } from "@/utils/loadGoogleMapsScript";
 
 const wrap: CSSProperties = { maxWidth, margin: "0 auto", padding: `0 ${spacing.xl}px` };
 
-type MainTab = "profile" | "enquiries" | "invite" | "help";
-
-// These three don't have real screens/APIs wired up yet (unlike Profile,
-// Favorites, My Projects, and now My Property) — shown as a "coming soon"
-// panel instead of a dead link or fabricated data. See
-// HomeDot_Web_UI_Reference's screen-account.jsx for the original design
-// these mirror.
-const COMING_SOON: Record<Exclude<MainTab, "profile">, { icon: IconName; title: string; subtitle: string }> = {
-  enquiries: {
-    icon: "mail",
-    title: "Enquiries",
-    subtitle: "Your conversations with professionals and agents will show up here.",
-  },
-  invite: {
-    icon: "user",
-    title: "Invite a Friend",
-    subtitle: "Share HomeDot with friends and family.",
-  },
-  help: {
-    icon: "shield",
-    title: "Help & Support",
-    subtitle: "Get help with your account and bookings.",
-  },
-};
+type MainTab = "profile" | "invite" | "help";
 
 const fieldStyle: CSSProperties = {
   height: 46,
@@ -386,7 +365,7 @@ export default function ProfileScreen() {
                 <SidebarNavItem icon="user" label="Profile" active={tab === "profile"} onClick={() => goToTab("profile")} />
                 <SidebarNavItem icon="briefcase" label="My Project" active={false} onClick={() => router.push("/projects")} />
                 <SidebarNavItem icon="house" label="My Property" active={false} onClick={() => router.push("/property/my")} />
-                <SidebarNavItem icon="mail" label="Enquiries" active={tab === "enquiries"} onClick={() => goToTab("enquiries")} />
+                <SidebarNavItem icon="mail" label="Enquiries" active={false} onClick={() => router.push("/enquiries")} />
               </div>
             </Reveal>
 
@@ -490,8 +469,10 @@ export default function ProfileScreen() {
                     </div>
                   )}
                 </>
+              ) : tab === "invite" ? (
+                <InviteFriendPanel />
               ) : (
-                <ComingSoon {...COMING_SOON[tab]} />
+                <HelpPanel />
               )}
             </Reveal>
 
@@ -647,45 +628,6 @@ function SidebarNavItem({
       <span style={{ flex: 1 }}>{label}</span>
       {active && <Icon name="arrow" size={14} />}
     </button>
-  );
-}
-
-function ComingSoon({ icon, title, subtitle }: { icon: IconName; title: string; subtitle: string }) {
-  return (
-    <div style={{ textAlign: "center", padding: "56px 16px" }}>
-      <span
-        style={{
-          width: 64,
-          height: 64,
-          borderRadius: "50%",
-          background: colors.primarySoft,
-          color: colors.primary,
-          display: "grid",
-          placeItems: "center",
-          margin: "0 auto 18px",
-        }}
-      >
-        <Icon name={icon} size={28} />
-      </span>
-      <h2 style={{ fontFamily: "var(--font-display)", fontSize: fontSize.xl, fontWeight: 600, marginBottom: 8 }}>{title}</h2>
-      <p style={{ color: colors.muted, maxWidth: 380, marginInline: "auto" }}>{subtitle}</p>
-      <span
-        style={{
-          display: "inline-flex",
-          alignItems: "center",
-          gap: 6,
-          marginTop: 18,
-          fontSize: fontSize.xs,
-          fontWeight: 700,
-          color: colors.primary,
-          background: colors.primarySoft,
-          padding: "6px 14px",
-          borderRadius: radius.full,
-        }}
-      >
-        <Icon name="sparkle" size={13} /> Coming soon
-      </span>
-    </div>
   );
 }
 

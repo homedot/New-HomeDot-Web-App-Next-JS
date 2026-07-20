@@ -174,6 +174,12 @@ export const API_ENDPOINTS = {
     // Requires a stored auth token. Mirrors homedot-mobile-app's
     // FAVORITE_PROFESSIONALS ("v1/user/favorites-list").
     GET_FAVORITES: (page: number) => `user/favorites-list?page=${page}`,
+    // Requires a stored auth token. Mirrors homedot-mobile-app's
+    // REFER_A_FRIEND ("v1/professional/invite-friend") — returns the
+    // signed-in user's own referral link (InviteaFriendScreen's default
+    // codepath there, used whenever isScreenUserOrProfessional is false,
+    // which it is for every regular user).
+    REFER_A_FRIEND: "professional/invite-friend",
   },
   BLOG: {
     // Guest-accessible — no auth required. Mirrors homedot-mobile-app's
@@ -223,5 +229,42 @@ export const API_ENDPOINTS = {
     // a separate review of the HomeDot app itself, prompted right after a
     // project's professional review.
     APP_REVIEW: "review/create-review-user",
+  },
+  ENQUIRY: {
+    // Requires a stored auth token. Mirrors homedot-mobile-app's
+    // VIEW_ENQUERY ("v1/enquiry/user-enquiries") — the signed-in user's own
+    // enquiries (Profile screen's Enquiries tab), paginated.
+    LIST: (page: number) => `enquiry/user-enquiries?page=${page}`,
+    // Requires a stored auth token. Mirrors ENQUERY_DETAILED
+    // ("v1/enquiry/get-enquiry-info-user/") — used only to read back
+    // locationKey.coordinates before opening the edit form (the list
+    // response doesn't carry lat/lng, only the formatted address).
+    DETAIL: (id: string) => `enquiry/get-enquiry-info-user/${encodeURIComponent(id)}`,
+    // Requires a stored auth token. Mirrors EDIT_ENQUERY
+    // ("v1/enquiry/update-enquiry/") — PUT. homedot-mobile-app's own edit
+    // screen has its category picker UI commented out (dead code, category
+    // is display-only there), so this mirrors what's actually live: only
+    // location and requirement are editable.
+    UPDATE: (id: string) => `enquiry/update-enquiry/${encodeURIComponent(id)}`,
+    // Requires a stored auth token. Mirrors DELETE_ENQUERY
+    // ("v1/enquiry/enquiry-delete/") — PUT, no body (soft delete).
+    DELETE: (id: string) => `enquiry/enquiry-delete/${encodeURIComponent(id)}`,
+    // Requires a stored auth token. Mirrors PIN_ENQUERY ("v1/user/pin-enquiry")
+    // — POST { enquiry: id }, toggles pinned/unpinned (calling it again
+    // unpins), same pattern as the various TOGGLE_FAVORITE endpoints.
+    PIN: "user/pin-enquiry",
+    // Requires a stored auth token. Mirrors
+    // SELCTED_ENQUIRY_PROFESSIONAL_DETAILED
+    // ("v1/enquiry/professionals-response/") — the professional's response
+    // to this enquiry (name, category, message, accept/reject state).
+    RESPONSE_DETAIL: (id: string) => `enquiry/professionals-response/${encodeURIComponent(id)}`,
+    // Requires a stored auth token. Mirrors USER_SIDE_ENQUIRY_RESPONSE
+    // ("v1/enquiry/user-response/") — POST { professional }, accepts the
+    // professional's response and moves the enquiry into a project.
+    ACCEPT_RESPONSE: (id: string) => `enquiry/user-response/${encodeURIComponent(id)}`,
+    // Requires a stored auth token. Mirrors ENQUIRE_RESPONSE_REJECT
+    // ("v1/enquiry/enquiry-response-reject/") — POST { professional,
+    // rejectReason }.
+    REJECT_RESPONSE: (id: string) => `enquiry/enquiry-response-reject/${encodeURIComponent(id)}`,
   },
 } as const;
