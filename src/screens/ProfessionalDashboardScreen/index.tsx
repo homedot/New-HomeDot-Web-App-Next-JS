@@ -16,6 +16,7 @@ import LoginModal, { type LoginModalHandle } from "@/components/LoginModal";
 import { getAuthToken, getActiveRole, setActiveRole } from "@/utils/authStorage";
 import { useAuthStore } from "@/store/useAuthStore";
 import { useProfileStore } from "@/store/useProfileStore";
+import { useRoleSwitchStore } from "@/store/useRoleSwitchStore";
 import ProfileService from "@/services/ProfileService";
 import SwitchProfessionalService from "@/services/SwitchProfessionalService";
 import ProfessionalDashboardService, {
@@ -135,16 +136,19 @@ export default function ProfessionalDashboardScreen() {
   const switchToUser = async () => {
     setSwitchingRole(true);
     setRoleError(null);
-    const res = await SwitchProfessionalService.switchRole();
+    await useRoleSwitchStore.getState().runSwitch("user", async () => {
+      const res = await SwitchProfessionalService.switchRole();
+      if (!res.success || res.data?.status === false) {
+        setRoleError(res.data?.message || res.message || "Couldn't switch modes. Please try again.");
+        return false;
+      }
+      const pair = res.data?.data?.[0];
+      if (pair) useAuthStore.getState().setTokens({ token: pair.token, refreshToken: pair.reToken });
+      setActiveRole("user");
+      router.push("/profile");
+      return true;
+    });
     setSwitchingRole(false);
-    if (!res.success || res.data?.status === false) {
-      setRoleError(res.data?.message || res.message || "Couldn't switch modes. Please try again.");
-      return;
-    }
-    const pair = res.data?.data?.[0];
-    if (pair) useAuthStore.getState().setTokens({ token: pair.token, refreshToken: pair.reToken });
-    setActiveRole("user");
-    router.push("/profile");
   };
 
   const logout = async () => {

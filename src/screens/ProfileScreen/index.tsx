@@ -23,6 +23,7 @@ import ProfileService, { resolveLatLng } from "@/services/ProfileService";
 import SwitchProfessionalService from "@/services/SwitchProfessionalService";
 import { useProfileStore } from "@/store/useProfileStore";
 import { useAuthStore } from "@/store/useAuthStore";
+import { useRoleSwitchStore } from "@/store/useRoleSwitchStore";
 import { getAuthToken, getActiveRole, setActiveRole, type AccountRole } from "@/utils/authStorage";
 import { loadGoogleMapsScript } from "@/utils/loadGoogleMapsScript";
 
@@ -83,18 +84,21 @@ export default function ProfileScreen() {
   const switchRole = async () => {
     setSwitchingRole(true);
     setRoleError(null);
-    const res = await SwitchProfessionalService.switchRole();
-    setSwitchingRole(false);
-    if (!res.success || res.data?.status === false) {
-      setRoleError(res.data?.message || res.message || "Couldn't switch modes. Please try again.");
-      return;
-    }
-    const pair = res.data?.data?.[0];
-    if (pair) useAuthStore.getState().setTokens({ token: pair.token, refreshToken: pair.reToken });
     const next: AccountRole = activeRole === "professional" ? "user" : "professional";
-    setActiveRole(next);
-    setActiveRoleState(next);
-    if (next === "professional") router.push("/professional/dashboard");
+    await useRoleSwitchStore.getState().runSwitch(next, async () => {
+      const res = await SwitchProfessionalService.switchRole();
+      if (!res.success || res.data?.status === false) {
+        setRoleError(res.data?.message || res.message || "Couldn't switch modes. Please try again.");
+        return false;
+      }
+      const pair = res.data?.data?.[0];
+      if (pair) useAuthStore.getState().setTokens({ token: pair.token, refreshToken: pair.reToken });
+      setActiveRole(next);
+      setActiveRoleState(next);
+      if (next === "professional") router.push("/professional/dashboard");
+      return true;
+    });
+    setSwitchingRole(false);
   };
 
   // Populates the edit form from the current profile — called on demand
@@ -213,11 +217,14 @@ export default function ProfileScreen() {
         <BecomeProfessionalModal
           onClose={() => setShowBecomeProfessional(false)}
           onSuccess={(tokens) => {
-            if (tokens) useAuthStore.getState().setTokens({ token: tokens.token, refreshToken: tokens.reToken });
-            setActiveRole("professional");
             setShowBecomeProfessional(false);
-            useProfileStore.getState().clear();
-            router.push("/professional/dashboard");
+            useRoleSwitchStore.getState().runSwitch("professional", async () => {
+              if (tokens) useAuthStore.getState().setTokens({ token: tokens.token, refreshToken: tokens.reToken });
+              setActiveRole("professional");
+              useProfileStore.getState().clear();
+              router.push("/professional/dashboard");
+              return true;
+            });
           }}
         />
       )}
