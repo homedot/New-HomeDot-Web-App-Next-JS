@@ -20,6 +20,20 @@ export const API_ENDPOINTS = {
     // Requires a stored auth token. Mirrors BACKEND_AUTH_URL.LOGOUT
     // ("v1/auth/logout") — POST with no body.
     LOGOUT: "auth/logout",
+    // Requires a stored auth token. Mirrors USERS_APIS.BECOME_A_PROFESSIONAL
+    // ("v1/auth/become-professional") — POST { professionalCategory,
+    // subCategory, professionalType, experience, description, skills }.
+    // Adds the "professional" role to the signed-in user's account; doesn't
+    // touch name/contact (those already exist on the account).
+    BECOME_A_PROFESSIONAL: "auth/become-professional",
+    // Requires a stored auth token. Mirrors PROFESSIONALS_API.SWITCH_TO_USER
+    // ("v1/auth/switch-user") — POST with no body. Despite the name, this is
+    // a generic active-role toggle: homedot-mobile-app calls the exact same
+    // endpoint from both its User-side ProfileScreen (to switch into
+    // Professional) and its Professional-side screens (to switch back to
+    // User) — only reachable once an account already has both roles. Returns
+    // a fresh token pair scoped to the new active role.
+    SWITCH_ROLE: "auth/switch-user",
   },
   USER: {
     // Requires a stored auth token. Mirrors USERS_APIS.PROFILE_IMAGE_UPDATE
@@ -47,6 +61,22 @@ export const API_ENDPOINTS = {
     // property-add flow (and elsewhere) — returns an image record with an
     // `_id` to reference from `property_images`.
     IMAGE_UPLOAD: "common/image-upload",
+    // Guest-accessible — no auth required. Same underlying endpoint as
+    // CATEGORY_LIST above, just called with a different body: mirrors
+    // homedot-mobile-app's ProfessionalCategoryandSkillsService, which fetches
+    // level-two subcategories by POSTing { levelOneCategory: categoryId } to
+    // this identical URL instead of a dedicated one.
+    SUBCATEGORY_LIST: "common/category-list",
+    // Guest-accessible — no auth required. Mirrors
+    // ProfessionalCategoryandSkillsService.professioanlSkills
+    // ("v1/common/skills") — POST { category, subCategory, keyString },
+    // level-three skills filtered by a live search string.
+    SKILLS: "common/skills",
+    // Guest-accessible — no auth required. Mirrors
+    // ProfessionalCategoryandSkillsService.get_SkillsSuggestions
+    // ("v1/common/skills-suggestions") — POST { category, subCategory },
+    // a starter set of skills for the chosen category/subcategory.
+    SKILLS_SUGGESTIONS: "common/skills-suggestions",
   },
   DATA: {
     FEATURED_PROFESSIONALS: "data/get-featured-professionals",
@@ -266,5 +296,42 @@ export const API_ENDPOINTS = {
     // ("v1/enquiry/enquiry-response-reject/") — POST { professional,
     // rejectReason }.
     REJECT_RESPONSE: (id: string) => `enquiry/enquiry-response-reject/${encodeURIComponent(id)}`,
+  },
+  // The signed-in user's own Professional-role dashboard (as opposed to
+  // PROFESSIONALS above, which is the public browse/enquire-a-professional
+  // surface). Only reachable once the account has the professional role —
+  // see SwitchProfessionalService / ProfessionalDashboardScreen.
+  PROFESSIONAL: {
+    // Requires a stored auth token. Mirrors PROFESSIONALS_API.HOME_SCREEN
+    // ("v1/professional/get-professional") — the signed-in professional's own
+    // summary (name, profileImage, professionalInfo[], totalProjects).
+    HOME: "professional/get-professional",
+    // Requires a stored auth token. Mirrors PROFESSIONALS_API.ENQUIRY_LIST
+    // ("v1/enquiry/enquiries-professional") — a single call returns both Job
+    // and Direct enquiries (data[0].jobEnquiries[0] / data[0].directEnquires[0]),
+    // each with its own data[]/totalCount.total_rows.
+    ENQUIRY_LIST: (page: number) => `enquiry/enquiries-professional?page=${page}`,
+    // Requires a stored auth token. Mirrors PROFESSIONALS_API.ENQUIRE_RESPONSE
+    // ("v1/enquiry/professional-response/") — POST { responseStatus: true,
+    // responseText }, used to accept a Job or Direct enquiry with a message.
+    ENQUIRY_RESPOND: (id: string) => `enquiry/professional-response/${encodeURIComponent(id)}`,
+    // Requires a stored auth token. Mirrors PROFESSIONALS_API.ENQUIRY_PIN
+    // ("v1/professional/pin-enquiry") — POST { enquiry: id }, toggles
+    // pinned/unpinned.
+    ENQUIRY_PIN: "professional/pin-enquiry",
+    // Requires a stored auth token. Mirrors PROFESSIONALS_API.JOB_ENQUIRY_DELETE
+    // ("v1/professional/ignore-enquiry/") — POST, no body. A silent ignore
+    // (no rejection reason sent to the customer) — Job Enquiries only.
+    JOB_ENQUIRY_IGNORE: (id: string) => `professional/ignore-enquiry/${encodeURIComponent(id)}`,
+    // Requires a stored auth token. Mirrors PROFESSIONALS_API.DIRECT_ENQUIRY_DELETE
+    // ("v1/enquiry/professional-reject/") — POST { response: false,
+    // responseText: "rejected" }, an explicit rejection the customer sees —
+    // Direct Enquiries only (distinct from the silent Job ignore above).
+    DIRECT_ENQUIRY_REJECT: (id: string) => `enquiry/professional-reject/${encodeURIComponent(id)}`,
+    // Requires a stored auth token. Mirrors PROFESSIONALS_API.PROFESSIOANL_ALL_PROJECTS
+    // ("v1/professional/my-projects") — a single call returns all three
+    // status buckets (data[0].ongoing / .completed / .cancelled), same
+    // one-page-shared-across-tabs shape as PROJECTS.LIST on the user side.
+    ALL_PROJECTS: (page: number) => `professional/my-projects?page=${page}`,
   },
 } as const;

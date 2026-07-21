@@ -16,12 +16,14 @@ import Cursor from "@/components/Cursor";
 import Reveal from "@/components/Reveal";
 import LoginModal, { type LoginModalHandle } from "@/components/LoginModal";
 import ContactUpdateModal from "./ContactUpdateModal";
+import BecomeProfessionalModal from "./BecomeProfessionalModal";
 import InviteFriendPanel from "./InviteFriendPanel";
 import HelpPanel from "./HelpPanel";
 import ProfileService, { resolveLatLng } from "@/services/ProfileService";
+import SwitchProfessionalService from "@/services/SwitchProfessionalService";
 import { useProfileStore } from "@/store/useProfileStore";
 import { useAuthStore } from "@/store/useAuthStore";
-import { getAuthToken } from "@/utils/authStorage";
+import { getAuthToken, getActiveRole, setActiveRole, type AccountRole } from "@/utils/authStorage";
 import { loadGoogleMapsScript } from "@/utils/loadGoogleMapsScript";
 
 const wrap: CSSProperties = { maxWidth, margin: "0 auto", padding: `0 ${spacing.xl}px` };
@@ -57,16 +59,43 @@ export default function ProfileScreen() {
   const [saveError, setSaveError] = useState<string | null>(null);
   const [loggingOut, setLoggingOut] = useState(false);
   const [contactModal, setContactModal] = useState<"phone" | "email" | null>(null);
+  const [showBecomeProfessional, setShowBecomeProfessional] = useState(false);
+  const [activeRole, setActiveRoleState] = useState<AccountRole>("user");
+  const [switchingRole, setSwitchingRole] = useState(false);
+  const [roleError, setRoleError] = useState<string | null>(null);
 
   useEffect(() => {
     if (getAuthToken()) {
       // eslint-disable-next-line react-hooks/set-state-in-effect -- token lives in localStorage, a client-only system; see LoginModal's identical pattern
       setSignedIn(true);
+      setActiveRoleState(getActiveRole());
       useProfileStore.getState().fetch();
     } else {
       setSignedIn(false);
     }
   }, []);
+
+  const hasProfessionalRole = (profile?.userType?.length ?? 0) >= 2;
+
+  // Toggles the active role for an account that already has both — mirrors
+  // homedot-mobile-app's ProfileScreen switcButton (userType.length === 2
+  // branch), which calls this same endpoint with no form.
+  const switchRole = async () => {
+    setSwitchingRole(true);
+    setRoleError(null);
+    const res = await SwitchProfessionalService.switchRole();
+    setSwitchingRole(false);
+    if (!res.success || res.data?.status === false) {
+      setRoleError(res.data?.message || res.message || "Couldn't switch modes. Please try again.");
+      return;
+    }
+    const pair = res.data?.data?.[0];
+    if (pair) useAuthStore.getState().setTokens({ token: pair.token, refreshToken: pair.reToken });
+    const next: AccountRole = activeRole === "professional" ? "user" : "professional";
+    setActiveRole(next);
+    setActiveRoleState(next);
+    if (next === "professional") router.push("/professional/dashboard");
+  };
 
   // Populates the edit form from the current profile — called on demand
   // (entering/cancelling edit mode) rather than synced via effect, so an
@@ -146,6 +175,7 @@ export default function ProfileScreen() {
     await ProfileService.logout().catch(() => null);
     useAuthStore.getState().clearTokens();
     useProfileStore.getState().clear();
+    setActiveRoleState("user");
     router.push("/");
   };
 
@@ -176,6 +206,18 @@ export default function ProfileScreen() {
               );
             }
             setContactModal(null);
+          }}
+        />
+      )}
+      {showBecomeProfessional && (
+        <BecomeProfessionalModal
+          onClose={() => setShowBecomeProfessional(false)}
+          onSuccess={(tokens) => {
+            if (tokens) useAuthStore.getState().setTokens({ token: tokens.token, refreshToken: tokens.reToken });
+            setActiveRole("professional");
+            setShowBecomeProfessional(false);
+            useProfileStore.getState().clear();
+            router.push("/professional/dashboard");
           }}
         />
       )}
@@ -502,6 +544,104 @@ export default function ProfileScreen() {
                   disabled={loggingOut}
                 />
               </div>
+
+              {hasProfessionalRole ? (
+                <div
+                  style={{
+                    background: colors.card,
+                    border: `1px solid ${colors.line}`,
+                    borderRadius: radius.lg,
+                    boxShadow: shadow.sm,
+                    padding: 18,
+                    display: "flex",
+                    flexDirection: "column",
+                    gap: 10,
+                  }}
+                >
+                  <div style={{ display: "flex", alignItems: "center", gap: 10 }}>
+                    <span
+                      style={{
+                        width: 34,
+                        height: 34,
+                        borderRadius: 9,
+                        background: colors.primarySoft,
+                        color: colors.primary,
+                        display: "grid",
+                        placeItems: "center",
+                        flexShrink: 0,
+                      }}
+                    >
+                      <Icon name="hardhat" size={16} />
+                    </span>
+                    <div>
+                      <b style={{ fontSize: fontSize.sm, display: "block" }}>
+                        {activeRole === "professional" ? "Professional mode" : "User mode"}
+                      </b>
+                      <span style={{ fontSize: fontSize.xs, color: colors.muted }}>You have both roles on this account.</span>
+                    </div>
+                  </div>
+                  {roleError && <p style={{ color: "#C0392B", fontSize: fontSize.xs, margin: 0 }}>{roleError}</p>}
+                  {activeRole === "professional" && (
+                    <button
+                      onClick={() => router.push("/professional/dashboard")}
+                      style={{
+                        height: 40,
+                        borderRadius: radius.md,
+                        background: colors.primary,
+                        color: colors.white,
+                        fontSize: fontSize.xs,
+                        fontWeight: 700,
+                      }}
+                    >
+                      Go to Dashboard
+                    </button>
+                  )}
+                  <button
+                    onClick={switchRole}
+                    disabled={switchingRole}
+                    style={{
+                      height: 40,
+                      borderRadius: radius.md,
+                      background: colors.primarySoft,
+                      color: colors.primary,
+                      fontSize: fontSize.xs,
+                      fontWeight: 700,
+                    }}
+                  >
+                    {switchingRole ? "Switching…" : activeRole === "professional" ? "Switch to User" : "Switch to Professional"}
+                  </button>
+                </div>
+              ) : (
+                <button
+                  onClick={() => setShowBecomeProfessional(true)}
+                  style={{
+                    background: `linear-gradient(150deg, ${colors.primaryDeep}, ${colors.primary})`,
+                    borderRadius: radius.lg,
+                    padding: 20,
+                    color: colors.white,
+                    textAlign: "center",
+                    boxShadow: shadow.sm,
+                  }}
+                >
+                  <span
+                    style={{
+                      width: 44,
+                      height: 44,
+                      borderRadius: 12,
+                      background: "rgba(255,255,255,0.14)",
+                      display: "grid",
+                      placeItems: "center",
+                      margin: "0 auto 12px",
+                    }}
+                  >
+                    <Icon name="hardhat" size={18} />
+                  </span>
+                  <b style={{ fontSize: fontSize.sm + 1, display: "block", marginBottom: 5 }}>Become a Professional</b>
+                  <p style={{ fontSize: fontSize.xs, color: "rgba(255,255,255,0.72)", lineHeight: 1.45 }}>
+                    List your trade and start getting enquiries.
+                  </p>
+                </button>
+              )}
 
               <div
                 style={{

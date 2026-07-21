@@ -28,4 +28,25 @@ export function clearAuthTokens(): void {
   if (typeof window === "undefined") return;
   localStorage.removeItem(TOKEN_KEY);
   localStorage.removeItem(REFRESH_TOKEN_KEY);
+  localStorage.removeItem(ACTIVE_ROLE_KEY);
+}
+
+export type AccountRole = "user" | "professional";
+
+const ACTIVE_ROLE_KEY = "hd_active_role";
+
+// Mirrors homedot-mobile-app's `isScreenUserOrProfessional` (StorageServices
+// setScreenUserOrProfessional) — a client-only flag for which role a session
+// with both roles is currently browsing as. The backend has no concept of a
+// "current" role beyond which token you're holding (SWITCH_ROLE just hands
+// back a differently-scoped token pair), so this is tracked locally, same as
+// mobile.
+export function getActiveRole(): AccountRole {
+  if (typeof window === "undefined") return "user";
+  return localStorage.getItem(ACTIVE_ROLE_KEY) === "professional" ? "professional" : "user";
+}
+
+export function setActiveRole(role: AccountRole): void {
+  if (typeof window === "undefined") return;
+  localStorage.setItem(ACTIVE_ROLE_KEY, role);
 }

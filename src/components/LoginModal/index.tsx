@@ -16,6 +16,7 @@ import Button from "@/components/Button";
 import AuthService from "@/services/AuthService";
 import { useAuthStore } from "@/store/useAuthStore";
 import { useProfileStore } from "@/store/useProfileStore";
+import { setActiveRole, type AccountRole } from "@/utils/authStorage";
 import type { LocationValue } from "@/components/LocationMapPicker";
 import RoleStep from "./RoleStep";
 import UserFormStep, { type UserFormValues } from "./UserFormStep";
@@ -255,7 +256,7 @@ const LoginModal = forwardRef<LoginModalHandle, LoginModalProps>(
         setStep("role");
         return;
       }
-      finishSuccess();
+      finishSuccess(record?.userType);
     };
 
     const resendOtp = async () => {
@@ -272,12 +273,23 @@ const LoginModal = forwardRef<LoginModalHandle, LoginModalProps>(
       setSecs(120);
     };
 
-    const finishSuccess = () => {
+    // Mirrors homedot-mobile-app's verifyOtp branch (LoginOrRegisterUsingNumberScreen.js):
+    // the verify-OTP response carries a `userType` string ("normal-user" vs a
+    // professional account) for which of the account's roles this login
+    // session comes back scoped to — distinct from the profile's `userType`
+    // array of *all* roles the account holds. A normal user stays wherever
+    // they were (mirrors mobile just clearing the flag and continuing); a
+    // professional gets routed into their dashboard, since there's no other
+    // way to reach that section of the app from here.
+    const finishSuccess = (userType?: string) => {
       setStep("success");
+      const role: AccountRole = userType && userType !== "normal-user" ? "professional" : "user";
+      setActiveRole(role);
       useProfileStore.getState().fetch();
       setTimeout(() => {
         setLoggedIn(true);
         close();
+        if (role === "professional") router.push("/professional/dashboard");
       }, 1500);
     };
 
