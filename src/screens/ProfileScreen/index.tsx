@@ -574,28 +574,11 @@ export default function ProfileScreen() {
                       <Icon name="hardhat" size={16} />
                     </span>
                     <div>
-                      <b style={{ fontSize: fontSize.sm, display: "block" }}>
-                        {activeRole === "professional" ? "Professional mode" : "User mode"}
-                      </b>
-                      <span style={{ fontSize: fontSize.xs, color: colors.muted }}>You have both roles on this account.</span>
+                      <b style={{ fontSize: fontSize.sm, display: "block" }}>You&apos;re also a professional</b>
+                      <span style={{ fontSize: fontSize.xs, color: colors.muted }}>Switch to manage enquiries and projects.</span>
                     </div>
                   </div>
                   {roleError && <p style={{ color: "#C0392B", fontSize: fontSize.xs, margin: 0 }}>{roleError}</p>}
-                  {activeRole === "professional" && (
-                    <button
-                      onClick={() => router.push("/professional/dashboard")}
-                      style={{
-                        height: 40,
-                        borderRadius: radius.md,
-                        background: colors.primary,
-                        color: colors.white,
-                        fontSize: fontSize.xs,
-                        fontWeight: 700,
-                      }}
-                    >
-                      Go to Dashboard
-                    </button>
-                  )}
                   <button
                     onClick={switchRole}
                     disabled={switchingRole}
@@ -608,7 +591,7 @@ export default function ProfileScreen() {
                       fontWeight: 700,
                     }}
                   >
-                    {switchingRole ? "Switching…" : activeRole === "professional" ? "Switch to User" : "Switch to Professional"}
+                    {switchingRole ? "Switching…" : "Switch to Professional"}
                   </button>
                 </div>
               ) : (

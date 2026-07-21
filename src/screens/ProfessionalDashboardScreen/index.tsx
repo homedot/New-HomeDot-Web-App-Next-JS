@@ -6,9 +6,8 @@ import { colors } from "@/constants/colors";
 import { spacing, radius, fontSize, shadow, maxWidth } from "@/utils/size";
 import Icon, { type IconName } from "@/components/Icon";
 import Button from "@/components/Button";
+import Brand from "@/components/Brand";
 import CardSkeleton from "@/components/CardSkeleton";
-import SiteNav from "@/components/SiteNav";
-import SiteFooter from "@/components/SiteFooter";
 import AmbientBackground from "@/components/AmbientBackground";
 import ScrollProgress from "@/components/ScrollProgress";
 import Cursor from "@/components/Cursor";
@@ -16,6 +15,8 @@ import Reveal from "@/components/Reveal";
 import LoginModal, { type LoginModalHandle } from "@/components/LoginModal";
 import { getAuthToken, getActiveRole, setActiveRole } from "@/utils/authStorage";
 import { useAuthStore } from "@/store/useAuthStore";
+import { useProfileStore } from "@/store/useProfileStore";
+import ProfileService from "@/services/ProfileService";
 import SwitchProfessionalService from "@/services/SwitchProfessionalService";
 import ProfessionalDashboardService, {
   type ProfessionalHomeRecord,
@@ -59,6 +60,7 @@ export default function ProfessionalDashboardScreen() {
   const [loadingHome, setLoadingHome] = useState(true);
   const [switchingRole, setSwitchingRole] = useState(false);
   const [roleError, setRoleError] = useState<string | null>(null);
+  const [loggingOut, setLoggingOut] = useState(false);
 
   const [tab, setTab] = useState<Tab>("job");
   const [toast, setToast] = useState<string | null>(null);
@@ -145,6 +147,14 @@ export default function ProfessionalDashboardScreen() {
     router.push("/profile");
   };
 
+  const logout = async () => {
+    setLoggingOut(true);
+    await ProfileService.logout().catch(() => null);
+    useAuthStore.getState().clearTokens();
+    useProfileStore.getState().clear();
+    router.push("/");
+  };
+
   const pin = async (id: string) => {
     const res = await ProfessionalDashboardService.pinEnquiry(id);
     if (res.success && res.data?.status !== false) {
@@ -224,7 +234,55 @@ export default function ProfessionalDashboardScreen() {
       <AmbientBackground />
       <ScrollProgress />
       <Cursor />
-      <SiteNav />
+      {/* No SiteNav/SiteFooter here — Professional mode is a self-contained
+          area (mirrors homedot-mobile-app's separate Professional stack, with
+          its own tab bar rather than the User side's chrome); RoleGate keeps
+          the rest of the site unreachable while this mode is active, so a
+          shared header pointing back into it would just create a bounce. */}
+      {signedIn && home && (
+        <div style={{ background: colors.card, borderBottom: `1px solid ${colors.line}` }}>
+          <div style={{ ...wrap, height: 64, display: "flex", alignItems: "center", justifyContent: "space-between" }}>
+            <Brand />
+            <div style={{ display: "flex", alignItems: "center", gap: 10 }}>
+              <button
+                onClick={switchToUser}
+                disabled={switchingRole}
+                style={{
+                  display: "inline-flex",
+                  alignItems: "center",
+                  gap: 7,
+                  fontSize: fontSize.xs,
+                  fontWeight: 700,
+                  color: colors.primary,
+                  background: colors.primarySoft,
+                  padding: "10px 16px",
+                  borderRadius: radius.full,
+                }}
+              >
+                <Icon name="user" size={14} color={colors.primary} /> {switchingRole ? "Switching…" : "Switch to User"}
+              </button>
+              <button
+                onClick={logout}
+                disabled={loggingOut}
+                aria-label="Log out"
+                style={{
+                  width: 38,
+                  height: 38,
+                  borderRadius: "50%",
+                  background: colors.bg,
+                  color: colors.muted,
+                  display: "grid",
+                  placeItems: "center",
+                  border: `1.5px solid ${colors.line}`,
+                  flexShrink: 0,
+                }}
+              >
+                <Icon name="logout" size={16} />
+              </button>
+            </div>
+          </div>
+        </div>
+      )}
       <LoginModal ref={loginModalRef} hideTrigger />
 
       <section style={{ ...wrap, paddingTop: spacing.xl }}>
@@ -247,7 +305,19 @@ export default function ProfessionalDashboardScreen() {
             title="No professional profile found"
             subtitle="Become a professional from your profile page to unlock this dashboard."
             action={
-              <Button variant="primary" size="lg" icon={<Icon name="hardhat" size={18} />} onClick={() => router.push("/profile")}>
+              <Button
+                variant="primary"
+                size="lg"
+                icon={<Icon name="hardhat" size={18} />}
+                onClick={() => {
+                  // No professional record actually exists despite the
+                  // persisted "professional" role — clear it first, or
+                  // RoleGate would immediately bounce this navigation
+                  // straight back here.
+                  setActiveRole("user");
+                  router.push("/profile");
+                }}
+              >
                 Go to profile
               </Button>
             }
@@ -307,26 +377,9 @@ export default function ProfessionalDashboardScreen() {
                   </div>
                 </div>
 
-                <div style={{ display: "flex", flexDirection: "column", alignItems: "flex-end", gap: 8 }}>
-                  <button
-                    onClick={switchToUser}
-                    disabled={switchingRole}
-                    style={{
-                      display: "inline-flex",
-                      alignItems: "center",
-                      gap: 7,
-                      fontSize: fontSize.xs,
-                      fontWeight: 700,
-                      color: colors.white,
-                      background: "rgba(255,255,255,0.16)",
-                      padding: "10px 16px",
-                      borderRadius: radius.full,
-                    }}
-                  >
-                    <Icon name="user" size={14} color={colors.white} /> {switchingRole ? "Switching…" : "Switch to User"}
-                  </button>
-                  {roleError && <span style={{ color: "#FCA5A5", fontSize: fontSize.xs }}>{roleError}</span>}
-                </div>
+                {roleError && (
+                  <span style={{ color: "#FCA5A5", fontSize: fontSize.xs, textAlign: "right" }}>{roleError}</span>
+                )}
               </div>
 
               <div className="grid grid-cols-1 sm:grid-cols-3" style={{ gap: spacing.md, marginTop: spacing.xl, position: "relative" }}>
@@ -433,8 +486,6 @@ export default function ProfessionalDashboardScreen() {
           {toast}
         </div>
       )}
-
-      <SiteFooter />
     </div>
   );
 }
