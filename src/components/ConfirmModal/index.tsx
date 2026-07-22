@@ -5,8 +5,9 @@ import { spacing, radius, fontSize } from "@/utils/size";
 import Icon, { type IconName } from "@/components/Icon";
 
 /** Generic confirm dialog — same visual pattern as EnquiriesScreen's
- * DeleteConfirmModal, generalized with a title/message/label so it also
- * covers the dashboard's Ignore (Job) and Reject (Direct) enquiry actions. */
+ * DeleteConfirmModal, generalized with a title/message/label. Used by both
+ * ProfessionalDashboardScreen and ProfessionalEnquiriesScreen for the
+ * Ignore (Job) / Reject (Direct) enquiry actions. */
 export default function ConfirmModal({
   icon,
   title,

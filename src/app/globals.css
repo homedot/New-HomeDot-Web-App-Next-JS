@@ -1483,3 +1483,117 @@ body.has-cursor * {
 @media (prefers-reduced-motion: reduce) {
   .role-switch { display: none; }
 }
+
+/* ProfessionalDashboardScreen — hero banner sheen sweep, the small "live"
+   pulse dot (reused for both the hero's Live indicator and the profile
+   rail's avatar status dot), and the stat-tile hover lift. Tab bar itself
+   reuses ProfessionalDetail's pf-tab-thumb/pf-tab-btn (same sliding-pill
+   convention, no new CSS needed). */
+.pdash-sheen {
+  position: absolute;
+  inset: 0;
+  overflow: hidden;
+  pointer-events: none;
+  z-index: 1;
+}
+
+@keyframes pdashSheen {
+  0% { transform: translateX(-120%) skewX(-12deg); opacity: 0; }
+  8% { opacity: 0.55; }
+  35% { opacity: 0; }
+  100% { transform: translateX(220%) skewX(-12deg); opacity: 0; }
+}
+
+.pdash-sheen::before {
+  content: "";
+  position: absolute;
+  top: -50%;
+  left: 0;
+  width: 30%;
+  height: 200%;
+  background: linear-gradient(100deg, transparent, rgba(255, 255, 255, 0.16), transparent);
+  animation: pdashSheen 7s ease-in-out infinite;
+}
+
+.pdash-pulse-dot {
+  position: relative;
+  display: inline-block;
+  width: 7px;
+  height: 7px;
+  border-radius: 50%;
+  background: #22c55e;
+  flex-shrink: 0;
+}
+
+@keyframes pdashRingPulse {
+  0% { transform: scale(0.8); opacity: 0.7; }
+  100% { transform: scale(2.2); opacity: 0; }
+}
+
+.pdash-pulse-dot::after {
+  content: "";
+  position: absolute;
+  inset: 0;
+  border-radius: 50%;
+  background: #22c55e;
+  animation: pdashRingPulse 1.8s ease-out infinite;
+}
+
+.pdash-stat {
+  transition: transform 0.2s cubic-bezier(0.2, 0.8, 0.3, 1), box-shadow 0.2s ease;
+}
+
+.pdash-stat:hover {
+  transform: translateY(-3px);
+  box-shadow: 0 12px 24px -12px rgba(0, 0, 0, 0.35);
+}
+
+/* Full-bleed hero's decorative compass/ruler/hardhat line-art — slow,
+   near-imperceptible drift so the corner illustration reads as "alive"
+   without competing with the hero copy. */
+@keyframes pdashIllustrationDrift {
+  0%, 100% { transform: translate(0, 0) rotate(0deg); }
+  50% { transform: translate(-4px, -6px) rotate(1.5deg); }
+}
+
+.pdash-illustration {
+  animation: pdashIllustrationDrift 24s ease-in-out infinite;
+}
+
+.pdash-illustration-sub {
+  animation: pdashIllustrationDrift 19s ease-in-out infinite;
+  animation-delay: -6s;
+}
+
+.pdash-illustration-sub2 {
+  animation: pdashIllustrationDrift 27s ease-in-out infinite;
+  animation-delay: -12s;
+}
+
+/* Sidebar "coming soon" rows — subtle lift on hover so the tinted icon chip
+   reads as an upcoming feature preview rather than a plain disabled row. */
+.pdash-soon-chip {
+  transition: transform 0.2s ease, background-color 0.2s ease;
+}
+
+.pdash-soon-chip:hover {
+  transform: translateY(-1px);
+  background-color: rgba(255, 255, 255, 0.05);
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .pdash-sheen::before,
+  .pdash-pulse-dot::after {
+    animation: none;
+    opacity: 0;
+  }
+  .pdash-stat,
+  .pdash-soon-chip {
+    transition: none;
+  }
+  .pdash-illustration,
+  .pdash-illustration-sub,
+  .pdash-illustration-sub2 {
+    animation: none;
+  }
+}

@@ -5,8 +5,10 @@ import { colors } from "@/constants/colors";
 
 /** Layered, drifting, morphing blobs + a panning dot-grid behind the hero copy.
  * Parallaxes with both scroll and cursor position, and fades out as the user scrolls
- * past — giving the "diving into the page, explore as you move" feel on load. */
-export default function HeroScene() {
+ * past — giving the "diving into the page, explore as you move" feel on load.
+ * `dense` adds a second, smaller/faster set of blobs for taller/full-bleed heroes
+ * (e.g. ProfessionalDashboardScreen) without touching the shared keyframes. */
+export default function HeroScene({ dense }: { dense?: boolean }) {
   const sceneRef = useRef<HTMLDivElement>(null);
 
   useEffect(() => {
@@ -68,6 +70,22 @@ export default function HeroScene() {
         className="hero-blob hero-blob-a"
         style={{ width: 190, height: 190, right: "22%", bottom: "6%", background: `radial-gradient(circle, ${colors.gold}, transparent 70%)`, opacity: 0.28, animationDelay: "-9s" }}
       />
+      {dense && (
+        <>
+          <span
+            className="hero-blob hero-blob-b"
+            style={{ width: 150, height: 150, left: "16%", top: "38%", background: `radial-gradient(circle, ${colors.accent}, transparent 70%)`, opacity: 0.22, animationDelay: "-4s" }}
+          />
+          <span
+            className="hero-blob hero-blob-c"
+            style={{ width: 200, height: 200, right: "2%", bottom: "-14%", background: "radial-gradient(circle, #34A853, transparent 70%)", opacity: 0.2, animationDelay: "-14s" }}
+          />
+          <span
+            className="hero-blob hero-blob-a"
+            style={{ width: 130, height: 130, left: "48%", top: "-8%", background: `radial-gradient(circle, ${colors.gold}, transparent 70%)`, opacity: 0.22, animationDelay: "-2s" }}
+          />
+        </>
+      )}
     </div>
   );
 }

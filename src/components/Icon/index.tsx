@@ -43,7 +43,8 @@ type IconName =
   | "camera"
   | "logout"
   | "edit"
-  | "trash";
+  | "trash"
+  | "settings";
 
 const PATHS: Record<IconName, React.ReactNode> = {
   search: (
@@ -273,6 +274,12 @@ const PATHS: Record<IconName, React.ReactNode> = {
       <path d="M4 7h16M9 7V5a1.5 1.5 0 0 1 1.5-1.5h3A1.5 1.5 0 0 1 15 5v2" />
       <path d="M6 7l1 13a1.5 1.5 0 0 0 1.5 1.4h7a1.5 1.5 0 0 0 1.5-1.4l1-13" />
       <path d="M10 11v6M14 11v6" />
+    </>
+  ),
+  settings: (
+    <>
+      <circle cx="12" cy="12" r="2.6" />
+      <path d="M12 4v2.4M12 17.6V20M20 12h-2.4M6.4 12H4M17.3 6.7l-1.7 1.7M8.4 15.6l-1.7 1.7M17.3 17.3l-1.7-1.7M8.4 8.4 6.7 6.7" />
     </>
   ),
 };

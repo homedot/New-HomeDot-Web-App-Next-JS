@@ -2,15 +2,16 @@
 
 import { useEffect, useState } from "react";
 import { colors } from "@/constants/colors";
-import { spacing, radius, fontSize } from "@/utils/size";
+import { radius, fontSize } from "@/utils/size";
 import Icon from "@/components/Icon";
 
 /** Web counterpart of the response text box homedot-mobile-app's
  * JobEnquiryScreen/DirectEnquiryScreen open inline on an enquiry card's
  * "Accept" tap — surfaced as its own modal here, this app's established
  * pattern for a single-field mutating action (see ContactUpdateModal,
- * EnquiryEditModal). */
-export default function EnquiryRespondModal({
+ * EnquiryEditModal). Shared by ProfessionalDashboardScreen (preview) and
+ * ProfessionalEnquiriesScreen (full list). */
+export default function RespondModal({
   onClose,
   onSubmit,
 }: {
