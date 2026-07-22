@@ -333,5 +333,11 @@ export const API_ENDPOINTS = {
     // status buckets (data[0].ongoing / .completed / .cancelled), same
     // one-page-shared-across-tabs shape as PROJECTS.LIST on the user side.
     ALL_PROJECTS: (page: number) => `professional/my-projects?page=${page}`,
+    // Requires a stored auth token. Mirrors PROFESSIONALS_API.ENQUERY_PROJECT_INITIATE
+    // ("v1/enquiry/convert-enquiry-project/") — POST { projectName, location,
+    // startDate, endDate, project_images }, converts an accepted enquiry
+    // (professionalResponse[0].userAccepted === true, no project yet) into a
+    // project. Images are uploaded individually first via COMMON.IMAGE_UPLOAD.
+    ENQUIRY_PROJECT_INITIATE: (id: string) => `enquiry/convert-enquiry-project/${encodeURIComponent(id)}`,
   },
 } as const;

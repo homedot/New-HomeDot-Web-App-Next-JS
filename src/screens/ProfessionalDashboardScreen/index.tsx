@@ -21,6 +21,7 @@ import ConfirmModal from "@/components/ConfirmModal";
 import ProDashboardSidebar from "@/components/ProDashboardSidebar";
 import ProfessionalEnquiryCard from "@/components/ProfessionalEnquiry/Card";
 import RespondModal from "@/components/ProfessionalEnquiry/RespondModal";
+import InitiateProjectModal from "@/components/ProfessionalEnquiry/InitiateProjectModal";
 import { useProfessionalEnquiries, type EnquiryKind } from "@/components/ProfessionalEnquiry/useProfessionalEnquiries";
 import { getAuthToken, getActiveRole, setActiveRole } from "@/utils/authStorage";
 import { useAuthStore } from "@/store/useAuthStore";
@@ -103,7 +104,6 @@ export default function ProfessionalDashboardScreen() {
   const [loggingOut, setLoggingOut] = useState(false);
 
   const [tab, setTab] = useState<Tab>("job");
-  const enq = useProfessionalEnquiries();
 
   // Sliding pill behind the active tab — measured from the actual button
   // layout (widths vary per label), same pattern as ProfessionalDetail's
@@ -134,6 +134,8 @@ export default function ProfessionalDashboardScreen() {
     setProjects({ ongoing: groups.ongoing ?? [], completed: groups.completed ?? [], cancelled: groups.cancelled ?? [] });
     setProjectPages({ ongoing: 1, completed: 1, cancelled: 1 });
   };
+
+  const enq = useProfessionalEnquiries(refreshProjects);
 
   useEffect(() => {
     if (!getAuthToken()) {
@@ -197,6 +199,9 @@ export default function ProfessionalDashboardScreen() {
   const isEnquiryTab = tab === "job" || tab === "direct";
   const previewEnquiries = isEnquiryTab ? enq.enquiries[tab as EnquiryKind].slice(0, 3) : [];
   const activeProjects = !isEnquiryTab ? projects[tab as ProjectTab] : [];
+  const initiatingEnquiry = enq.initiatingId
+    ? enq.enquiries.job.find((e) => e._id === enq.initiatingId) || enq.enquiries.direct.find((e) => e._id === enq.initiatingId)
+    : null;
 
   const enquiryOrProjectContent = (
     <>
@@ -220,6 +225,7 @@ export default function ProfessionalDashboardScreen() {
                   onPin={() => enq.pin(e._id)}
                   onRespond={() => enq.setRespondingId(e._id)}
                   onDecline={() => enq.openDecline(e._id, tab as EnquiryKind)}
+                  onInitiateProject={() => enq.setInitiatingId(e._id)}
                 />
               ))}
             </Reveal>
@@ -498,6 +504,15 @@ export default function ProfessionalDashboardScreen() {
           loading={enq.declining}
           onClose={enq.closeDecline}
           onConfirm={enq.confirmDecline}
+        />
+      )}
+
+      {enq.initiatingId && initiatingEnquiry && (
+        <InitiateProjectModal
+          enquiry={initiatingEnquiry}
+          loading={enq.initiating}
+          onClose={() => enq.setInitiatingId(null)}
+          onSubmit={enq.submitInitiateProject}
         />
       )}
 

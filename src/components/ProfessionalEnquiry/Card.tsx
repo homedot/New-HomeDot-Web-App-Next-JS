@@ -29,12 +29,14 @@ export default function ProfessionalEnquiryCard({
   onPin,
   onRespond,
   onDecline,
+  onInitiateProject,
 }: {
   enquiry: ProfessionalEnquiryRecord;
   kind: "job" | "direct";
   onPin: () => void;
   onRespond: () => void;
   onDecline: () => void;
+  onInitiateProject: () => void;
 }) {
   const [pinPop, setPinPop] = useState(0);
   const response = enquiry.professionalResponse?.[0];
@@ -198,7 +200,38 @@ export default function ProfessionalEnquiryCard({
       {customerDeclined ? (
         <Status color="#DC2626" bg="#FFF5F5" text="Customer declined your response" />
       ) : hasProject ? null : customerAccepted ? (
-        <Status color="#059669" bg="#F0FDF4" text="Customer accepted — starting a project" />
+        <div style={{ display: "flex", flexDirection: "column", gap: 8 }}>
+          <span
+            style={{
+              display: "flex",
+              alignItems: "center",
+              justifyContent: "center",
+              gap: 7,
+              fontWeight: 600,
+              fontSize: 12.5,
+              color: "#059669",
+            }}
+          >
+            <Icon name="check" size={13} color="#059669" /> Customer accepted your response
+          </span>
+          <button
+            onClick={onInitiateProject}
+            style={{
+              display: "inline-flex",
+              alignItems: "center",
+              justifyContent: "center",
+              gap: 7,
+              fontWeight: 600,
+              fontSize: 13.5,
+              padding: 10,
+              borderRadius: 10,
+              background: colors.primary,
+              color: "#fff",
+            }}
+          >
+            <Icon name="briefcase" size={14} color="#fff" /> Initiate Project
+          </button>
+        </div>
       ) : hasResponded ? (
         <Status color={colors.primary} bg={colors.primarySoft} text="Awaiting customer decision" />
       ) : (

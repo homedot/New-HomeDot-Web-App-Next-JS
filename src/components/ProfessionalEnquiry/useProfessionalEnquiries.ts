@@ -2,18 +2,26 @@
 
 import { useEffect, useState } from "react";
 import { getAuthToken } from "@/utils/authStorage";
-import ProfessionalDashboardService, { type ProfessionalEnquiryRecord } from "@/services/ProfessionalDashboardService";
+import ProfessionalDashboardService, {
+  type ProfessionalEnquiryRecord,
+  type InitiateProjectPayload,
+} from "@/services/ProfessionalDashboardService";
 
 export type EnquiryKind = "job" | "direct";
 
 /** Shared Job/Direct enquiry data + mutations — extracted from
  * ProfessionalDashboardScreen so both it (3-item preview) and
  * ProfessionalEnquiriesScreen (full paginated list) read/act on the same
- * enquiries without duplicating the fetch/pin/respond/decline logic. Checks
- * its own auth token on mount (same convention the Dashboard screen already
- * used for this slice) rather than taking an `enabled` prop, so either
- * screen can drop it in standalone. */
-export function useProfessionalEnquiries() {
+ * enquiries without duplicating the fetch/pin/respond/decline/initiate logic.
+ * Checks its own auth token on mount (same convention the Dashboard screen
+ * already used for this slice) rather than taking an `enabled` prop, so
+ * either screen can drop it in standalone.
+ *
+ * `onProjectInitiated` is an optional extra callback fired (alongside the
+ * usual `refresh()`) after a successful Initiate Project submission — lets
+ * ProfessionalDashboardScreen also refresh its separate Projects tab so the
+ * new project shows up without a full reload. */
+export function useProfessionalEnquiries(onProjectInitiated?: () => void) {
   const [enquiries, setEnquiries] = useState<Record<EnquiryKind, ProfessionalEnquiryRecord[]>>({ job: [], direct: [] });
   const [enquiryCounts, setEnquiryCounts] = useState<Record<EnquiryKind, number>>({ job: 0, direct: 0 });
   const [enquiryPages, setEnquiryPages] = useState<Record<EnquiryKind, number>>({ job: 1, direct: 1 });
@@ -24,6 +32,8 @@ export function useProfessionalEnquiries() {
   const [decliningId, setDecliningId] = useState<string | null>(null);
   const [decliningKind, setDecliningKind] = useState<EnquiryKind>("job");
   const [declining, setDeclining] = useState(false);
+  const [initiatingId, setInitiatingId] = useState<string | null>(null);
+  const [initiating, setInitiating] = useState(false);
   const [toast, setToast] = useState<string | null>(null);
 
   const refresh = async () => {
@@ -116,6 +126,21 @@ export function useProfessionalEnquiries() {
     }
   };
 
+  const submitInitiateProject = async (payload: InitiateProjectPayload) => {
+    if (!initiatingId) return;
+    setInitiating(true);
+    const res = await ProfessionalDashboardService.initiateProject(initiatingId, payload);
+    setInitiating(false);
+    if (res.success && res.data?.status !== false) {
+      setInitiatingId(null);
+      refresh();
+      onProjectInitiated?.();
+      setToast(res.data?.message || "Project created.");
+    } else {
+      setToast(res.data?.message || res.message || "Something went wrong.");
+    }
+  };
+
   return {
     enquiries,
     enquiryCounts,
@@ -134,6 +159,10 @@ export function useProfessionalEnquiries() {
     openDecline,
     closeDecline: () => setDecliningId(null),
     confirmDecline,
+    initiatingId,
+    setInitiatingId,
+    initiating,
+    submitInitiateProject,
     toast,
   };
 }

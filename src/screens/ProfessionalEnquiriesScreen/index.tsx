@@ -19,6 +19,7 @@ import ConfirmModal from "@/components/ConfirmModal";
 import ProDashboardSidebar from "@/components/ProDashboardSidebar";
 import ProfessionalEnquiryCard from "@/components/ProfessionalEnquiry/Card";
 import RespondModal from "@/components/ProfessionalEnquiry/RespondModal";
+import InitiateProjectModal from "@/components/ProfessionalEnquiry/InitiateProjectModal";
 import { useProfessionalEnquiries, type EnquiryKind } from "@/components/ProfessionalEnquiry/useProfessionalEnquiries";
 import { getAuthToken } from "@/utils/authStorage";
 import ProfileService from "@/services/ProfileService";
@@ -77,6 +78,9 @@ export default function ProfessionalEnquiriesScreen() {
   };
 
   const activeEnquiries = enq.enquiries[tab];
+  const initiatingEnquiry = enq.initiatingId
+    ? enq.enquiries.job.find((e) => e._id === enq.initiatingId) || enq.enquiries.direct.find((e) => e._id === enq.initiatingId)
+    : null;
 
   return (
     <div style={{ background: colors.bg, color: colors.ink, position: "relative", zIndex: 0 }}>
@@ -223,6 +227,7 @@ export default function ProfessionalEnquiriesScreen() {
                           onPin={() => enq.pin(e._id)}
                           onRespond={() => enq.setRespondingId(e._id)}
                           onDecline={() => enq.openDecline(e._id, tab)}
+                          onInitiateProject={() => enq.setInitiatingId(e._id)}
                         />
                       ))}
                     </Reveal>
@@ -252,6 +257,15 @@ export default function ProfessionalEnquiriesScreen() {
           loading={enq.declining}
           onClose={enq.closeDecline}
           onConfirm={enq.confirmDecline}
+        />
+      )}
+
+      {enq.initiatingId && initiatingEnquiry && (
+        <InitiateProjectModal
+          enquiry={initiatingEnquiry}
+          loading={enq.initiating}
+          onClose={() => enq.setInitiatingId(null)}
+          onSubmit={enq.submitInitiateProject}
         />
       )}
 

@@ -1,5 +1,6 @@
 import ApiService, { type ApiResponse } from "./ApiService";
 import { API_ENDPOINTS } from "@/constants/ApiConstants";
+import type { ImageUploadBody } from "./MarketplaceScreenService";
 
 // Mirrors the fields homedot-mobile-app's ProfessionalHomeScreen reads off
 // `professionalDetails[0].professionalInfo[0]`.
@@ -86,6 +87,14 @@ export interface ProfessionalActionBody {
   message: string;
 }
 
+export interface InitiateProjectPayload {
+  projectName: string;
+  location: string;
+  startDate: string;
+  endDate: string;
+  projectImages: string[];
+}
+
 export interface ProfessionalProjectImage {
   projectImage: string;
 }
@@ -155,6 +164,28 @@ export const ProfessionalDashboardService = {
   // Requires a stored auth token.
   getProjects: (page = 1): Promise<ApiResponse<ProfessionalProjectListBody>> =>
     ApiService.get<ProfessionalProjectListBody>(API_ENDPOINTS.PROFESSIONAL.ALL_PROJECTS(page)),
+
+  // Requires a stored auth token. One file per call, same pattern as
+  // MarketplaceScreenService.uploadPropertyImage (field name "image", same
+  // COMMON.IMAGE_UPLOAD endpoint) — kept as its own method so professional
+  // dashboard screens never need to import a marketplace service.
+  uploadProjectImage: (file: File): Promise<ApiResponse<ImageUploadBody>> => {
+    const form = new FormData();
+    form.append("image", file);
+    return ApiService.post<ImageUploadBody>(API_ENDPOINTS.COMMON.IMAGE_UPLOAD, form);
+  },
+
+  // Requires a stored auth token. Converts an accepted enquiry into a
+  // project — only valid once professionalResponse[0].userAccepted is true
+  // and no project exists for it yet.
+  initiateProject: (enquiryId: string, payload: InitiateProjectPayload): Promise<ApiResponse<ProfessionalActionBody>> =>
+    ApiService.post<ProfessionalActionBody>(API_ENDPOINTS.PROFESSIONAL.ENQUIRY_PROJECT_INITIATE(enquiryId), {
+      projectName: payload.projectName,
+      location: payload.location,
+      startDate: payload.startDate,
+      endDate: payload.endDate,
+      project_images: payload.projectImages,
+    }),
 };
 
 export default ProfessionalDashboardService;
