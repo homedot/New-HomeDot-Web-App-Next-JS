@@ -8,7 +8,7 @@ import { hexToRgb } from "@/utils/color";
 import Icon, { type IconName } from "@/components/Icon";
 import Button from "@/components/Button";
 import AmbientBackground from "@/components/AmbientBackground";
-import HeroScene from "@/components/HeroScene";
+import ProDashboardHero from "@/components/ProDashboardHero";
 import ScrollProgress from "@/components/ScrollProgress";
 import Cursor from "@/components/Cursor";
 import Reveal from "@/components/Reveal";
@@ -288,83 +288,44 @@ export default function ProfessionalDashboardScreen() {
       <LoginModal ref={loginModalRef} hideTrigger />
 
       {signedIn && home && (
-        <div
-          style={{
-            position: "relative",
-            width: "100vw",
-            marginLeft: "calc(50% - 50vw)",
-            marginRight: "calc(50% - 50vw)",
-            overflow: "hidden",
-            minHeight: "clamp(320px, 34vw, 420px)",
-            background: colors.primary,
-          }}
-        >
-          <div
-            style={{
-              position: "absolute",
-              inset: 0,
-              zIndex: 0,
-              background: `radial-gradient(130% 100% at 88% -10%, ${colors.primaryDeep} 0%, transparent 55%), radial-gradient(85% 75% at 4% 118%, rgba(41,151,255,0.32) 0%, transparent 52%), radial-gradient(60% 50% at 20% 20%, rgba(245,166,35,0.10) 0%, transparent 60%)`,
-            }}
-          />
-          <HeroScene dense />
-          <HeroIllustration />
-          <span className="pdash-sheen" aria-hidden="true" />
-
-          <div
-            style={{
-              position: "relative",
-              zIndex: 2,
-              maxWidth,
-              margin: "0 auto",
-              padding: `${spacing.xl}px ${spacing.xl}px clamp(64px, 8vw, 96px)`,
-              minHeight: "clamp(320px, 34vw, 420px)",
-              display: "flex",
-              flexDirection: "column",
-              justifyContent: "center",
-              gap: spacing.md,
-            }}
-          >
-            <div style={{ display: "flex", alignItems: "center", gap: 8, flexWrap: "wrap" }}>
-              <span
-                style={{
-                  display: "inline-block",
-                  fontSize: 12,
-                  fontWeight: 600,
-                  letterSpacing: 0.5,
-                  textTransform: "uppercase",
-                  color: "rgba(255,255,255,0.78)",
-                  background: "rgba(255,255,255,0.14)",
-                  padding: "5px 12px",
-                  borderRadius: radius.full,
-                }}
-              >
-                Professional dashboard
-              </span>
-              <span style={{ display: "inline-flex", alignItems: "center", gap: 6, fontSize: 11, fontWeight: 600, color: "rgba(255,255,255,0.6)" }}>
-                <span className="pdash-pulse-dot" />
-                Live
-              </span>
-            </div>
-            <div style={{ display: "flex", alignItems: "center", gap: 10, flexWrap: "wrap" }}>
-              <h1 style={{ fontFamily: "var(--font-display)", fontSize: "clamp(28px, 4.2vw, 44px)", fontWeight: 600, color: colors.white, letterSpacing: "-0.02em" }}>
-                {greeting()}, {home.name.split(" ")[0]} 👋
-              </h1>
-              {info?.verified ? (
-                <Badge icon="verified" text={info.featured ? "Featured" : "Verified"} glow />
-              ) : (
-                <Badge icon="clock" text="Pending verification" />
-              )}
-            </div>
-            <p style={{ color: "rgba(255,255,255,0.78)", fontSize: fontSize.md, maxWidth: 480 }}>
-              {info?.professionalCategoryName}
-              {info?.subCategoryName ? ` · ${info.subCategoryName}` : ""}
-            </p>
-            {roleError && (
-              <span style={{ display: "block", color: "#FCA5A5", fontSize: fontSize.xs }}>{roleError}</span>
+        <ProDashboardHero>
+          <div style={{ display: "flex", alignItems: "center", gap: 8, flexWrap: "wrap" }}>
+            <span
+              style={{
+                display: "inline-block",
+                fontSize: 12,
+                fontWeight: 600,
+                letterSpacing: 0.5,
+                textTransform: "uppercase",
+                color: "rgba(255,255,255,0.78)",
+                background: "rgba(255,255,255,0.14)",
+                padding: "5px 12px",
+                borderRadius: radius.full,
+              }}
+            >
+              Professional dashboard
+            </span>
+            <span style={{ display: "inline-flex", alignItems: "center", gap: 6, fontSize: 11, fontWeight: 600, color: "rgba(255,255,255,0.6)" }}>
+              <span className="pdash-pulse-dot" />
+              Live
+            </span>
+          </div>
+          <div style={{ display: "flex", alignItems: "center", gap: 10, flexWrap: "wrap" }}>
+            <h1 style={{ fontFamily: "var(--font-display)", fontSize: "clamp(28px, 4.2vw, 44px)", fontWeight: 600, color: colors.white, letterSpacing: "-0.02em" }}>
+              {greeting()}, {home.name.split(" ")[0]} 👋
+            </h1>
+            {info?.verified ? (
+              <Badge icon="verified" text={info.featured ? "Featured" : "Verified"} glow />
+            ) : (
+              <Badge icon="clock" text="Pending verification" />
             )}
           </div>
-        </div>
+          <p style={{ color: "rgba(255,255,255,0.78)", fontSize: fontSize.md, maxWidth: 480 }}>
+            {info?.professionalCategoryName}
+            {info?.subCategoryName ? ` · ${info.subCategoryName}` : ""}
+          </p>
+          {roleError && <span style={{ display: "block", color: "#FCA5A5", fontSize: fontSize.xs }}>{roleError}</span>}
+        </ProDashboardHero>
       )}
 
       <section style={{ ...wrap, paddingTop: spacing.xl, paddingBottom: spacing.huge }}>
@@ -544,72 +505,6 @@ export default function ProfessionalDashboardScreen() {
   );
 }
 
-/** Decorative, code-built line-art (compass/ruler/hardhat — no stock photos in
- * this codebase) drifting slowly in the hero's bottom-right corner. */
-function HeroIllustration() {
-  return (
-    <div className="pdash-illustration-scene" aria-hidden="true" style={{ position: "absolute", inset: 0, zIndex: 1, overflow: "hidden", pointerEvents: "none" }}>
-      {/* Huge, near-invisible mark filling the vast middle of the full-bleed
-          band — pure depth, not meant to be consciously "read". */}
-      <span style={{ position: "absolute", left: "38%", top: "-14%" }}>
-        <Icon name="compass" size={620} strokeWidth={0.6} color="rgba(255,255,255,0.045)" />
-      </span>
-
-      {/* Bottom-right cluster (tools) */}
-      <div className="pdash-illustration" style={{ position: "absolute", right: "1%", bottom: "-8%", width: 340, height: 300 }}>
-        <span style={{ position: "absolute", right: 0, bottom: 0 }}>
-          <Icon name="compass" size={220} strokeWidth={1} color="rgba(255,255,255,0.14)" />
-        </span>
-        <span className="pdash-illustration-sub" style={{ position: "absolute", left: 0, top: 40 }}>
-          <Icon name="ruler" size={110} strokeWidth={1} color="rgba(255,255,255,0.16)" />
-        </span>
-        <span className="pdash-illustration-sub2" style={{ position: "absolute", right: 160, top: 0 }}>
-          <Icon name="hardhat" size={86} strokeWidth={1} color="rgba(255,255,255,0.18)" />
-        </span>
-      </div>
-
-      {/* Top-right, smaller and higher up so the right margin doesn't read
-          as empty above the tools cluster. */}
-      <div className="pdash-illustration-sub" style={{ position: "absolute", right: "6%", top: "6%", width: 160, height: 140 }}>
-        <span style={{ position: "absolute", right: 0, top: 0 }}>
-          <Icon name="cube" size={70} strokeWidth={1} color="rgba(255,255,255,0.12)" />
-        </span>
-        <span style={{ position: "absolute", right: 90, top: 30 }}>
-          <Icon name="bolt" size={46} strokeWidth={1} color="rgba(255,255,255,0.14)" />
-        </span>
-      </div>
-
-      {/* Bottom-left cluster (interior/finishing motif) — mirrors the
-          bottom-right tools cluster so the left margin isn't bare. */}
-      <div className="pdash-illustration-sub2" style={{ position: "absolute", left: "2%", bottom: "-10%", width: 280, height: 260 }}>
-        <span style={{ position: "absolute", left: 0, bottom: 0 }}>
-          <Icon name="sofa" size={180} strokeWidth={1} color="rgba(255,255,255,0.13)" />
-        </span>
-        <span className="pdash-illustration-sub" style={{ position: "absolute", left: 150, top: 20 }}>
-          <Icon name="brush" size={78} strokeWidth={1} color="rgba(255,255,255,0.15)" />
-        </span>
-      </div>
-
-      {/* Top-left, small — echoes the top-right pair for symmetry. */}
-      <div className="pdash-illustration" style={{ position: "absolute", left: "5%", top: "10%", width: 120, height: 110 }}>
-        <span style={{ position: "absolute", left: 0, top: 0 }}>
-          <Icon name="leaf" size={56} strokeWidth={1} color="rgba(255,255,255,0.12)" />
-        </span>
-        <span style={{ position: "absolute", left: 70, top: 40 }}>
-          <Icon name="drop" size={38} strokeWidth={1} color="rgba(255,255,255,0.14)" />
-        </span>
-      </div>
-    </div>
-  );
-}
-
-/** Fixed, page-wide watermark icons in the light-background margins either
- * side of the centered content column below the hero (AmbientBackground's
- * blurred blobs already sit behind everything, but read as too faint against
- * colors.bg to feel like "filled" space — these are crisp, dark, low-opacity
- * icon outlines tuned for a light background instead). Same z-index:-1
- * convention as AmbientBackground so it never covers real content; only
- * ever visible in the margins a centered, narrower column leaves bare. */
 /** Premium, restrained treatment for the light-background margins either side
  * of the centered content column: a soft ink vignette (not a mix of bright
  * colored "confetti" blobs), one slim gold hairline echoing an architect's

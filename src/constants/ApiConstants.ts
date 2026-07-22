@@ -348,5 +348,19 @@ export const API_ENDPOINTS = {
     // profileImageUpdate ("v1/professional/profile-image-update") — multipart
     // field "profileImage". Distinct from USER.PROFILE_IMAGE_UPDATE.
     PROFILE_IMAGE_UPDATE: "professional/profile-image-update",
+    // Requires a stored auth token. Mirrors PROFESSIONALS_API.GALLERY_LIST
+    // ("v1/professional/portfolio/") — returns { projectList, projectHistoryList },
+    // each project carrying its own projectImageList. The Workfolio screen
+    // flattens both into one photo grid (see ProfessionalGalleryService.flattenGallery).
+    GALLERY_LIST: (userId: string) => `professional/portfolio/${encodeURIComponent(userId)}`,
+    // Requires a stored auth token. Mirrors PROFESSIONALS_API.ADD_PROJECT_GALLERY
+    // ("v1/professional/create-project-history") — manually adds a "Workfolio"
+    // project (as opposed to ENQUIRY_PROJECT_INITIATE, which converts an
+    // accepted enquiry). POST { location, projectName, project_images }.
+    ADD_PROJECT_GALLERY: "professional/create-project-history",
+    // Requires a stored auth token. Mirrors PROFESSIONALS_API.GALLERY_IMAGE_DELETE
+    // ("v1/professional/delete-portfolio-image") — POST { image, type }, where
+    // type is "outside"/"inside" depending on which bucket the photo came from.
+    GALLERY_IMAGE_DELETE: "professional/delete-portfolio-image",
   },
 } as const;

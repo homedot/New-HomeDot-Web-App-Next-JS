@@ -22,7 +22,7 @@ function hexToRgb(hex: string): string {
 /** Sidebar shell mirrors ProfileScreen's sidebar (same gradient/Reveal/sticky
  * treatment, src/screens/ProfileScreen/index.tsx:299-419) — nav items are
  * limited to routes that actually exist; reference screen-pro-dashboard.jsx's
- * extra items (Workfolio, Blogs, Refer & earn, Support…) are shown as a
+ * extra items (Blogs, Refer & earn, Support…) are shown as a
  * disabled "Coming soon" group rather than dead links. Shared by
  * ProfessionalDashboardScreen and ProfessionalEnquiriesScreen — computes its
  * own active state from the current route (usePathname) rather than being
@@ -35,10 +35,10 @@ export default function ProDashboardSidebar({ onLogout, loggingOut }: { onLogout
     { icon: "grid", label: "Dashboard", href: "/professional/dashboard" },
     { icon: "mail", label: "Enquiries", href: "/professional/enquiries" },
     { icon: "user", label: "Profile", href: "/professional/profile" },
+    { icon: "briefcase", label: "Workfolio", href: "/professional/workfolio" },
     { icon: "heart", label: "Favourites", href: "/favorites" },
   ];
   const soon: SidebarNavEntry[] = [
-    { icon: "briefcase", label: "Workfolio", chip: colors.accent },
     { icon: "chat", label: "Blogs", chip: colors.gold },
     { icon: "share", label: "Refer & earn", chip: colors.price },
     { icon: "settings", label: "Settings", chip: colors.accent },

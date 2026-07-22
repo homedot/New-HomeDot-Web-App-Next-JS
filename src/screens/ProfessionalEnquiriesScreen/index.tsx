@@ -7,6 +7,7 @@ import { spacing, radius, fontSize, shadow, maxWidth } from "@/utils/size";
 import Icon, { type IconName } from "@/components/Icon";
 import Button from "@/components/Button";
 import AmbientBackground from "@/components/AmbientBackground";
+import ProDashboardHero from "@/components/ProDashboardHero";
 import ScrollProgress from "@/components/ScrollProgress";
 import Cursor from "@/components/Cursor";
 import Reveal from "@/components/Reveal";
@@ -100,6 +101,22 @@ export default function ProfessionalEnquiriesScreen() {
           ProfessionalDashboardScreen (see its own comment on this). */}
       <LoginModal ref={loginModalRef} hideTrigger />
 
+      {signedIn && (
+        <ProDashboardHero minHeight="clamp(220px, 22vw, 280px)">
+          <div style={{ display: "flex", alignItems: "center", gap: 6, fontSize: fontSize.sm, color: "rgba(255,255,255,0.75)" }}>
+            <span>Dashboard</span>
+            <Icon name="arrow" size={13} />
+            <span style={{ color: colors.white }}>Enquiries</span>
+          </div>
+          <h1 style={{ fontFamily: "var(--font-display)", fontSize: "clamp(28px, 4.2vw, 44px)", fontWeight: 600, color: colors.white, letterSpacing: "-0.02em" }}>
+            Job &amp; Direct Enquiries
+          </h1>
+          <p style={{ color: "rgba(255,255,255,0.82)", fontSize: fontSize.md, maxWidth: 480 }}>
+            Every enquiry from home owners, in one place — respond, pin or decline.
+          </p>
+        </ProDashboardHero>
+      )}
+
       <section style={{ ...wrap, paddingTop: spacing.xl, paddingBottom: spacing.huge }}>
         {signedIn === false ? (
           <EmptyState
@@ -119,53 +136,6 @@ export default function ProfessionalEnquiriesScreen() {
             <ProDashboardSidebar onLogout={logout} loggingOut={loggingOut} />
 
             <main style={{ minWidth: 0 }}>
-              <Reveal
-                style={{
-                  position: "relative",
-                  overflow: "hidden",
-                  borderRadius: radius.lg,
-                  padding: "clamp(24px, 3.4vw, 36px)",
-                  background: `linear-gradient(120deg, ${colors.primary} 0%, #1c3155 60%, ${colors.price} 130%)`,
-                  boxShadow: shadow.md,
-                  marginBottom: spacing.xl,
-                }}
-              >
-                <span
-                  style={{
-                    position: "absolute",
-                    right: -60,
-                    top: -60,
-                    width: 220,
-                    height: 220,
-                    borderRadius: "50%",
-                    background: colors.accent,
-                    filter: "blur(70px)",
-                    opacity: 0.35,
-                  }}
-                />
-                <div style={{ position: "relative", display: "flex", alignItems: "center", gap: 6, fontSize: fontSize.sm, color: "rgba(255,255,255,0.75)" }}>
-                  <span>Dashboard</span>
-                  <Icon name="arrow" size={13} />
-                  <span style={{ color: colors.white }}>Enquiries</span>
-                </div>
-                <h1
-                  style={{
-                    position: "relative",
-                    fontFamily: "var(--font-display)",
-                    fontSize: "clamp(26px, 3.4vw, 38px)",
-                    fontWeight: 600,
-                    letterSpacing: "-0.03em",
-                    color: colors.white,
-                    marginTop: spacing.sm,
-                  }}
-                >
-                  Job &amp; Direct Enquiries
-                </h1>
-                <p style={{ position: "relative", color: "rgba(255,255,255,0.82)", fontSize: fontSize.base, marginTop: 6 }}>
-                  Every enquiry from home owners, in one place — respond, pin or decline.
-                </p>
-              </Reveal>
-
               <Reveal
                 style={{
                   background: colors.card,
