@@ -272,6 +272,7 @@ export default function ProfessionalDashboardScreen() {
   return (
     <div style={{ background: colors.bg, color: colors.ink, position: "relative", zIndex: 0 }}>
       <AmbientBackground />
+      <DashboardMargins />
       <ScrollProgress />
       <Cursor />
       {/* No SiteNav/SiteFooter here — Professional mode is a self-contained
@@ -544,20 +545,138 @@ export default function ProfessionalDashboardScreen() {
  * this codebase) drifting slowly in the hero's bottom-right corner. */
 function HeroIllustration() {
   return (
-    <div
-      className="pdash-illustration"
-      aria-hidden="true"
-      style={{ position: "absolute", right: "1%", bottom: "-8%", zIndex: 1, width: 340, height: 300, pointerEvents: "none" }}
-    >
-      <span style={{ position: "absolute", right: 0, bottom: 0 }}>
-        <Icon name="compass" size={220} strokeWidth={1} color="rgba(255,255,255,0.14)" />
+    <div className="pdash-illustration-scene" aria-hidden="true" style={{ position: "absolute", inset: 0, zIndex: 1, overflow: "hidden", pointerEvents: "none" }}>
+      {/* Huge, near-invisible mark filling the vast middle of the full-bleed
+          band — pure depth, not meant to be consciously "read". */}
+      <span style={{ position: "absolute", left: "38%", top: "-14%" }}>
+        <Icon name="compass" size={620} strokeWidth={0.6} color="rgba(255,255,255,0.045)" />
       </span>
-      <span className="pdash-illustration-sub" style={{ position: "absolute", left: 0, top: 40 }}>
-        <Icon name="ruler" size={110} strokeWidth={1} color="rgba(255,255,255,0.16)" />
-      </span>
-      <span className="pdash-illustration-sub2" style={{ position: "absolute", right: 160, top: 0 }}>
-        <Icon name="hardhat" size={86} strokeWidth={1} color="rgba(255,255,255,0.18)" />
-      </span>
+
+      {/* Bottom-right cluster (tools) */}
+      <div className="pdash-illustration" style={{ position: "absolute", right: "1%", bottom: "-8%", width: 340, height: 300 }}>
+        <span style={{ position: "absolute", right: 0, bottom: 0 }}>
+          <Icon name="compass" size={220} strokeWidth={1} color="rgba(255,255,255,0.14)" />
+        </span>
+        <span className="pdash-illustration-sub" style={{ position: "absolute", left: 0, top: 40 }}>
+          <Icon name="ruler" size={110} strokeWidth={1} color="rgba(255,255,255,0.16)" />
+        </span>
+        <span className="pdash-illustration-sub2" style={{ position: "absolute", right: 160, top: 0 }}>
+          <Icon name="hardhat" size={86} strokeWidth={1} color="rgba(255,255,255,0.18)" />
+        </span>
+      </div>
+
+      {/* Top-right, smaller and higher up so the right margin doesn't read
+          as empty above the tools cluster. */}
+      <div className="pdash-illustration-sub" style={{ position: "absolute", right: "6%", top: "6%", width: 160, height: 140 }}>
+        <span style={{ position: "absolute", right: 0, top: 0 }}>
+          <Icon name="cube" size={70} strokeWidth={1} color="rgba(255,255,255,0.12)" />
+        </span>
+        <span style={{ position: "absolute", right: 90, top: 30 }}>
+          <Icon name="bolt" size={46} strokeWidth={1} color="rgba(255,255,255,0.14)" />
+        </span>
+      </div>
+
+      {/* Bottom-left cluster (interior/finishing motif) — mirrors the
+          bottom-right tools cluster so the left margin isn't bare. */}
+      <div className="pdash-illustration-sub2" style={{ position: "absolute", left: "2%", bottom: "-10%", width: 280, height: 260 }}>
+        <span style={{ position: "absolute", left: 0, bottom: 0 }}>
+          <Icon name="sofa" size={180} strokeWidth={1} color="rgba(255,255,255,0.13)" />
+        </span>
+        <span className="pdash-illustration-sub" style={{ position: "absolute", left: 150, top: 20 }}>
+          <Icon name="brush" size={78} strokeWidth={1} color="rgba(255,255,255,0.15)" />
+        </span>
+      </div>
+
+      {/* Top-left, small — echoes the top-right pair for symmetry. */}
+      <div className="pdash-illustration" style={{ position: "absolute", left: "5%", top: "10%", width: 120, height: 110 }}>
+        <span style={{ position: "absolute", left: 0, top: 0 }}>
+          <Icon name="leaf" size={56} strokeWidth={1} color="rgba(255,255,255,0.12)" />
+        </span>
+        <span style={{ position: "absolute", left: 70, top: 40 }}>
+          <Icon name="drop" size={38} strokeWidth={1} color="rgba(255,255,255,0.14)" />
+        </span>
+      </div>
+    </div>
+  );
+}
+
+/** Fixed, page-wide watermark icons in the light-background margins either
+ * side of the centered content column below the hero (AmbientBackground's
+ * blurred blobs already sit behind everything, but read as too faint against
+ * colors.bg to feel like "filled" space — these are crisp, dark, low-opacity
+ * icon outlines tuned for a light background instead). Same z-index:-1
+ * convention as AmbientBackground so it never covers real content; only
+ * ever visible in the margins a centered, narrower column leaves bare. */
+/** Premium, restrained treatment for the light-background margins either side
+ * of the centered content column: a soft ink vignette (not a mix of bright
+ * colored "confetti" blobs), one slim gold hairline echoing an architect's
+ * ruler, and a couple of large, thin-stroke navy watermarks with a single
+ * gold accent — mostly-monochrome-plus-one-metallic-accent being the classic
+ * "premium" palette move, rather than many saturated brand colors at once. */
+function DashboardMargins() {
+  const marks: { icon: IconName; left?: string; right?: string; top: string; size: number; cls: string; color: string }[] = [
+    { icon: "villa", left: "3%", top: "20%", size: 210, cls: "pdash-illustration", color: `rgba(${hexToRgb(colors.primary)}, 0.06)` },
+    { icon: "compass", left: "6%", top: "74%", size: 100, cls: "pdash-illustration-sub", color: `rgba(${hexToRgb(colors.goldDeep)}, 0.13)` },
+    { icon: "house", right: "3%", top: "24%", size: 190, cls: "pdash-illustration-sub2", color: `rgba(${hexToRgb(colors.primary)}, 0.06)` },
+    { icon: "ruler", right: "7%", top: "76%", size: 92, cls: "pdash-illustration", color: `rgba(${hexToRgb(colors.goldDeep)}, 0.13)` },
+  ];
+  return (
+    <div aria-hidden="true" style={{ position: "fixed", inset: 0, zIndex: -1, overflow: "hidden", pointerEvents: "none" }}>
+      <span
+        style={{
+          position: "absolute",
+          left: "-8%",
+          top: "10%",
+          width: 420,
+          height: 620,
+          borderRadius: "50%",
+          background: `radial-gradient(circle, ${colors.primary}, transparent 70%)`,
+          opacity: 0.05,
+          filter: "blur(60px)",
+        }}
+      />
+      <span
+        style={{
+          position: "absolute",
+          right: "-8%",
+          top: "18%",
+          width: 420,
+          height: 620,
+          borderRadius: "50%",
+          background: `radial-gradient(circle, ${colors.primary}, transparent 70%)`,
+          opacity: 0.05,
+          filter: "blur(60px)",
+        }}
+      />
+
+      {/* Slim architect's-ruler hairlines — a quiet, precise motif rather
+          than literal icons filling the whole margin. */}
+      <span
+        style={{
+          position: "absolute",
+          left: "2.4%",
+          top: "8%",
+          width: 1,
+          height: "34%",
+          background: `linear-gradient(to bottom, transparent, ${colors.goldDeep}55 20%, ${colors.goldDeep}55 80%, transparent)`,
+        }}
+      />
+      <span
+        style={{
+          position: "absolute",
+          right: "2.4%",
+          top: "52%",
+          width: 1,
+          height: "34%",
+          background: `linear-gradient(to bottom, transparent, ${colors.goldDeep}55 20%, ${colors.goldDeep}55 80%, transparent)`,
+        }}
+      />
+
+      {marks.map((m, i) => (
+        <span key={i} className={m.cls} style={{ position: "absolute", left: m.left, right: m.right, top: m.top }}>
+          <Icon name={m.icon} size={m.size} strokeWidth={0.6} color={m.color} />
+        </span>
+      ))}
     </div>
   );
 }
