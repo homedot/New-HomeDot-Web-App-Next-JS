@@ -1,18 +1,33 @@
 import ApiService, { type ApiResponse } from "./ApiService";
 import { API_ENDPOINTS } from "@/constants/ApiConstants";
 import type { ImageUploadBody } from "./MarketplaceScreenService";
+import type { ProfessionalSkillRecord } from "./ProfessionalsScreenService";
 
 // Mirrors the fields homedot-mobile-app's ProfessionalHomeScreen reads off
-// `professionalDetails[0].professionalInfo[0]`.
+// `professionalDetails[0].professionalInfo[0]`. `skills` reuses
+// ProfessionalSkillRecord from ProfessionalsScreenService — same
+// professionalInfo shape the public browse/detail side already types,
+// mobile's ProfessionalEditProfileScreen (the closest analog to this
+// dashboard) renders only `levelThreeName` per chip too.
 export interface ProfessionalHomeInfoRecord {
   _id: string;
   userId?: string;
+  // Ids — paired with the *Name fields below, same convention as
+  // ProfessionalInfoRecord in ProfessionalsScreenService. Not editable from
+  // the profile screen, just resubmitted as-is on save (mirrors mobile).
+  professionalCategory?: string;
   professionalCategoryName?: string;
+  subCategory?: string;
   subCategoryName?: string;
+  professionalType?: string;
   rating?: number | string;
   verified?: boolean;
   featured?: boolean;
   experience?: number;
+  squareFeetRate?: number;
+  workingArea?: string;
+  description?: string;
+  skills?: ProfessionalSkillRecord[];
 }
 
 // Mirrors `professionalDetails[0]` itself — the HOME endpoint's top-level record.
@@ -93,6 +108,31 @@ export interface InitiateProjectPayload {
   startDate: string;
   endDate: string;
   projectImages: string[];
+}
+
+// Mirrors homedot-mobile-app's ProfessionalEditProfileScreen — sends the
+// whole profile in one PUT, including fields not editable from this screen
+// (professionalType/professionalCategory/subCategory), which are just
+// resubmitted with their current values. `location` is required — mobile's
+// own validateProfile() blocks submission without it (line 645-648 of
+// ProfessionalEditProfileScreen.js), and ProfileUpdateServices.js always
+// sends latitude/longitude as STRINGS (template-literal coerced, not raw
+// numbers) — both matter here, since the endpoint 500s if either is off
+// (confirmed against the live API while testing this feature).
+export interface UpdateProfessionalProfilePayload {
+  name: string;
+  professionalType?: string;
+  professionalCategory?: string;
+  subCategory?: string;
+  experience: string;
+  squareFeetRate?: string;
+  workingArea?: string;
+  description: string;
+  skills: string[];
+  location: string;
+  google_address_string: string;
+  latitude: string;
+  longitude: string;
 }
 
 export interface ProfessionalProjectImage {
@@ -186,6 +226,20 @@ export const ProfessionalDashboardService = {
       endDate: payload.endDate,
       project_images: payload.projectImages,
     }),
+
+  // Requires a stored auth token. Saves the whole professional profile in
+  // one call — see UpdateProfessionalProfilePayload's comment.
+  updateProfile: (payload: UpdateProfessionalProfilePayload): Promise<ApiResponse<ProfessionalHomeBody>> =>
+    ApiService.put<ProfessionalHomeBody>(API_ENDPOINTS.PROFESSIONAL.PROFILE_UPDATE, payload),
+
+  // Requires a stored auth token. Uploads immediately on pick (not gated
+  // behind the profile Save) — field "profileImage", distinct endpoint from
+  // both uploadProjectImage (field "image") and the generic user avatar.
+  updateProfileImage: (file: File): Promise<ApiResponse<ProfessionalHomeBody>> => {
+    const form = new FormData();
+    form.append("profileImage", file);
+    return ApiService.put<ProfessionalHomeBody>(API_ENDPOINTS.PROFESSIONAL.PROFILE_IMAGE_UPDATE, form);
+  },
 };
 
 export default ProfessionalDashboardService;

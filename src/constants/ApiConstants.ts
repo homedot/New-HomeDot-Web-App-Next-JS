@@ -339,5 +339,14 @@ export const API_ENDPOINTS = {
     // (professionalResponse[0].userAccepted === true, no project yet) into a
     // project. Images are uploaded individually first via COMMON.IMAGE_UPLOAD.
     ENQUIRY_PROJECT_INITIATE: (id: string) => `enquiry/convert-enquiry-project/${encodeURIComponent(id)}`,
+    // Requires a stored auth token. Mirrors PROFESSIONALS_API.EDIT_PROFILE
+    // ("v1/professional/profile-update") — PUT the full professional profile
+    // (name, professionalType, professionalCategory, subCategory, experience,
+    // squareFeetRate, workingArea, description, skills, location) in one call.
+    PROFILE_UPDATE: "professional/profile-update",
+    // Requires a stored auth token. Mirrors ProfessionalDetailsServices'
+    // profileImageUpdate ("v1/professional/profile-image-update") — multipart
+    // field "profileImage". Distinct from USER.PROFILE_IMAGE_UPDATE.
+    PROFILE_IMAGE_UPDATE: "professional/profile-image-update",
   },
 } as const;

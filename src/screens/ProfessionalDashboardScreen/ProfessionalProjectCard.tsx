@@ -6,15 +6,15 @@ import Icon from "@/components/Icon";
 import type { ProfessionalProjectRecord } from "@/services/ProfessionalDashboardService";
 
 const STATUS_STYLE: Record<string, { bg: string; ic: "clock" | "check" | "close" }> = {
-  ongoing: { bg: "linear-gradient(90deg, #10B981, #059669)", ic: "clock" },
-  active: { bg: "linear-gradient(90deg, #10B981, #059669)", ic: "clock" },
-  completed: { bg: "linear-gradient(90deg, #3B82F6, #1D4ED8)", ic: "check" },
-  pending: { bg: "linear-gradient(90deg, #F59E0B, #D97706)", ic: "clock" },
-  cancelled: { bg: "linear-gradient(90deg, #EF4444, #DC2626)", ic: "close" },
+  ongoing: { bg: "#059669", ic: "clock" },
+  active: { bg: "#059669", ic: "clock" },
+  completed: { bg: "#1D4ED8", ic: "check" },
+  pending: { bg: "#D97706", ic: "clock" },
+  cancelled: { bg: "#DC2626", ic: "close" },
 };
 
 function statusStyle(status: string) {
-  return STATUS_STYLE[status?.toLowerCase?.() ?? ""] ?? { bg: "linear-gradient(90deg, #6B7280, #4B5563)", ic: "clock" as const };
+  return STATUS_STYLE[status?.toLowerCase?.() ?? ""] ?? { bg: "#4B5563", ic: "clock" as const };
 }
 
 function formatDate(iso?: string): string {
@@ -101,7 +101,7 @@ export default function ProfessionalProjectCard({ project }: { project: Professi
         </div>
       </div>
 
-      <div style={{ height: 3, background: `linear-gradient(90deg, ${colors.primary}, ${colors.primaryDeep})`, marginTop: "auto" }} />
+      <div style={{ height: 3, background: colors.primary, marginTop: "auto" }} />
     </article>
   );
 }

@@ -70,11 +70,30 @@ export interface RoleSwitchBody {
   data: AuthTokenPairRecord[];
 }
 
-// Mirrors homedot-mobile-app's `skillsOfStrings = skills.map(obj => JSON.stringify(obj))`
-// — the become-professional payload sends each selected skill as a
-// JSON-stringified object, not a plain id.
-export function buildSkillsPayload(skills: ProfessionalSkillRecord[]): string[] {
-  return skills.map((s) => JSON.stringify(s));
+export interface SkillCategoryContext {
+  levelOneId: string;
+  levelOneName: string;
+  levelTwoId: string;
+  levelTwoName: string;
+}
+
+// Mirrors homedot-mobile-app's ProfessionalEditProfileScreen.js:413-421
+// (`{...item, levelOneId, levelOneName, levelTwoId, levelTwoName}`) then
+// `skillsOfStrings = skills.map(obj => JSON.stringify(obj))` — each skill
+// must carry the FULL category/sub-category hierarchy alongside its own
+// levelThreeId/levelThreeName, not just the level-three pair, or the
+// backend rejects the update. `context` is the professional's current
+// category/sub-category (id + name for each) at the time of saving.
+export function buildSkillsPayload(skills: ProfessionalSkillRecord[], context: SkillCategoryContext): string[] {
+  return skills.map((s) =>
+    JSON.stringify({
+      ...s,
+      levelOneId: context.levelOneId,
+      levelOneName: context.levelOneName,
+      levelTwoId: context.levelTwoId,
+      levelTwoName: context.levelTwoName,
+    }),
+  );
 }
 
 // All "become/switch to professional" API calls live here. The

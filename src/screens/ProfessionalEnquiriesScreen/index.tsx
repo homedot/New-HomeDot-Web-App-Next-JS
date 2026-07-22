@@ -17,6 +17,7 @@ import LoadMoreButton from "@/components/LoadMoreButton";
 import TabButton from "@/components/TabButton";
 import ConfirmModal from "@/components/ConfirmModal";
 import ProDashboardSidebar from "@/components/ProDashboardSidebar";
+import ProDashboardSkeleton from "@/components/ProDashboardSkeleton";
 import ProfessionalEnquiryCard from "@/components/ProfessionalEnquiry/Card";
 import RespondModal from "@/components/ProfessionalEnquiry/RespondModal";
 import InitiateProjectModal from "@/components/ProfessionalEnquiry/InitiateProjectModal";
@@ -25,6 +26,7 @@ import { getAuthToken } from "@/utils/authStorage";
 import ProfileService from "@/services/ProfileService";
 import { useAuthStore } from "@/store/useAuthStore";
 import { useProfileStore } from "@/store/useProfileStore";
+import { useProfessionalHomeStore } from "@/store/useProfessionalHomeStore";
 
 const wrap: CSSProperties = { maxWidth, margin: "0 auto", padding: `0 ${spacing.xl}px` };
 
@@ -62,7 +64,13 @@ export default function ProfessionalEnquiriesScreen() {
     measure();
     window.addEventListener("resize", measure);
     return () => window.removeEventListener("resize", measure);
-  }, [tab]);
+    // `signedIn` matters too, not just `tab` — the tab bar doesn't exist yet
+    // while the sign-in check is pending (a loading skeleton renders in its
+    // place, same as ProfessionalDashboardScreen's identical `[tab, loadingHome]`
+    // dependency), so the very first measurement finds no ref to measure and
+    // the pill never appears behind "Job Enquiries" until some other state
+    // change happens to re-run this effect.
+  }, [tab, signedIn]);
 
   useEffect(() => {
     // eslint-disable-next-line react-hooks/set-state-in-effect -- token lives in localStorage, a client-only system; see LoginModal's identical pattern
@@ -74,6 +82,7 @@ export default function ProfessionalEnquiriesScreen() {
     await ProfileService.logout().catch(() => null);
     useAuthStore.getState().clearTokens();
     useProfileStore.getState().clear();
+    useProfessionalHomeStore.getState().clear();
     router.push("/");
   };
 
@@ -104,7 +113,7 @@ export default function ProfessionalEnquiriesScreen() {
             }
           />
         ) : signedIn === null ? (
-          <div className="skeleton-shimmer" style={{ height: 180, borderRadius: radius.lg }} />
+          <ProDashboardSkeleton />
         ) : (
           <div className="grid grid-cols-1 xl:grid-cols-[264px_1fr]" style={{ gap: spacing.xl, alignItems: "start" }}>
             <ProDashboardSidebar onLogout={logout} loggingOut={loggingOut} />

@@ -34,7 +34,7 @@ export default function ProDashboardSidebar({ onLogout, loggingOut }: { onLogout
   const live: SidebarNavEntry[] = [
     { icon: "grid", label: "Dashboard", href: "/professional/dashboard" },
     { icon: "mail", label: "Enquiries", href: "/professional/enquiries" },
-    { icon: "user", label: "Profile", href: "/profile" },
+    { icon: "user", label: "Profile", href: "/professional/profile" },
     { icon: "heart", label: "Favourites", href: "/favorites" },
   ];
   const soon: SidebarNavEntry[] = [
@@ -50,7 +50,7 @@ export default function ProDashboardSidebar({ onLogout, loggingOut }: { onLogout
       className="relative xl:sticky xl:top-24"
       style={{
         overflow: "hidden",
-        background: `linear-gradient(165deg, ${colors.primary} 0%, ${colors.primaryDeep} 100%)`,
+        background: colors.primary,
         borderRadius: radius.lg,
         padding: "20px 16px",
         boxShadow: shadow.md,

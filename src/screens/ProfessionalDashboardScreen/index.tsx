@@ -19,6 +19,7 @@ import LoadMoreButton from "@/components/LoadMoreButton";
 import TabButton from "@/components/TabButton";
 import ConfirmModal from "@/components/ConfirmModal";
 import ProDashboardSidebar from "@/components/ProDashboardSidebar";
+import ProDashboardSkeleton from "@/components/ProDashboardSkeleton";
 import ProfessionalEnquiryCard from "@/components/ProfessionalEnquiry/Card";
 import RespondModal from "@/components/ProfessionalEnquiry/RespondModal";
 import InitiateProjectModal from "@/components/ProfessionalEnquiry/InitiateProjectModal";
@@ -26,6 +27,7 @@ import { useProfessionalEnquiries, type EnquiryKind } from "@/components/Profess
 import { getAuthToken, getActiveRole, setActiveRole } from "@/utils/authStorage";
 import { useAuthStore } from "@/store/useAuthStore";
 import { useProfileStore } from "@/store/useProfileStore";
+import { useProfessionalHomeStore } from "@/store/useProfessionalHomeStore";
 import { useRoleSwitchStore } from "@/store/useRoleSwitchStore";
 import ProfileService from "@/services/ProfileService";
 import SwitchProfessionalService from "@/services/SwitchProfessionalService";
@@ -95,10 +97,14 @@ export default function ProfessionalDashboardScreen() {
   const loginModalRef = useRef<LoginModalHandle>(null);
 
   const profile = useProfileStore((s) => s.profile);
+  const home = useProfessionalHomeStore((s) => s.home);
+  // Shows a loading skeleton only while there's truly nothing to paint yet —
+  // once the shared store has fetched once this session (e.g. the professional
+  // came from /professional/profile, which just saved an edit into it), this
+  // is instantly false, so navigating here shows fresh data with no flash.
+  const loadingHome = useProfessionalHomeStore((s) => s.loading || (!s.loaded && !s.home));
 
   const [signedIn, setSignedIn] = useState<boolean | null>(null);
-  const [home, setHome] = useState<ProfessionalHomeRecord | null>(null);
-  const [loadingHome, setLoadingHome] = useState(true);
   const [switchingRole, setSwitchingRole] = useState(false);
   const [roleError, setRoleError] = useState<string | null>(null);
   const [loggingOut, setLoggingOut] = useState(false);
@@ -141,16 +147,12 @@ export default function ProfessionalDashboardScreen() {
     if (!getAuthToken()) {
       // eslint-disable-next-line react-hooks/set-state-in-effect -- token lives in localStorage, a client-only system; see LoginModal's identical pattern
       setSignedIn(false);
-      setLoadingHome(false);
       setLoadingProjects(false);
       return;
     }
     setSignedIn(true);
     useProfileStore.getState().fetch();
-    ProfessionalDashboardService.getHome().then((res) => {
-      setLoadingHome(false);
-      if (res.success && res.data?.status && res.data.data?.[0]) setHome(res.data.data[0]);
-    });
+    useProfessionalHomeStore.getState().refresh();
     refreshProjects();
   }, []);
 
@@ -177,6 +179,7 @@ export default function ProfessionalDashboardScreen() {
     await ProfileService.logout().catch(() => null);
     useAuthStore.getState().clearTokens();
     useProfileStore.getState().clear();
+    useProfessionalHomeStore.getState().clear();
     router.push("/");
   };
 
@@ -377,7 +380,7 @@ export default function ProfessionalDashboardScreen() {
             }
           />
         ) : loadingHome ? (
-          <div className="skeleton-shimmer" style={{ height: 180, borderRadius: radius.lg }} />
+          <ProDashboardSkeleton rail />
         ) : !home ? (
           <EmptyState
             icon="hardhat"
@@ -762,12 +765,7 @@ function ProfileRailCard({
         overflow: "hidden",
       }}
     >
-      <div
-        style={{
-          height: 84,
-          background: `linear-gradient(120deg, ${colors.primary} 0%, ${colors.price} 70%, ${colors.gold} 130%)`,
-        }}
-      />
+      <div style={{ height: 84, background: colors.primary }} />
       <div style={{ padding: "0 20px 20px", marginTop: -42, display: "flex", flexDirection: "column", alignItems: "center", textAlign: "center" }}>
         <span style={{ position: "relative", flexShrink: 0 }}>
           <span
@@ -822,6 +820,31 @@ function ProfileRailCard({
           <span style={{ display: "inline-flex", alignItems: "center", gap: 4, fontSize: fontSize.xs, fontWeight: 700, color: colors.ink2, marginTop: 6 }}>
             <Icon name="star" size={13} filled color={colors.gold} /> {info.rating}
           </span>
+        )}
+
+        {info?.skills && info.skills.length > 0 && (
+          <div style={{ width: "100%", marginTop: spacing.lg, textAlign: "left" }}>
+            <span style={{ display: "block", fontSize: 10, fontWeight: 700, color: colors.muted, textTransform: "uppercase", letterSpacing: 0.6, marginBottom: 8 }}>
+              Skills
+            </span>
+            <div style={{ display: "flex", flexWrap: "wrap", gap: 6 }}>
+              {info.skills.map((s) => (
+                <span
+                  key={s.levelThreeId}
+                  style={{
+                    fontSize: 11.5,
+                    fontWeight: 600,
+                    color: colors.primary,
+                    background: colors.primarySoft,
+                    padding: "5px 10px",
+                    borderRadius: radius.full,
+                  }}
+                >
+                  {s.levelThreeName}
+                </span>
+              ))}
+            </div>
+          </div>
         )}
 
         <div style={{ width: "100%", display: "flex", flexDirection: "column", gap: 8, marginTop: spacing.lg, textAlign: "left" }}>

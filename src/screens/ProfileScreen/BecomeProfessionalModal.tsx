@@ -4,6 +4,7 @@ import { useEffect, useState } from "react";
 import { colors } from "@/constants/colors";
 import { spacing, radius, fontSize } from "@/utils/size";
 import Icon from "@/components/Icon";
+import SkillsPicker from "@/components/SkillsPicker";
 import SwitchProfessionalService, {
   PROFESSIONAL_TYPES,
   DEFAULT_PROFESSIONAL_DESCRIPTION,
@@ -36,11 +37,7 @@ export default function BecomeProfessionalModal({
   const [loadingSubCategories, setLoadingSubCategories] = useState(false);
   const [experience, setExperience] = useState("");
 
-  const [skillQuery, setSkillQuery] = useState("");
-  const [skillResults, setSkillResults] = useState<ProfessionalSkillRecord[]>([]);
-  const [skillSuggestions, setSkillSuggestions] = useState<ProfessionalSkillRecord[]>([]);
   const [selectedSkills, setSelectedSkills] = useState<ProfessionalSkillRecord[]>([]);
-  const [searchingSkills, setSearchingSkills] = useState(false);
 
   const [submitting, setSubmitting] = useState(false);
   const [error, setError] = useState<string | null>(null);
@@ -62,9 +59,6 @@ export default function BecomeProfessionalModal({
     setSubCategoryId("");
     setSubCategories([]);
     setSelectedSkills([]);
-    setSkillSuggestions([]);
-    setSkillResults([]);
-    setSkillQuery("");
     if (!id) return;
     setLoadingSubCategories(true);
     SwitchProfessionalService.getSubCategories(id).then((res) => {
@@ -76,45 +70,10 @@ export default function BecomeProfessionalModal({
   const onSubCategoryChange = (id: string) => {
     setSubCategoryId(id);
     setSelectedSkills([]);
-    setSkillResults([]);
-    setSkillQuery("");
-    if (!id) {
-      setSkillSuggestions([]);
-      return;
-    }
-    SwitchProfessionalService.getSkillSuggestions(categoryId, id).then((res) => {
-      if (res.success && res.data?.status) setSkillSuggestions(res.data.data.slice(0, 10));
-    });
-  };
-
-  // Live search, debounced — mirrors the search box on
-  // BecomeaProfessionalSkillsScreen.
-  useEffect(() => {
-    // Stale results are harmless to leave in state — `availableSkills` below
-    // ignores `skillResults` entirely whenever the query is blank, falling
-    // back to suggestions instead.
-    if (!categoryId || !subCategoryId || !skillQuery.trim()) return;
-    const id = setTimeout(() => {
-      setSearchingSkills(true);
-      SwitchProfessionalService.searchSkills(categoryId, subCategoryId, skillQuery.trim()).then((res) => {
-        setSearchingSkills(false);
-        if (res.success && res.data?.status) setSkillResults(res.data.data);
-      });
-    }, 400);
-    return () => clearTimeout(id);
-  }, [skillQuery, categoryId, subCategoryId]);
-
-  const toggleSkill = (skill: ProfessionalSkillRecord) => {
-    setSelectedSkills((prev) =>
-      prev.some((s) => s.levelThreeId === skill.levelThreeId)
-        ? prev.filter((s) => s.levelThreeId !== skill.levelThreeId)
-        : [...prev, skill],
-    );
   };
 
   const selectedType = PROFESSIONAL_TYPES.find((t) => t.id === professionalType);
   const expNum = Number(experience);
-  const skillsEnabled = !!categoryId && !!subCategoryId;
   const canSubmit =
     !!selectedType &&
     !!categoryId &&
@@ -138,7 +97,12 @@ export default function BecomeProfessionalModal({
       professionalType: selectedType.title,
       experience: experience.trim(),
       description: DEFAULT_PROFESSIONAL_DESCRIPTION,
-      skills: buildSkillsPayload(selectedSkills),
+      skills: buildSkillsPayload(selectedSkills, {
+        levelOneId: categoryId,
+        levelOneName: categories.find((c) => c._id === categoryId)?.categoryName || "",
+        levelTwoId: subCategoryId,
+        levelTwoName: subCategories.find((s) => s.subcategoryId === subCategoryId)?.subcategoryName || "",
+      }),
     });
     setSubmitting(false);
     if (!res.success || res.data?.status === false) {
@@ -147,8 +111,6 @@ export default function BecomeProfessionalModal({
     }
     onSuccess(res.data?.data?.[0]);
   };
-
-  const availableSkills = skillQuery.trim() ? skillResults : skillSuggestions;
 
   return (
     <div className="eq-modal-overlay" onClick={onClose} style={overlayStyle}>
@@ -236,69 +198,7 @@ export default function BecomeProfessionalModal({
 
           <div>
             <SectionLabel>Skills</SectionLabel>
-            {!skillsEnabled ? (
-              <p style={{ fontSize: fontSize.xs, color: colors.muted, margin: 0 }}>
-                Choose a category and sub category first.
-              </p>
-            ) : (
-              <>
-                <div style={{ ...inputWrap, marginBottom: 10 }}>
-                  <Icon name="search" size={15} color={colors.muted} />
-                  <input
-                    value={skillQuery}
-                    onChange={(e) => setSkillQuery(e.target.value)}
-                    placeholder="Search skills…"
-                    style={fieldInputStyle}
-                  />
-                </div>
-                {selectedSkills.length > 0 && (
-                  <div style={{ display: "flex", flexWrap: "wrap", gap: 8, marginBottom: 10 }}>
-                    {selectedSkills.map((s) => (
-                      <button
-                        key={s.levelThreeId}
-                        onClick={() => toggleSkill(s)}
-                        style={{
-                          display: "inline-flex",
-                          alignItems: "center",
-                          gap: 6,
-                          padding: "7px 12px",
-                          borderRadius: radius.full,
-                          background: colors.primary,
-                          color: colors.white,
-                          fontSize: fontSize.xs,
-                          fontWeight: 600,
-                        }}
-                      >
-                        {s.levelThreeName}
-                        <Icon name="close" size={11} color="#fff" />
-                      </button>
-                    ))}
-                  </div>
-                )}
-                <div style={{ display: "flex", flexWrap: "wrap", gap: 8 }}>
-                  {searchingSkills && <span style={{ fontSize: fontSize.xs, color: colors.muted }}>Searching…</span>}
-                  {availableSkills
-                    .filter((s) => !selectedSkills.some((sel) => sel.levelThreeId === s.levelThreeId))
-                    .map((s) => (
-                      <button
-                        key={s.levelThreeId}
-                        onClick={() => toggleSkill(s)}
-                        style={{
-                          padding: "7px 12px",
-                          borderRadius: radius.full,
-                          border: `1.5px solid ${colors.line}`,
-                          background: colors.bg,
-                          color: colors.ink2,
-                          fontSize: fontSize.xs,
-                          fontWeight: 600,
-                        }}
-                      >
-                        + {s.levelThreeName}
-                      </button>
-                    ))}
-                </div>
-              </>
-            )}
+            <SkillsPicker categoryId={categoryId} subCategoryId={subCategoryId} selected={selectedSkills} onChange={setSelectedSkills} />
           </div>
 
           <div>
