@@ -1,6 +1,4 @@
-export const BASE_URL =
-  process.env.NEXT_PUBLIC_API_BASE_URL ??
-  "https://stg-api.homedotapp.com/api/v1";
+export const BASE_URL = process.env.NEXT_PUBLIC_API_STAGING_BASE_URL;
 
 export const API_ENDPOINTS = {
   AUTH: {
@@ -92,19 +90,23 @@ export const API_ENDPOINTS = {
     PROPERTIES: "/marketplace/properties",
     PROPERTY_DETAIL: (id: string) => `/marketplace/properties/${id}`,
     // Guest-accessible — no auth required.
-    PROPERTIES_FILTER: (page: number) => `property/properties-filter?page=${page}`,
+    PROPERTIES_FILTER: (page: number) =>
+      `property/properties-filter?page=${page}`,
     // Requires a stored auth token (ApiService attaches it automatically).
     // Mirrors homedot-mobile-app's FILTER_SELL_PROPERTY ("v1/property/properties-filter-auth")
     // — the "v1/" there is relative to the mobile app's own base URL, which
     // doesn't already end in /api/v1 the way BASE_URL here does, so it's
     // dropped to avoid a double /v1/v1/ segment.
-    FILTER_SELL_PROPERTY: (page: number) => `property/properties-filter-auth?page=${page}`,
+    FILTER_SELL_PROPERTY: (page: number) =>
+      `property/properties-filter-auth?page=${page}`,
     // Guest-accessible — no auth required. Same request body/response shape
     // as PROPERTIES_FILTER, just the "rent" listings instead of "sell".
-    RENT_PROPERTIES_FILTER: (page: number) => `rent/properties-filter?page=${page}`,
+    RENT_PROPERTIES_FILTER: (page: number) =>
+      `rent/properties-filter?page=${page}`,
     // Requires a stored auth token. Same shape as FILTER_SELL_PROPERTY, for
     // rent listings.
-    FILTER_RENT_PROPERTY: (page: number) => `rent/properties-filter-auth?page=${page}`,
+    FILTER_RENT_PROPERTY: (page: number) =>
+      `rent/properties-filter-auth?page=${page}`,
     // Guest-accessible — no auth required.
     PROPERTY_BY_SLUG: (slug: string) =>
       `property/guest/get-property/${encodeURIComponent(slug)}`,
@@ -151,32 +153,40 @@ export const API_ENDPOINTS = {
     // GET_PROPERTY_DETAILS ("v1/property/get-property/") — the owner-authed
     // detail route (as opposed to PROPERTY_BY_SLUG's guest route), used to
     // prefill the edit form.
-    PROPERTY_DETAIL_AUTH: (slug: string) => `property/get-property/${encodeURIComponent(slug)}`,
+    PROPERTY_DETAIL_AUTH: (slug: string) =>
+      `property/get-property/${encodeURIComponent(slug)}`,
     // Requires a stored auth token. Mirrors homedot-mobile-app's
     // GET_RENT_PROPERTY_DETAILED ("v1/rent/get-property/").
-    RENT_PROPERTY_DETAIL_AUTH: (slug: string) => `rent/get-property/${encodeURIComponent(slug)}`,
+    RENT_PROPERTY_DETAIL_AUTH: (slug: string) =>
+      `rent/get-property/${encodeURIComponent(slug)}`,
     // Requires a stored auth token. Mirrors homedot-mobile-app's
     // UPDATE_SELL_PROPERTY ("v1/property/update-property-info/") — PUT, same
     // request body shape as CREATE_PROPERTY.
-    UPDATE_SELL_PROPERTY: (slug: string) => `property/update-property-info/${encodeURIComponent(slug)}`,
+    UPDATE_SELL_PROPERTY: (slug: string) =>
+      `property/update-property-info/${encodeURIComponent(slug)}`,
     // Requires a stored auth token. Mirrors homedot-mobile-app's
     // UPDATE_RENT_PROPERTY ("v1/rent/update-property-info/").
-    UPDATE_RENT_PROPERTY: (slug: string) => `rent/update-property-info/${encodeURIComponent(slug)}`,
+    UPDATE_RENT_PROPERTY: (slug: string) =>
+      `rent/update-property-info/${encodeURIComponent(slug)}`,
     // Requires a stored auth token. Mirrors homedot-mobile-app's
     // PROPERTY_SOLD_OUT ("v1/property/sold-out-property/") — POST, empty
     // body, toggles the listing to "Sold Out". One-way: there's no reverse
     // endpoint (mobile tells the owner to contact HomeDot to undo it).
-    PROPERTY_SOLD_OUT: (slug: string) => `property/sold-out-property/${encodeURIComponent(slug)}`,
+    PROPERTY_SOLD_OUT: (slug: string) =>
+      `property/sold-out-property/${encodeURIComponent(slug)}`,
     // Requires a stored auth token. Mirrors homedot-mobile-app's
     // RENT_PROPERTY_SOLD_OUT ("v1/rent/sold-out-property/").
-    RENT_PROPERTY_SOLD_OUT: (slug: string) => `rent/sold-out-property/${encodeURIComponent(slug)}`,
+    RENT_PROPERTY_SOLD_OUT: (slug: string) =>
+      `rent/sold-out-property/${encodeURIComponent(slug)}`,
     // Requires a stored auth token. Mirrors homedot-mobile-app's
     // PROPERTY_DELETE ("v1/property/delete-property/") — PUT (soft delete,
     // not a real DELETE), keyed by the property's _id.
-    PROPERTY_DELETE: (id: string) => `property/delete-property/${encodeURIComponent(id)}`,
+    PROPERTY_DELETE: (id: string) =>
+      `property/delete-property/${encodeURIComponent(id)}`,
     // Requires a stored auth token. Mirrors homedot-mobile-app's
     // RENT_PROPERTY_DELETE ("v1/rent/delete-property/").
-    RENT_PROPERTY_DELETE: (id: string) => `rent/delete-property/${encodeURIComponent(id)}`,
+    RENT_PROPERTY_DELETE: (id: string) =>
+      `rent/delete-property/${encodeURIComponent(id)}`,
   },
   PROFESSIONALS: {
     // Guest-accessible — no auth required. Mirrors homedot-mobile-app's
@@ -224,11 +234,13 @@ export const API_ENDPOINTS = {
     // Guest-accessible — no auth required. Mirrors GUEST_USER_BLOG_KEY_SEARCH
     // ("v1/commonblog/search-blogs"). keyString is one of the mobile app's
     // fixed category tabs: "house" | "garden" | "home".
-    SEARCH_BY_TYPE: (keyString: string) => `commonblog/search-blogs?keyString=${encodeURIComponent(keyString)}`,
+    SEARCH_BY_TYPE: (keyString: string) =>
+      `commonblog/search-blogs?keyString=${encodeURIComponent(keyString)}`,
     // Guest-accessible — no auth required. Mirrors BLOG_DETAILED
     // ("v1/blog/get-single-blog/"). Returns { blog, user, relatedBlogs } —
     // not the `data: [{...}]` wrapper most other list endpoints use.
-    DETAIL: (slug: string) => `blog/get-single-blog/${encodeURIComponent(slug)}`,
+    DETAIL: (slug: string) =>
+      `blog/get-single-blog/${encodeURIComponent(slug)}`,
     // Requires a stored auth token. Mirrors ADD_BLOG_FAVORITE
     // ("v1/commonblog/add-favorite-blog") — POST { blog: id } toggles
     // favorite/unfavorite (calling it again un-favorites it), same pattern
@@ -249,7 +261,8 @@ export const API_ENDPOINTS = {
     DETAIL: (slug: string) => `user/get-project/${encodeURIComponent(slug)}`,
     // Requires a stored auth token. Mirrors USERS_APIS.PROJECT_COMPLETED
     // ("v1/user/update-project-complete/") — POST { completedDate }.
-    COMPLETE: (id: string) => `user/update-project-complete/${encodeURIComponent(id)}`,
+    COMPLETE: (id: string) =>
+      `user/update-project-complete/${encodeURIComponent(id)}`,
     // Requires a stored auth token. Mirrors USERS_APIS.PROJECT_ADD_RATING
     // ("v1/user/add-rating/") — POST { rating, review } for the professional
     // who worked the project.
@@ -269,7 +282,8 @@ export const API_ENDPOINTS = {
     // ("v1/enquiry/get-enquiry-info-user/") — used only to read back
     // locationKey.coordinates before opening the edit form (the list
     // response doesn't carry lat/lng, only the formatted address).
-    DETAIL: (id: string) => `enquiry/get-enquiry-info-user/${encodeURIComponent(id)}`,
+    DETAIL: (id: string) =>
+      `enquiry/get-enquiry-info-user/${encodeURIComponent(id)}`,
     // Requires a stored auth token. Mirrors EDIT_ENQUERY
     // ("v1/enquiry/update-enquiry/") — PUT. homedot-mobile-app's own edit
     // screen has its category picker UI commented out (dead code, category
@@ -287,15 +301,18 @@ export const API_ENDPOINTS = {
     // SELCTED_ENQUIRY_PROFESSIONAL_DETAILED
     // ("v1/enquiry/professionals-response/") — the professional's response
     // to this enquiry (name, category, message, accept/reject state).
-    RESPONSE_DETAIL: (id: string) => `enquiry/professionals-response/${encodeURIComponent(id)}`,
+    RESPONSE_DETAIL: (id: string) =>
+      `enquiry/professionals-response/${encodeURIComponent(id)}`,
     // Requires a stored auth token. Mirrors USER_SIDE_ENQUIRY_RESPONSE
     // ("v1/enquiry/user-response/") — POST { professional }, accepts the
     // professional's response and moves the enquiry into a project.
-    ACCEPT_RESPONSE: (id: string) => `enquiry/user-response/${encodeURIComponent(id)}`,
+    ACCEPT_RESPONSE: (id: string) =>
+      `enquiry/user-response/${encodeURIComponent(id)}`,
     // Requires a stored auth token. Mirrors ENQUIRE_RESPONSE_REJECT
     // ("v1/enquiry/enquiry-response-reject/") — POST { professional,
     // rejectReason }.
-    REJECT_RESPONSE: (id: string) => `enquiry/enquiry-response-reject/${encodeURIComponent(id)}`,
+    REJECT_RESPONSE: (id: string) =>
+      `enquiry/enquiry-response-reject/${encodeURIComponent(id)}`,
   },
   // The signed-in user's own Professional-role dashboard (as opposed to
   // PROFESSIONALS above, which is the public browse/enquire-a-professional
@@ -310,11 +327,13 @@ export const API_ENDPOINTS = {
     // ("v1/enquiry/enquiries-professional") — a single call returns both Job
     // and Direct enquiries (data[0].jobEnquiries[0] / data[0].directEnquires[0]),
     // each with its own data[]/totalCount.total_rows.
-    ENQUIRY_LIST: (page: number) => `enquiry/enquiries-professional?page=${page}`,
+    ENQUIRY_LIST: (page: number) =>
+      `enquiry/enquiries-professional?page=${page}`,
     // Requires a stored auth token. Mirrors PROFESSIONALS_API.ENQUIRE_RESPONSE
     // ("v1/enquiry/professional-response/") — POST { responseStatus: true,
     // responseText }, used to accept a Job or Direct enquiry with a message.
-    ENQUIRY_RESPOND: (id: string) => `enquiry/professional-response/${encodeURIComponent(id)}`,
+    ENQUIRY_RESPOND: (id: string) =>
+      `enquiry/professional-response/${encodeURIComponent(id)}`,
     // Requires a stored auth token. Mirrors PROFESSIONALS_API.ENQUIRY_PIN
     // ("v1/professional/pin-enquiry") — POST { enquiry: id }, toggles
     // pinned/unpinned.
@@ -322,12 +341,14 @@ export const API_ENDPOINTS = {
     // Requires a stored auth token. Mirrors PROFESSIONALS_API.JOB_ENQUIRY_DELETE
     // ("v1/professional/ignore-enquiry/") — POST, no body. A silent ignore
     // (no rejection reason sent to the customer) — Job Enquiries only.
-    JOB_ENQUIRY_IGNORE: (id: string) => `professional/ignore-enquiry/${encodeURIComponent(id)}`,
+    JOB_ENQUIRY_IGNORE: (id: string) =>
+      `professional/ignore-enquiry/${encodeURIComponent(id)}`,
     // Requires a stored auth token. Mirrors PROFESSIONALS_API.DIRECT_ENQUIRY_DELETE
-    // ("v1/enquiry/professional-reject/") — POST { response: false,
+    // ("v1/enquiry/professional-reject/") — POST { response: fal,
     // responseText: "rejected" }, an explicit rejection the customer sees —
     // Direct Enquiries only (distinct from the silent Job ignore above).
-    DIRECT_ENQUIRY_REJECT: (id: string) => `enquiry/professional-reject/${encodeURIComponent(id)}`,
+    DIRECT_ENQUIRY_REJECT: (id: string) =>
+      `enquiry/professional-reject/${encodeURIComponent(id)}`,
     // Requires a stored auth token. Mirrors PROFESSIONALS_API.PROFESSIOANL_ALL_PROJECTS
     // ("v1/professional/my-projects") — a single call returns all three
     // status buckets (data[0].ongoing / .completed / .cancelled), same
@@ -338,7 +359,8 @@ export const API_ENDPOINTS = {
     // startDate, endDate, project_images }, converts an accepted enquiry
     // (professionalResponse[0].userAccepted === true, no project yet) into a
     // project. Images are uploaded individually first via COMMON.IMAGE_UPLOAD.
-    ENQUIRY_PROJECT_INITIATE: (id: string) => `enquiry/convert-enquiry-project/${encodeURIComponent(id)}`,
+    ENQUIRY_PROJECT_INITIATE: (id: string) =>
+      `enquiry/convert-enquiry-project/${encodeURIComponent(id)}`,
     // Requires a stored auth token. Mirrors PROFESSIONALS_API.EDIT_PROFILE
     // ("v1/professional/profile-update") — PUT the full professional profile
     // (name, professionalType, professionalCategory, subCategory, experience,
@@ -352,7 +374,8 @@ export const API_ENDPOINTS = {
     // ("v1/professional/portfolio/") — returns { projectList, projectHistoryList },
     // each project carrying its own projectImageList. The Workfolio screen
     // flattens both into one photo grid (see ProfessionalGalleryService.flattenGallery).
-    GALLERY_LIST: (userId: string) => `professional/portfolio/${encodeURIComponent(userId)}`,
+    GALLERY_LIST: (userId: string) =>
+      `professional/portfolio/${encodeURIComponent(userId)}`,
     // Requires a stored auth token. Mirrors PROFESSIONALS_API.ADD_PROJECT_GALLERY
     // ("v1/professional/create-project-history") — manually adds a "Workfolio"
     // project (as opposed to ENQUIRY_PROJECT_INITIATE, which converts an
