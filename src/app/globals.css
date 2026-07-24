@@ -1580,7 +1580,18 @@ body.has-cursor * {
 
 .pdash-soon-chip:hover {
   transform: translateY(-1px);
-  background-color: rgba(255, 255, 255, 0.05);
+  background-color: rgba(16, 28, 48, 0.04);
+}
+
+/* ProDashboardSidebar's live nav rows — light-card version of .pr-navitem
+   (that class stays tuned for ProfileScreen's dark rail, still shared with
+   it, so this is a separate class rather than repainting a shared one). */
+.pdash-navitem {
+  transition: background-color 0.15s ease;
+}
+
+.pdash-navitem:hover {
+  background-color: rgba(16, 28, 48, 0.05);
 }
 
 @media (prefers-reduced-motion: reduce) {
@@ -1590,7 +1601,8 @@ body.has-cursor * {
     opacity: 0;
   }
   .pdash-stat,
-  .pdash-soon-chip {
+  .pdash-soon-chip,
+  .pdash-navitem {
     transition: none;
   }
   .pdash-illustration,

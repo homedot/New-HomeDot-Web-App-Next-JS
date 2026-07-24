@@ -345,109 +345,106 @@ export default function ProfessionalDashboardScreen() {
           />
         ) : (
           <>
-            {/* Bento overview — the profile card anchors the left column and
-                spans both rows (xl:row-span-2), the big stat tiles sit beside
-                it spanning both right-hand columns (xl:col-span-2), and the
-                pipeline donut + activity graph fill in below them. On
-                anything below xl it collapses to a single stacked column in
-                this same source order, so profile is still the very first
-                thing seen — the deliberate fix for it (and the sidebar
-                below) getting buried under the charts. */}
+            {/* One left rail (profile card + navigator, sticky as a single
+                unit) beside one right column (stats, donut, activity graph,
+                then the tab card) — replaces the earlier split where the
+                profile card sat in its own top block at a different column
+                width than the sidebar underneath it, which read as two
+                misaligned panels rather than one cohesive nav+identity rail. */}
             <div
-              className="grid grid-cols-1 xl:grid-cols-[280px_1fr_1fr]"
-              style={{ position: "relative", zIndex: 3, gap: spacing.xl, marginTop: "clamp(-72px, -6vw, -40px)", marginBottom: spacing.xl, alignItems: "start" }}
+              className="grid grid-cols-1 xl:grid-cols-[280px_1fr]"
+              style={{ position: "relative", zIndex: 3, gap: spacing.xl, marginTop: "clamp(-72px, -6vw, -40px)", alignItems: "start" }}
             >
-              <ProfileRailCard home={home} profile={profile} onSwitch={switchToUser} switching={switchingRole} roleError={roleError} />
+              <div className="xl:sticky xl:top-24" style={{ display: "flex", flexDirection: "column", gap: spacing.xl }}>
+                <ProfileRailCard home={home} profile={profile} onSwitch={switchToUser} switching={switchingRole} roleError={roleError} />
+                <ProDashboardSidebar onLogout={logout} loggingOut={loggingOut} />
+              </div>
 
-              <Reveal
-                className="xl:col-span-2"
-                style={{
-                  background: colors.card,
-                  border: `1px solid ${colors.line}`,
-                  borderRadius: radius.lg,
-                  boxShadow: shadow.md,
-                  padding: "20px clamp(16px, 2.6vw, 28px)",
-                }}
-              >
-                <div className="grid grid-cols-2 lg:grid-cols-4" style={{ gap: spacing.md }}>
-                  <StatTile icon="mail" label="Enquiries" value={enquiryTotal} tint={colors.accent} />
-                  <StatTile icon="clock" label="Ongoing" value={projects.ongoing.length} tint={colors.price} />
-                  <StatTile icon="briefcase" label="Total Work" value={home.totalProjects ?? 0} tint={colors.primary} />
-                  <StatTile icon="star" label="Avg. Rating" value={Number(info?.rating ?? 0)} decimals={1} tint={colors.goldDeep} />
-                </div>
-              </Reveal>
-
-              <ProDashboardAnalytics
-                ongoing={projects.ongoing.length}
-                completed={projects.completed.length}
-                cancelled={projects.cancelled.length}
-                jobCount={enq.enquiryCounts.job}
-                directCount={enq.enquiryCounts.direct}
-                rating={Number(info?.rating ?? 0)}
-              />
-
-              <ProDashboardActivityChart projects={[...projects.ongoing, ...projects.completed, ...projects.cancelled]} />
-            </div>
-
-          <div className="grid grid-cols-1 xl:grid-cols-[264px_1fr]" style={{ gap: spacing.xl, alignItems: "start" }}>
-            <ProDashboardSidebar onLogout={logout} loggingOut={loggingOut} />
-
-            <main style={{ minWidth: 0 }}>
-              <Reveal
-                style={{
-                  background: colors.card,
-                  border: `1px solid ${colors.line}`,
-                  borderRadius: radius.lg,
-                  padding: "clamp(18px, 2.4vw, 26px)",
-                  boxShadow: shadow.sm,
-                }}
-              >
-                <div
-                  className="pdash-tabbar"
+              <div style={{ display: "flex", flexDirection: "column", gap: spacing.xl, minWidth: 0 }}>
+                <Reveal
                   style={{
-                    position: "relative",
-                    display: "flex",
-                    gap: 2,
-                    marginBottom: 22,
-                    padding: 5,
-                    background: colors.bg,
+                    background: colors.card,
                     border: `1px solid ${colors.line}`,
-                    borderRadius: radius.full,
-                    overflowX: "auto",
+                    borderRadius: radius.lg,
+                    boxShadow: shadow.md,
+                    padding: "20px clamp(16px, 2.6vw, 28px)",
                   }}
                 >
-                  <span
-                    className="pf-tab-thumb"
-                    style={{
-                      position: "absolute",
-                      top: 5,
-                      bottom: 5,
-                      left: indicator.left,
-                      width: indicator.width,
-                      background: colors.primary,
-                      borderRadius: radius.full,
-                      zIndex: 0,
-                    }}
+                  <div className="grid grid-cols-2 lg:grid-cols-4" style={{ gap: spacing.md }}>
+                    <StatTile icon="mail" label="Enquiries" value={enquiryTotal} tint={colors.accent} />
+                    <StatTile icon="clock" label="Ongoing" value={projects.ongoing.length} tint={colors.price} />
+                    <StatTile icon="briefcase" label="Total Work" value={home.totalProjects ?? 0} tint={colors.primary} />
+                    <StatTile icon="star" label="Avg. Rating" value={Number(info?.rating ?? 0)} decimals={1} tint={colors.goldDeep} />
+                  </div>
+                </Reveal>
+
+                <div className="grid grid-cols-1 lg:grid-cols-2" style={{ gap: spacing.xl, alignItems: "stretch" }}>
+                  <ProDashboardAnalytics
+                    ongoing={projects.ongoing.length}
+                    completed={projects.completed.length}
+                    cancelled={projects.cancelled.length}
+                    jobCount={enq.enquiryCounts.job}
+                    directCount={enq.enquiryCounts.direct}
+                    rating={Number(info?.rating ?? 0)}
                   />
-                  {ALL_TABS.map((t) => (
-                    <TabButton
-                      key={t.key}
-                      ref={(el) => {
-                        tabRefs.current[t.key] = el;
-                      }}
-                      active={tab === t.key}
-                      icon={t.icon}
-                      label={t.label}
-                      count={t.key === "job" || t.key === "direct" ? enq.enquiryCounts[t.key] : projects[t.key as ProjectTab].length}
-                      onClick={() => setTab(t.key)}
-                    />
-                  ))}
+                  <ProDashboardActivityChart projects={[...projects.ongoing, ...projects.completed, ...projects.cancelled]} />
                 </div>
 
-                {enquiryOrProjectContent}
-              </Reveal>
-            </main>
-          </div>
+                <Reveal
+                  style={{
+                    background: colors.card,
+                    border: `1px solid ${colors.line}`,
+                    borderRadius: radius.lg,
+                    padding: "clamp(18px, 2.4vw, 26px)",
+                    boxShadow: shadow.sm,
+                  }}
+                >
+                  <div
+                    className="pdash-tabbar"
+                    style={{
+                      position: "relative",
+                      display: "flex",
+                      gap: 2,
+                      marginBottom: 22,
+                      padding: 5,
+                      background: colors.bg,
+                      border: `1px solid ${colors.line}`,
+                      borderRadius: radius.full,
+                      overflowX: "auto",
+                    }}
+                  >
+                    <span
+                      className="pf-tab-thumb"
+                      style={{
+                        position: "absolute",
+                        top: 5,
+                        bottom: 5,
+                        left: indicator.left,
+                        width: indicator.width,
+                        background: colors.primary,
+                        borderRadius: radius.full,
+                        zIndex: 0,
+                      }}
+                    />
+                    {ALL_TABS.map((t) => (
+                      <TabButton
+                        key={t.key}
+                        ref={(el) => {
+                          tabRefs.current[t.key] = el;
+                        }}
+                        active={tab === t.key}
+                        icon={t.icon}
+                        label={t.label}
+                        count={t.key === "job" || t.key === "direct" ? enq.enquiryCounts[t.key] : projects[t.key as ProjectTab].length}
+                        onClick={() => setTab(t.key)}
+                      />
+                    ))}
+                  </div>
+
+                  {enquiryOrProjectContent}
+                </Reveal>
+              </div>
+            </div>
           </>
         )}
       </section>
@@ -628,14 +625,12 @@ function StatTile({ icon, label, value, decimals = 0, tint }: { icon: IconName; 
   );
 }
 
-/** Profile card anchoring the dashboard's bento overview — reference
- * screen-pro-dashboard.jsx's pdash-rail, rebuilt from real fields only:
- * ProfessionalDashboardService.getHome() has no location/email, so those
- * come from useProfileStore (fetched alongside getHome() in this screen's
- * mount effect) and are simply omitted if absent rather than shown as
- * placeholder data. Spans both bento rows on xl so it sits tall beside the
- * stats/donut/activity column, the same "identity card anchors the grid"
- * layout premium admin dashboards use. */
+/** Profile card heading the dashboard's sticky left rail (paired with
+ * ProDashboardSidebar right below it) — reference screen-pro-dashboard.jsx's
+ * pdash-rail, rebuilt from real fields only: ProfessionalDashboardService
+ * .getHome() has no location/email, so those come from useProfileStore
+ * (fetched alongside getHome() in this screen's mount effect) and are simply
+ * omitted if absent rather than shown as placeholder data. */
 function ProfileRailCard({
   home,
   profile,
@@ -654,7 +649,6 @@ function ProfileRailCard({
 
   return (
     <Reveal
-      className="xl:row-span-2"
       style={{
         background: colors.card,
         border: `1px solid ${colors.line}`,
