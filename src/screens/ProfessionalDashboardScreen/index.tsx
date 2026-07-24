@@ -345,106 +345,104 @@ export default function ProfessionalDashboardScreen() {
           />
         ) : (
           <>
-            {/* One left rail (profile card + navigator, sticky as a single
-                unit) beside one right column (stats, donut, activity graph,
-                then the tab card) — replaces the earlier split where the
-                profile card sat in its own top block at a different column
-                width than the sidebar underneath it, which read as two
-                misaligned panels rather than one cohesive nav+identity rail. */}
-            <div
-              className="grid grid-cols-1 xl:grid-cols-[280px_1fr]"
-              style={{ position: "relative", zIndex: 3, gap: spacing.xl, marginTop: "clamp(-72px, -6vw, -40px)", alignItems: "start" }}
+            {/* Single unified container — one shared card boundary
+                (border/shadow/radius) around everything, instead of six
+                separate floating cards with gaps between them that read as
+                disconnected pieces. A tinted (colors.bg) left rail — profile
+                block + navigator, sticky — sits flush against the white
+                content column (stats → charts → tabs), divided only by the
+                background-color seam itself and border-bottom hairlines
+                between stacked sections, not nested card edges. */}
+            <Reveal
+              style={{
+                position: "relative",
+                zIndex: 3,
+                background: colors.card,
+                border: `1px solid ${colors.line}`,
+                borderRadius: radius.lg,
+                boxShadow: shadow.lg,
+                overflow: "hidden",
+                marginTop: "clamp(-72px, -6vw, -40px)",
+              }}
             >
-              <div className="xl:sticky xl:top-24" style={{ display: "flex", flexDirection: "column", gap: spacing.xl }}>
-                <ProfileRailCard home={home} profile={profile} onSwitch={switchToUser} switching={switchingRole} roleError={roleError} />
-                <ProDashboardSidebar onLogout={logout} loggingOut={loggingOut} />
-              </div>
-
-              <div style={{ display: "flex", flexDirection: "column", gap: spacing.xl, minWidth: 0 }}>
-                <Reveal
-                  style={{
-                    background: colors.card,
-                    border: `1px solid ${colors.line}`,
-                    borderRadius: radius.lg,
-                    boxShadow: shadow.md,
-                    padding: "20px clamp(16px, 2.6vw, 28px)",
-                  }}
-                >
-                  <div className="grid grid-cols-2 lg:grid-cols-4" style={{ gap: spacing.md }}>
-                    <StatTile icon="mail" label="Enquiries" value={enquiryTotal} tint={colors.accent} />
-                    <StatTile icon="clock" label="Ongoing" value={projects.ongoing.length} tint={colors.price} />
-                    <StatTile icon="briefcase" label="Total Work" value={home.totalProjects ?? 0} tint={colors.primary} />
-                    <StatTile icon="star" label="Avg. Rating" value={Number(info?.rating ?? 0)} decimals={1} tint={colors.goldDeep} />
+              <div className="grid grid-cols-1 xl:grid-cols-[280px_1fr]">
+                <div style={{ background: colors.bg }}>
+                  <div className="xl:sticky xl:top-24">
+                    <ProfileRailCard home={home} profile={profile} onSwitch={switchToUser} switching={switchingRole} roleError={roleError} />
+                    <ProDashboardSidebar bare onLogout={logout} loggingOut={loggingOut} />
                   </div>
-                </Reveal>
-
-                <div className="grid grid-cols-1 lg:grid-cols-2" style={{ gap: spacing.xl, alignItems: "stretch" }}>
-                  <ProDashboardAnalytics
-                    ongoing={projects.ongoing.length}
-                    completed={projects.completed.length}
-                    cancelled={projects.cancelled.length}
-                    jobCount={enq.enquiryCounts.job}
-                    directCount={enq.enquiryCounts.direct}
-                    rating={Number(info?.rating ?? 0)}
-                  />
-                  <ProDashboardActivityChart projects={[...projects.ongoing, ...projects.completed, ...projects.cancelled]} />
                 </div>
 
-                <Reveal
-                  style={{
-                    background: colors.card,
-                    border: `1px solid ${colors.line}`,
-                    borderRadius: radius.lg,
-                    padding: "clamp(18px, 2.4vw, 26px)",
-                    boxShadow: shadow.sm,
-                  }}
-                >
-                  <div
-                    className="pdash-tabbar"
-                    style={{
-                      position: "relative",
-                      display: "flex",
-                      gap: 2,
-                      marginBottom: 22,
-                      padding: 5,
-                      background: colors.bg,
-                      border: `1px solid ${colors.line}`,
-                      borderRadius: radius.full,
-                      overflowX: "auto",
-                    }}
-                  >
-                    <span
-                      className="pf-tab-thumb"
-                      style={{
-                        position: "absolute",
-                        top: 5,
-                        bottom: 5,
-                        left: indicator.left,
-                        width: indicator.width,
-                        background: colors.primary,
-                        borderRadius: radius.full,
-                        zIndex: 0,
-                      }}
-                    />
-                    {ALL_TABS.map((t) => (
-                      <TabButton
-                        key={t.key}
-                        ref={(el) => {
-                          tabRefs.current[t.key] = el;
-                        }}
-                        active={tab === t.key}
-                        icon={t.icon}
-                        label={t.label}
-                        count={t.key === "job" || t.key === "direct" ? enq.enquiryCounts[t.key] : projects[t.key as ProjectTab].length}
-                        onClick={() => setTab(t.key)}
-                      />
-                    ))}
+                <div style={{ minWidth: 0 }}>
+                  <div style={{ padding: "20px clamp(16px, 2.6vw, 28px)", borderBottom: `1px solid ${colors.line}` }}>
+                    <div className="grid grid-cols-2 lg:grid-cols-4" style={{ gap: spacing.md }}>
+                      <StatTile icon="mail" label="Enquiries" value={enquiryTotal} tint={colors.accent} />
+                      <StatTile icon="clock" label="Ongoing" value={projects.ongoing.length} tint={colors.price} />
+                      <StatTile icon="briefcase" label="Total Work" value={home.totalProjects ?? 0} tint={colors.primary} />
+                      <StatTile icon="star" label="Avg. Rating" value={Number(info?.rating ?? 0)} decimals={1} tint={colors.goldDeep} />
+                    </div>
                   </div>
 
-                  {enquiryOrProjectContent}
-                </Reveal>
+                  <div className="grid grid-cols-1 lg:grid-cols-2" style={{ borderBottom: `1px solid ${colors.line}`, alignItems: "stretch" }}>
+                    <ProDashboardAnalytics
+                      ongoing={projects.ongoing.length}
+                      completed={projects.completed.length}
+                      cancelled={projects.cancelled.length}
+                      jobCount={enq.enquiryCounts.job}
+                      directCount={enq.enquiryCounts.direct}
+                      rating={Number(info?.rating ?? 0)}
+                    />
+                    <ProDashboardActivityChart projects={[...projects.ongoing, ...projects.completed, ...projects.cancelled]} />
+                  </div>
+
+                  <div style={{ padding: "clamp(18px, 2.4vw, 26px)" }}>
+                    <div
+                      className="pdash-tabbar"
+                      style={{
+                        position: "relative",
+                        display: "flex",
+                        gap: 2,
+                        marginBottom: 22,
+                        padding: 5,
+                        background: colors.bg,
+                        border: `1px solid ${colors.line}`,
+                        borderRadius: radius.full,
+                        overflowX: "auto",
+                      }}
+                    >
+                      <span
+                        className="pf-tab-thumb"
+                        style={{
+                          position: "absolute",
+                          top: 5,
+                          bottom: 5,
+                          left: indicator.left,
+                          width: indicator.width,
+                          background: colors.primary,
+                          borderRadius: radius.full,
+                          zIndex: 0,
+                        }}
+                      />
+                      {ALL_TABS.map((t) => (
+                        <TabButton
+                          key={t.key}
+                          ref={(el) => {
+                            tabRefs.current[t.key] = el;
+                          }}
+                          active={tab === t.key}
+                          icon={t.icon}
+                          label={t.label}
+                          count={t.key === "job" || t.key === "direct" ? enq.enquiryCounts[t.key] : projects[t.key as ProjectTab].length}
+                          onClick={() => setTab(t.key)}
+                        />
+                      ))}
+                    </div>
+
+                    {enquiryOrProjectContent}
+                  </div>
+                </div>
               </div>
-            </div>
+            </Reveal>
           </>
         )}
       </section>
@@ -625,12 +623,16 @@ function StatTile({ icon, label, value, decimals = 0, tint }: { icon: IconName; 
   );
 }
 
-/** Profile card heading the dashboard's sticky left rail (paired with
- * ProDashboardSidebar right below it) — reference screen-pro-dashboard.jsx's
- * pdash-rail, rebuilt from real fields only: ProfessionalDashboardService
- * .getHome() has no location/email, so those come from useProfileStore
- * (fetched alongside getHome() in this screen's mount effect) and are simply
- * omitted if absent rather than shown as placeholder data. */
+/** Profile block heading the dashboard's single unified container's tinted
+ * left rail (ProDashboardSidebar continues directly beneath it, same
+ * background, separated only by the border-bottom hairline below) — rebuilt
+ * from real fields only: ProfessionalDashboardService.getHome() has no
+ * location/email, so those come from useProfileStore (fetched alongside
+ * getHome() in this screen's mount effect) and are simply omitted if absent
+ * rather than shown as placeholder data. Chrome-less like the rest of the
+ * container's sections — avatar/chips/button all use colors.card so they
+ * pop against the rail's colors.bg tint instead of needing a card boundary
+ * of their own. */
 function ProfileRailCard({
   home,
   profile,
@@ -648,128 +650,120 @@ function ProfileRailCard({
   const title = [info?.professionalCategoryName, info?.subCategoryName].filter(Boolean).join(" · ");
 
   return (
-    <Reveal
-      style={{
-        background: colors.card,
-        border: `1px solid ${colors.line}`,
-        borderRadius: radius.lg,
-        boxShadow: shadow.sm,
-        overflow: "hidden",
-      }}
-    >
-      <div style={{ height: 84, background: colors.primary }} />
-      <div style={{ padding: "0 20px 20px", marginTop: -42, display: "flex", flexDirection: "column", alignItems: "center", textAlign: "center" }}>
-        <span style={{ position: "relative", flexShrink: 0 }}>
-          <span
-            style={{
-              width: 76,
-              height: 76,
-              borderRadius: "50%",
-              overflow: "hidden",
-              border: `3px solid ${colors.card}`,
-              background: colors.primarySoft,
-              display: "grid",
-              placeItems: "center",
-            }}
-          >
-            {home.profileImage ? (
-              // eslint-disable-next-line @next/next/no-img-element
-              <img src={home.profileImage} alt="" style={{ width: "100%", height: "100%", objectFit: "cover" }} />
-            ) : (
-              <Icon name="user" size={30} color={colors.primary} />
-            )}
-          </span>
-          <span
-            className="pdash-pulse-dot"
-            style={{ position: "absolute", right: 2, bottom: 2, width: 12, height: 12, border: `2px solid ${colors.card}` }}
-          />
-        </span>
-
-        <div style={{ display: "flex", alignItems: "center", gap: 6, marginTop: 10 }}>
-          <h2 style={{ fontSize: fontSize.md, fontWeight: 700 }}>{home.name}</h2>
-          {info?.verified && <Icon name="verified" size={16} filled color={colors.primary} />}
-        </div>
-        {title && <span style={{ fontSize: fontSize.xs, color: colors.muted, marginTop: 2 }}>{title}</span>}
-        {!info?.verified && (
-          <span
-            style={{
-              display: "inline-flex",
-              alignItems: "center",
-              gap: 5,
-              marginTop: 8,
-              fontSize: 10.5,
-              fontWeight: 700,
-              color: colors.goldDeep,
-              background: "rgba(245,166,35,0.14)",
-              padding: "4px 10px",
-              borderRadius: radius.full,
-            }}
-          >
-            <Icon name="clock" size={11} color={colors.goldDeep} /> Verification pending
-          </span>
-        )}
-        {info?.rating != null && (
-          <span style={{ display: "inline-flex", alignItems: "center", gap: 4, fontSize: fontSize.xs, fontWeight: 700, color: colors.ink2, marginTop: 6 }}>
-            <Icon name="star" size={13} filled color={colors.gold} /> {info.rating}
-          </span>
-        )}
-
-        {info?.skills && info.skills.length > 0 && (
-          <div style={{ width: "100%", marginTop: spacing.lg, textAlign: "left" }}>
-            <span style={{ display: "block", fontSize: 10, fontWeight: 700, color: colors.muted, textTransform: "uppercase", letterSpacing: 0.6, marginBottom: 8 }}>
-              Skills
-            </span>
-            <div style={{ display: "flex", flexWrap: "wrap", gap: 6 }}>
-              {info.skills.map((s) => (
-                <span
-                  key={s.levelThreeId}
-                  style={{
-                    fontSize: 11.5,
-                    fontWeight: 600,
-                    color: colors.primary,
-                    background: colors.primarySoft,
-                    padding: "5px 10px",
-                    borderRadius: radius.full,
-                  }}
-                >
-                  {s.levelThreeName}
-                </span>
-              ))}
-            </div>
-          </div>
-        )}
-
-        <div style={{ width: "100%", display: "flex", flexDirection: "column", gap: 8, marginTop: spacing.lg, textAlign: "left" }}>
-          {info?.experience != null && (
-            <RailMetaRow icon="calendar" text={`${info.experience} years of experience`} />
-          )}
-          {profile?.location && <RailMetaRow icon="location" text={profile.location} />}
-          {profile?.email && <RailMetaRow icon="mail" text={profile.email} />}
-        </div>
-
-        {roleError && <p style={{ color: "#C0392B", fontSize: fontSize.xs, marginTop: spacing.md }}>{roleError}</p>}
-
-        <button
-          onClick={onSwitch}
-          disabled={switching}
+    <Reveal style={{ padding: "22px 20px", borderBottom: `1px solid ${colors.line}`, display: "flex", flexDirection: "column", alignItems: "center", textAlign: "center" }}>
+      <span style={{ position: "relative", flexShrink: 0 }}>
+        <span
           style={{
-            width: "100%",
-            display: "inline-flex",
-            alignItems: "center",
-            justifyContent: "center",
-            gap: 7,
-            marginTop: spacing.lg,
-            height: 42,
-            borderRadius: radius.full,
+            width: 76,
+            height: 76,
+            borderRadius: "50%",
+            overflow: "hidden",
+            border: `3px solid ${colors.card}`,
+            boxShadow: shadow.sm,
             background: colors.primarySoft,
-            color: colors.primary,
-            fontSize: fontSize.sm,
-            fontWeight: 700,
+            display: "grid",
+            placeItems: "center",
           }}
         >
-          {switching ? "Switching…" : "Switch to Home Owner"} <Icon name="arrow" size={14} />
-        </button>
+          {home.profileImage ? (
+            // eslint-disable-next-line @next/next/no-img-element
+            <img src={home.profileImage} alt="" style={{ width: "100%", height: "100%", objectFit: "cover" }} />
+          ) : (
+            <Icon name="user" size={30} color={colors.primary} />
+          )}
+        </span>
+        <span
+          className="pdash-pulse-dot"
+          style={{ position: "absolute", right: 2, bottom: 2, width: 12, height: 12, border: `2px solid ${colors.card}` }}
+        />
+      </span>
+
+      <div style={{ display: "flex", alignItems: "center", gap: 6, marginTop: 10 }}>
+        <h2 style={{ fontSize: fontSize.md, fontWeight: 700 }}>{home.name}</h2>
+        {info?.verified && <Icon name="verified" size={16} filled color={colors.primary} />}
       </div>
+      {title && <span style={{ fontSize: fontSize.xs, color: colors.muted, marginTop: 2 }}>{title}</span>}
+      {!info?.verified && (
+        <span
+          style={{
+            display: "inline-flex",
+            alignItems: "center",
+            gap: 5,
+            marginTop: 8,
+            fontSize: 10.5,
+            fontWeight: 700,
+            color: colors.goldDeep,
+            background: "rgba(245,166,35,0.14)",
+            padding: "4px 10px",
+            borderRadius: radius.full,
+          }}
+        >
+          <Icon name="clock" size={11} color={colors.goldDeep} /> Verification pending
+        </span>
+      )}
+      {info?.rating != null && (
+        <span style={{ display: "inline-flex", alignItems: "center", gap: 4, fontSize: fontSize.xs, fontWeight: 700, color: colors.ink2, marginTop: 6 }}>
+          <Icon name="star" size={13} filled color={colors.gold} /> {info.rating}
+        </span>
+      )}
+
+      {info?.skills && info.skills.length > 0 && (
+        <div style={{ width: "100%", marginTop: spacing.lg, textAlign: "left" }}>
+          <span style={{ display: "block", fontSize: 10, fontWeight: 700, color: colors.muted, textTransform: "uppercase", letterSpacing: 0.6, marginBottom: 8 }}>
+            Skills
+          </span>
+          <div style={{ display: "flex", flexWrap: "wrap", gap: 6 }}>
+            {info.skills.map((s) => (
+              <span
+                key={s.levelThreeId}
+                style={{
+                  fontSize: 11.5,
+                  fontWeight: 600,
+                  color: colors.primary,
+                  background: colors.card,
+                  border: `1px solid ${colors.line}`,
+                  padding: "5px 10px",
+                  borderRadius: radius.full,
+                }}
+              >
+                {s.levelThreeName}
+              </span>
+            ))}
+          </div>
+        </div>
+      )}
+
+      <div style={{ width: "100%", display: "flex", flexDirection: "column", gap: 8, marginTop: spacing.lg, textAlign: "left" }}>
+        {info?.experience != null && (
+          <RailMetaRow icon="calendar" text={`${info.experience} years of experience`} />
+        )}
+        {profile?.location && <RailMetaRow icon="location" text={profile.location} />}
+        {profile?.email && <RailMetaRow icon="mail" text={profile.email} />}
+      </div>
+
+      {roleError && <p style={{ color: "#C0392B", fontSize: fontSize.xs, marginTop: spacing.md }}>{roleError}</p>}
+
+      <button
+        onClick={onSwitch}
+        disabled={switching}
+        style={{
+          width: "100%",
+          display: "inline-flex",
+          alignItems: "center",
+          justifyContent: "center",
+          gap: 7,
+          marginTop: spacing.lg,
+          height: 42,
+          borderRadius: radius.full,
+          background: colors.card,
+          border: `1px solid ${colors.line}`,
+          color: colors.primary,
+          fontSize: fontSize.sm,
+          fontWeight: 700,
+        }}
+      >
+        {switching ? "Switching…" : "Switch to Home Owner"} <Icon name="arrow" size={14} />
+      </button>
     </Reveal>
   );
 }

@@ -43,23 +43,16 @@ function useMonthlyBuckets(projects: ProfessionalProjectRecord[]): MonthBucket[]
  * real ProfessionalProjectRecord.startDate values already in memory, no new
  * endpoint. Bars grow in with a per-bar stagger (via useCountUp's duration,
  * same hook the rest of the dashboard's animation already runs on) and show
- * an exact count on hover. */
+ * an exact count on hover. Chrome-less like ProDashboardAnalytics — sits
+ * flush inside the dashboard's single unified container instead of its own
+ * card. */
 export default function ProDashboardActivityChart({ projects }: { projects: ProfessionalProjectRecord[] }) {
   const buckets = useMonthlyBuckets(projects);
   const total = buckets.reduce((s, b) => s + b.count, 0);
   const max = Math.max(...buckets.map((b) => b.count), 1);
 
   return (
-    <Reveal
-      style={{
-        background: colors.card,
-        border: `1px solid ${colors.line}`,
-        borderRadius: radius.lg,
-        boxShadow: shadow.sm,
-        padding: "clamp(18px, 2.4vw, 26px)",
-        height: "100%",
-      }}
-    >
+    <Reveal style={{ padding: "clamp(18px, 2.4vw, 26px)", height: "100%" }}>
       <div style={{ display: "flex", alignItems: "center", gap: 8, marginBottom: spacing.lg }}>
         <span
           style={{

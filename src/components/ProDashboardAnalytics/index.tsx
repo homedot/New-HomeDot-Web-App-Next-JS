@@ -1,7 +1,7 @@
 "use client";
 
 import { colors } from "@/constants/colors";
-import { spacing, radius, fontSize, shadow } from "@/utils/size";
+import { spacing, radius, fontSize } from "@/utils/size";
 import { hexToRgb } from "@/utils/color";
 import { useCountUp } from "@/utils/useCountUp";
 import Icon from "@/components/Icon";
@@ -12,12 +12,16 @@ const RED = "#C0392B"; // same tone ProfessionalDashboardScreen already uses for
 
 type Segment = { label: string; value: number; color: string };
 
-/** Performance overview card for the professional dashboard — a donut of the
- * project pipeline (ongoing/completed/cancelled, the same three buckets the
- * tab bar already counts) plus a few progress bars derived from data this
- * screen already fetches (no new endpoint). Everything animates in via the
- * shared useCountUp tween rather than a separate CSS-keyframe path, so it
- * respects prefers-reduced-motion the same way the hero stat tiles do. */
+/** Performance overview panel for the professional dashboard — a donut of
+ * the project pipeline (ongoing/completed/cancelled, the same three buckets
+ * the tab bar already counts) plus a few progress bars derived from data
+ * this screen already fetches (no new endpoint). Chrome-less (no card
+ * background/border/shadow of its own) — it sits flush inside the
+ * dashboard's single unified container alongside ProDashboardActivityChart,
+ * separated only by the grid gap and its own padding, not a nested card
+ * boundary. Everything animates in via the shared useCountUp tween rather
+ * than a separate CSS-keyframe path, so it respects prefers-reduced-motion
+ * the same way the hero stat tiles do. */
 export default function ProDashboardAnalytics({
   ongoing,
   completed,
@@ -47,16 +51,7 @@ export default function ProDashboardAnalytics({
   const ratingPct = Math.min((rating / 5) * 100, 100);
 
   return (
-    <Reveal
-      style={{
-        background: colors.card,
-        border: `1px solid ${colors.line}`,
-        borderRadius: radius.lg,
-        boxShadow: shadow.sm,
-        padding: "clamp(18px, 2.4vw, 26px)",
-        height: "100%",
-      }}
-    >
+    <Reveal style={{ padding: "clamp(18px, 2.4vw, 26px)", height: "100%" }}>
       <div style={{ display: "flex", alignItems: "center", gap: 8, marginBottom: spacing.lg }}>
         <span
           style={{

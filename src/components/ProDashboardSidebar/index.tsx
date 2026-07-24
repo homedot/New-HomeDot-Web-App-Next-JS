@@ -10,19 +10,27 @@ import Reveal from "@/components/Reveal";
 
 type SidebarNavEntry = { icon: IconName; label: string; href?: string; onClick?: () => void; danger?: boolean; chip?: string };
 
-/** Nav rail for the professional area — light card (colors.card/line/ink),
- * matching the rest of ProfessionalDashboardScreen's bento cards rather than
- * the dark-navy treatment reference screen-pro-dashboard.jsx used: sitting
- * directly under the profile card in one sticky rail, a dark block there
- * read as a mismatched, bolted-on panel instead of part of the same design.
+/** Nav rail for the professional area — light theme (colors.card/line/ink),
+ * matching the rest of the dashboard rather than the dark-navy treatment
+ * reference screen-pro-dashboard.jsx used, which read as a mismatched,
+ * bolted-on panel next to the light cards around it.
+ *
+ * `bare` drops this component's own card chrome (background/border/shadow/
+ * radius/padding/sticky) and its "HomeDot Pro" header row, for embedding
+ * directly beneath ProfileRailCard inside ProfessionalDashboardScreen's
+ * single unified container — that page supplies the shared card boundary,
+ * the tinted rail background and the sticky wrapper itself, and the profile
+ * card above it already establishes identity so the header would just
+ * repeat it. ProfessionalEnquiriesScreen, ProfessionalProfileScreen and
+ * ProfessionalWorkfolioScreen render it standalone (no profile card, no
+ * shared container), so they get the default full-card version.
+ *
  * Nav items are limited to routes that actually exist; the reference's extra
  * items (Blogs, Refer & earn, Support…) are shown as a disabled "Coming
- * soon" group rather than dead links. Shared by ProfessionalDashboardScreen,
- * ProfessionalEnquiriesScreen, ProfessionalProfileScreen and
- * ProfessionalWorkfolioScreen — computes its own active state from the
+ * soon" group rather than dead links. Computes its own active state from the
  * current route (usePathname) rather than being told which item is active,
- * so it stays correct across all four pages. */
-export default function ProDashboardSidebar({ onLogout, loggingOut }: { onLogout: () => void; loggingOut: boolean }) {
+ * so it stays correct across every page it's used on. */
+export default function ProDashboardSidebar({ onLogout, loggingOut, bare = false }: { onLogout: () => void; loggingOut: boolean; bare?: boolean }) {
   const router = useRouter();
   const pathname = usePathname();
 
@@ -39,42 +47,52 @@ export default function ProDashboardSidebar({ onLogout, loggingOut }: { onLogout
     { icon: "settings", label: "Settings", chip: colors.accent },
     { icon: "phone", label: "Support", chip: colors.gold },
   ];
+  // The "Soon" chip needs to pop against whatever sits behind this
+  // component: colors.bg on the standalone white card, colors.card on the
+  // dashboard's tinted (colors.bg) rail — otherwise it'd blend invisibly.
+  const chipSurface = bare ? colors.card : colors.bg;
 
   return (
     <Reveal
-      className="xl:sticky xl:top-24"
-      style={{
-        background: colors.card,
-        border: `1px solid ${colors.line}`,
-        borderRadius: radius.lg,
-        padding: "18px 14px",
-        boxShadow: shadow.sm,
-        display: "flex",
-        flexDirection: "column",
-        gap: spacing.md,
-      }}
+      className={bare ? undefined : "xl:sticky xl:top-24"}
+      style={
+        bare
+          ? { padding: "0 14px 16px", display: "flex", flexDirection: "column", gap: spacing.md }
+          : {
+              background: colors.card,
+              border: `1px solid ${colors.line}`,
+              borderRadius: radius.lg,
+              padding: "18px 14px",
+              boxShadow: shadow.sm,
+              display: "flex",
+              flexDirection: "column",
+              gap: spacing.md,
+            }
+      }
     >
-      <div style={{ display: "flex", alignItems: "center", gap: 8, padding: "6px 8px 14px", borderBottom: `1px solid ${colors.line}` }}>
-        <Brand />
-        <span
-          style={{
-            fontSize: 10.5,
-            fontWeight: 700,
-            letterSpacing: 0.6,
-            textTransform: "uppercase",
-            background: colors.primarySoft,
-            color: colors.primary,
-            padding: "3px 8px",
-            borderRadius: 6,
-          }}
-        >
-          Pro
-        </span>
-      </div>
+      {!bare && (
+        <div style={{ display: "flex", alignItems: "center", gap: 8, padding: "6px 8px 14px", borderBottom: `1px solid ${colors.line}` }}>
+          <Brand />
+          <span
+            style={{
+              fontSize: 10.5,
+              fontWeight: 700,
+              letterSpacing: 0.6,
+              textTransform: "uppercase",
+              background: colors.primarySoft,
+              color: colors.primary,
+              padding: "3px 8px",
+              borderRadius: 6,
+            }}
+          >
+            Pro
+          </span>
+        </div>
+      )}
 
       <nav style={{ display: "flex", flexDirection: "column", gap: 2 }}>
         {live.map((n) => (
-          <SidebarNavItem key={n.label} {...n} active={!!n.href && pathname === n.href} onClick={n.href ? () => router.push(n.href!) : n.onClick} />
+          <SidebarNavItem key={n.label} {...n} active={!!n.href && pathname === n.href} onClick={n.href ? () => router.push(n.href!) : n.onClick} chipSurface={chipSurface} />
         ))}
       </nav>
 
@@ -83,18 +101,18 @@ export default function ProDashboardSidebar({ onLogout, loggingOut }: { onLogout
           Coming soon
         </span>
         {soon.map((n) => (
-          <SidebarNavItem key={n.label} {...n} />
+          <SidebarNavItem key={n.label} {...n} chipSurface={chipSurface} />
         ))}
       </div>
 
       <div style={{ borderTop: `1px solid ${colors.line}`, paddingTop: spacing.md }}>
-        <SidebarNavItem icon="logout" label={loggingOut ? "Logging out…" : "Log out"} onClick={onLogout} danger />
+        <SidebarNavItem icon="logout" label={loggingOut ? "Logging out…" : "Log out"} onClick={onLogout} danger chipSurface={chipSurface} />
       </div>
     </Reveal>
   );
 }
 
-function SidebarNavItem({ icon, label, active, danger, onClick, chip }: SidebarNavEntry & { active?: boolean }) {
+function SidebarNavItem({ icon, label, active, danger, onClick, chip, chipSurface }: SidebarNavEntry & { active?: boolean; chipSurface: string }) {
   const disabled = !active && !onClick;
   return (
     <button
@@ -142,7 +160,7 @@ function SidebarNavItem({ icon, label, active, danger, onClick, chip }: SidebarN
             letterSpacing: 0.4,
             textTransform: "uppercase",
             color: colors.muted,
-            background: colors.bg,
+            background: chipSurface,
             padding: "3px 7px",
             borderRadius: radius.full,
             flexShrink: 0,
