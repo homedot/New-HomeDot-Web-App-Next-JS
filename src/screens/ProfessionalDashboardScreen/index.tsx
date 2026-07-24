@@ -5,6 +5,7 @@ import { useRouter } from "next/navigation";
 import { colors } from "@/constants/colors";
 import { spacing, radius, fontSize, shadow, maxWidth } from "@/utils/size";
 import { hexToRgb } from "@/utils/color";
+import { useCountUp } from "@/utils/useCountUp";
 import Icon, { type IconName } from "@/components/Icon";
 import Button from "@/components/Button";
 import AmbientBackground from "@/components/AmbientBackground";
@@ -19,6 +20,8 @@ import LoadMoreButton from "@/components/LoadMoreButton";
 import TabButton from "@/components/TabButton";
 import ConfirmModal from "@/components/ConfirmModal";
 import ProDashboardSidebar from "@/components/ProDashboardSidebar";
+import ProDashboardAnalytics from "@/components/ProDashboardAnalytics";
+import ProDashboardActivityChart from "@/components/ProDashboardActivityChart";
 import ProDashboardSkeleton from "@/components/ProDashboardSkeleton";
 import ProfessionalEnquiryCard from "@/components/ProfessionalEnquiry/Card";
 import RespondModal from "@/components/ProfessionalEnquiry/RespondModal";
@@ -58,31 +61,6 @@ function greeting(): string {
   if (h < 12) return "Good morning";
   if (h < 17) return "Good afternoon";
   return "Good evening";
-}
-
-/** Eases a number from 0 up to `target` over `duration`ms on mount/target
- * change, for the hero stat tiles — skipped (jumps straight to target) under
- * reduced-motion, same convention as HeroScene/AmbientBackground. */
-function useCountUp(target: number, duration = 900): number {
-  const [value, setValue] = useState(0);
-  useEffect(() => {
-    if (window.matchMedia("(prefers-reduced-motion: reduce)").matches) {
-      // eslint-disable-next-line react-hooks/set-state-in-effect -- reduced-motion bypass just mirrors the prop, no tween to run
-      setValue(target);
-      return;
-    }
-    let raf = 0;
-    const start = performance.now();
-    const tick = (now: number) => {
-      const t = Math.min((now - start) / duration, 1);
-      const eased = 1 - Math.pow(1 - t, 3);
-      setValue(target * eased);
-      if (t < 1) raf = requestAnimationFrame(tick);
-    };
-    raf = requestAnimationFrame(tick);
-    return () => cancelAnimationFrame(raf);
-  }, [target, duration]);
-  return value;
 }
 
 /** Web counterpart of homedot-mobile-app's ProfessionalHomeScreen.js +
@@ -386,6 +364,17 @@ export default function ProfessionalDashboardScreen() {
                 <StatTile icon="star" label="Avg. Rating" value={Number(info?.rating ?? 0)} decimals={1} tint={colors.goldDeep} />
               </div>
             </Reveal>
+
+            <ProDashboardAnalytics
+              ongoing={projects.ongoing.length}
+              completed={projects.completed.length}
+              cancelled={projects.cancelled.length}
+              jobCount={enq.enquiryCounts.job}
+              directCount={enq.enquiryCounts.direct}
+              rating={Number(info?.rating ?? 0)}
+            />
+
+            <ProDashboardActivityChart projects={[...projects.ongoing, ...projects.completed, ...projects.cancelled]} />
 
           <div className="grid grid-cols-1 xl:grid-cols-[264px_1fr_280px]" style={{ gap: spacing.xl, alignItems: "start" }}>
             <ProDashboardSidebar onLogout={logout} loggingOut={loggingOut} />
