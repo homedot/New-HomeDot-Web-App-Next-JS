@@ -345,38 +345,51 @@ export default function ProfessionalDashboardScreen() {
           />
         ) : (
           <>
-            <Reveal
-              style={{
-                position: "relative",
-                zIndex: 3,
-                background: colors.card,
-                border: `1px solid ${colors.line}`,
-                borderRadius: radius.lg,
-                boxShadow: shadow.md,
-                padding: "18px clamp(16px, 2.6vw, 28px)",
-                marginTop: "clamp(-72px, -6vw, -40px)",
-                marginBottom: spacing.xl,
-              }}
+            {/* Bento overview — the profile card anchors the left column and
+                spans both rows (xl:row-span-2), the big stat tiles sit beside
+                it spanning both right-hand columns (xl:col-span-2), and the
+                pipeline donut + activity graph fill in below them. On
+                anything below xl it collapses to a single stacked column in
+                this same source order, so profile is still the very first
+                thing seen — the deliberate fix for it (and the sidebar
+                below) getting buried under the charts. */}
+            <div
+              className="grid grid-cols-1 xl:grid-cols-[280px_1fr_1fr]"
+              style={{ position: "relative", zIndex: 3, gap: spacing.xl, marginTop: "clamp(-72px, -6vw, -40px)", marginBottom: spacing.xl, alignItems: "start" }}
             >
-              <div className="grid grid-cols-1 sm:grid-cols-3" style={{ gap: spacing.md }}>
-                <StatTile icon="mail" label="Enquiries" value={enquiryTotal} tint={colors.accent} />
-                <StatTile icon="briefcase" label="Total Work" value={home.totalProjects ?? 0} tint={colors.price} />
-                <StatTile icon="star" label="Avg. Rating" value={Number(info?.rating ?? 0)} decimals={1} tint={colors.goldDeep} />
-              </div>
-            </Reveal>
+              <ProfileRailCard home={home} profile={profile} onSwitch={switchToUser} switching={switchingRole} roleError={roleError} />
 
-            <ProDashboardAnalytics
-              ongoing={projects.ongoing.length}
-              completed={projects.completed.length}
-              cancelled={projects.cancelled.length}
-              jobCount={enq.enquiryCounts.job}
-              directCount={enq.enquiryCounts.direct}
-              rating={Number(info?.rating ?? 0)}
-            />
+              <Reveal
+                className="xl:col-span-2"
+                style={{
+                  background: colors.card,
+                  border: `1px solid ${colors.line}`,
+                  borderRadius: radius.lg,
+                  boxShadow: shadow.md,
+                  padding: "20px clamp(16px, 2.6vw, 28px)",
+                }}
+              >
+                <div className="grid grid-cols-2 lg:grid-cols-4" style={{ gap: spacing.md }}>
+                  <StatTile icon="mail" label="Enquiries" value={enquiryTotal} tint={colors.accent} />
+                  <StatTile icon="clock" label="Ongoing" value={projects.ongoing.length} tint={colors.price} />
+                  <StatTile icon="briefcase" label="Total Work" value={home.totalProjects ?? 0} tint={colors.primary} />
+                  <StatTile icon="star" label="Avg. Rating" value={Number(info?.rating ?? 0)} decimals={1} tint={colors.goldDeep} />
+                </div>
+              </Reveal>
 
-            <ProDashboardActivityChart projects={[...projects.ongoing, ...projects.completed, ...projects.cancelled]} />
+              <ProDashboardAnalytics
+                ongoing={projects.ongoing.length}
+                completed={projects.completed.length}
+                cancelled={projects.cancelled.length}
+                jobCount={enq.enquiryCounts.job}
+                directCount={enq.enquiryCounts.direct}
+                rating={Number(info?.rating ?? 0)}
+              />
 
-          <div className="grid grid-cols-1 xl:grid-cols-[264px_1fr_280px]" style={{ gap: spacing.xl, alignItems: "start" }}>
+              <ProDashboardActivityChart projects={[...projects.ongoing, ...projects.completed, ...projects.cancelled]} />
+            </div>
+
+          <div className="grid grid-cols-1 xl:grid-cols-[264px_1fr]" style={{ gap: spacing.xl, alignItems: "start" }}>
             <ProDashboardSidebar onLogout={logout} loggingOut={loggingOut} />
 
             <main style={{ minWidth: 0 }}>
@@ -434,8 +447,6 @@ export default function ProfessionalDashboardScreen() {
                 {enquiryOrProjectContent}
               </Reveal>
             </main>
-
-            <ProfileRailCard home={home} profile={profile} onSwitch={switchToUser} switching={switchingRole} roleError={roleError} />
           </div>
           </>
         )}
@@ -598,30 +609,33 @@ function StatTile({ icon, label, value, decimals = 0, tint }: { icon: IconName; 
         background: colors.bg,
         border: `1px solid ${colors.line}`,
         borderRadius: radius.md,
-        padding: "14px 16px",
+        padding: "16px 18px",
         display: "flex",
         alignItems: "center",
-        gap: 12,
+        gap: 14,
       }}
     >
-      <span style={{ width: 40, height: 40, borderRadius: 12, background: `rgba(${hexToRgb(tint)}, 0.14)`, display: "grid", placeItems: "center", flexShrink: 0 }}>
-        <Icon name={icon} size={18} color={tint} />
+      <span style={{ width: 50, height: 50, borderRadius: 14, background: `rgba(${hexToRgb(tint)}, 0.14)`, display: "grid", placeItems: "center", flexShrink: 0 }}>
+        <Icon name={icon} size={22} color={tint} />
       </span>
       <div>
-        <p style={{ color: colors.ink, fontSize: fontSize.lg, fontWeight: 700, margin: 0, lineHeight: 1.1, fontVariantNumeric: "tabular-nums" }}>
+        <p style={{ color: colors.ink, fontSize: "clamp(20px, 2.4vw, 26px)", fontWeight: 700, margin: 0, lineHeight: 1.1, fontVariantNumeric: "tabular-nums" }}>
           {animated.toFixed(decimals)}
         </p>
-        <p style={{ color: colors.muted, fontSize: 10.5, fontWeight: 600, margin: 0, marginTop: 2, textTransform: "uppercase", letterSpacing: 0.4 }}>{label}</p>
+        <p style={{ color: colors.muted, fontSize: 11, fontWeight: 600, margin: 0, marginTop: 3, textTransform: "uppercase", letterSpacing: 0.4 }}>{label}</p>
       </div>
     </div>
   );
 }
 
-/** Right-hand profile rail — reference screen-pro-dashboard.jsx's pdash-rail,
- * rebuilt from real fields only: ProfessionalDashboardService.getHome() has
- * no location/email, so those come from useProfileStore (fetched alongside
- * getHome() in this screen's mount effect) and are simply omitted if absent
- * rather than shown as placeholder data. */
+/** Profile card anchoring the dashboard's bento overview — reference
+ * screen-pro-dashboard.jsx's pdash-rail, rebuilt from real fields only:
+ * ProfessionalDashboardService.getHome() has no location/email, so those
+ * come from useProfileStore (fetched alongside getHome() in this screen's
+ * mount effect) and are simply omitted if absent rather than shown as
+ * placeholder data. Spans both bento rows on xl so it sits tall beside the
+ * stats/donut/activity column, the same "identity card anchors the grid"
+ * layout premium admin dashboards use. */
 function ProfileRailCard({
   home,
   profile,
@@ -640,7 +654,7 @@ function ProfileRailCard({
 
   return (
     <Reveal
-      className="xl:sticky xl:top-24"
+      className="xl:row-span-2"
       style={{
         background: colors.card,
         border: `1px solid ${colors.line}`,

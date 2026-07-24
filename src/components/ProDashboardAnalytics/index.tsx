@@ -54,7 +54,7 @@ export default function ProDashboardAnalytics({
         borderRadius: radius.lg,
         boxShadow: shadow.sm,
         padding: "clamp(18px, 2.4vw, 26px)",
-        marginBottom: spacing.xl,
+        height: "100%",
       }}
     >
       <div style={{ display: "flex", alignItems: "center", gap: 8, marginBottom: spacing.lg }}>
@@ -77,9 +77,9 @@ export default function ProDashboardAnalytics({
         </div>
       </div>
 
-      <div className="grid grid-cols-1 lg:grid-cols-[auto_1fr]" style={{ gap: spacing.xxl, alignItems: "center" }}>
+      <div className="grid grid-cols-1" style={{ gap: spacing.xl }}>
         <div style={{ display: "flex", flexWrap: "wrap", alignItems: "center", gap: spacing.xl, justifyContent: "center" }}>
-          <PipelineDonut segments={segments} total={totalProjects} />
+          <PipelineDonut segments={segments} total={totalProjects} size={132} />
           <div style={{ display: "flex", flexDirection: "column", gap: 10 }}>
             {segments.map((s) => (
               <LegendRow key={s.label} segment={s} total={totalProjects} />

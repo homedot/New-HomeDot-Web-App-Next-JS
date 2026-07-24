@@ -57,7 +57,7 @@ export default function ProDashboardActivityChart({ projects }: { projects: Prof
         borderRadius: radius.lg,
         boxShadow: shadow.sm,
         padding: "clamp(18px, 2.4vw, 26px)",
-        marginBottom: spacing.xl,
+        height: "100%",
       }}
     >
       <div style={{ display: "flex", alignItems: "center", gap: 8, marginBottom: spacing.lg }}>
