@@ -40,7 +40,13 @@ import ProfessionalDashboardService, {
 } from "@/services/ProfessionalDashboardService";
 import ProfessionalProjectCard from "./ProfessionalProjectCard";
 
-const wrap: CSSProperties = { maxWidth, margin: "0 auto", padding: `0 ${spacing.xl}px` };
+// Slightly wider than the site's shared maxWidth (1200) — the unified
+// dashboard container's 4-stat row and donut/activity pair feel cramped at
+// the standard content width, unlike the simpler single-column screens that
+// constant was tuned for. Passed to ProDashboardHero too so its title column
+// still lines up with the container edges below it.
+const DASHBOARD_MAX_WIDTH = maxWidth + 120;
+const wrap: CSSProperties = { maxWidth: DASHBOARD_MAX_WIDTH, margin: "0 auto", padding: `0 ${spacing.xl}px` };
 
 type ProjectTab = "ongoing" | "completed" | "cancelled";
 type Tab = EnquiryKind | ProjectTab;
@@ -266,7 +272,7 @@ export default function ProfessionalDashboardScreen() {
       <LoginModal ref={loginModalRef} hideTrigger />
 
       {signedIn && home && (
-        <ProDashboardHero>
+        <ProDashboardHero maxWidth={DASHBOARD_MAX_WIDTH}>
           <div style={{ display: "flex", alignItems: "center", gap: 8, flexWrap: "wrap" }}>
             <span
               style={{

@@ -2,7 +2,7 @@
 
 import type { ReactNode } from "react";
 import { colors } from "@/constants/colors";
-import { spacing, maxWidth } from "@/utils/size";
+import { spacing, maxWidth as siteMaxWidth } from "@/utils/size";
 import Icon from "@/components/Icon";
 import HeroScene from "@/components/HeroScene";
 
@@ -12,13 +12,20 @@ import HeroScene from "@/components/HeroScene";
  * navigating between them feels like one consistent, finished area rather
  * than the Dashboard alone getting the "premium" treatment. Callers supply
  * their own eyebrow/title/subtitle content as children; only the animated
- * shell itself lives here. */
+ * shell itself lives here.
+ *
+ * `maxWidth` defaults to the shared site width but can be overridden — the
+ * Dashboard screen passes its own slightly wider value so this hero's title
+ * column still lines up with its unified container below, which needs the
+ * extra room. */
 export default function ProDashboardHero({
   children,
   minHeight = "clamp(320px, 34vw, 420px)",
+  maxWidth = siteMaxWidth,
 }: {
   children: ReactNode;
   minHeight?: string;
+  maxWidth?: number;
 }) {
   return (
     <div
