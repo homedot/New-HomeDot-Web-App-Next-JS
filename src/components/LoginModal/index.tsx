@@ -9,6 +9,7 @@ import {
   useState,
 } from "react";
 import { useRouter } from "next/navigation";
+import { useGoogleReCaptcha } from "react-google-recaptcha-v3";
 import { colors } from "@/constants/colors";
 import { spacing, radius, fontSize, shadow } from "@/utils/size";
 import Icon from "@/components/Icon";
@@ -77,6 +78,7 @@ export interface LoginModalProps {
 const LoginModal = forwardRef<LoginModalHandle, LoginModalProps>(
   function LoginModal({ hideTrigger }, ref) {
     const router = useRouter();
+    const { executeRecaptcha } = useGoogleReCaptcha();
     const profile = useProfileStore((s) => s.profile);
     const [open, setOpen] = useState(false);
     const [loggedIn, setLoggedIn] = useState(false);
@@ -181,7 +183,16 @@ const LoginModal = forwardRef<LoginModalHandle, LoginModalProps>(
         return doShake();
       }
 
-      const otpRes = await AuthService.sendLoginOtp(payload);
+      if (!executeRecaptcha) {
+        setChecking(false);
+        setCheckError("Couldn't verify you're human. Please try again.");
+        return doShake();
+      }
+      const recaptchaToken = await executeRecaptcha("send_otp");
+      const otpRes = await AuthService.sendLoginOtp({
+        ...payload,
+        recaptchaToken,
+      });
       console.log("Send OTP response:", otpRes);
       setChecking(false);
       if (!otpRes.success || !otpRes.data?.status) {
@@ -261,7 +272,15 @@ const LoginModal = forwardRef<LoginModalHandle, LoginModalProps>(
 
     const resendOtp = async () => {
       setOtpError(null);
-      const res = await AuthService.sendLoginOtp(contactPayload());
+      if (!executeRecaptcha) {
+        setOtpError("Couldn't verify you're human. Please try again.");
+        return;
+      }
+      const recaptchaToken = await executeRecaptcha("send_otp");
+      const res = await AuthService.sendLoginOtp({
+        ...contactPayload(),
+        recaptchaToken,
+      });
       if (!res.success || !res.data?.status) {
         setOtpError(
           res.data?.message ||
@@ -283,7 +302,8 @@ const LoginModal = forwardRef<LoginModalHandle, LoginModalProps>(
     // way to reach that section of the app from here.
     const finishSuccess = (userType?: string) => {
       setStep("success");
-      const role: AccountRole = userType && userType !== "normal-user" ? "professional" : "user";
+      const role: AccountRole =
+        userType && userType !== "normal-user" ? "professional" : "user";
       setActiveRole(role);
       useProfileStore.getState().fetch();
       setTimeout(() => {
@@ -1150,4 +1170,3 @@ function SuccessStep({
     </div>
   );
 }
-

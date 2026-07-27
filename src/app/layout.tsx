@@ -2,6 +2,7 @@ import type { Metadata } from "next";
 import { Geist, Geist_Mono, Bricolage_Grotesque } from "next/font/google";
 import RoleGate from "@/components/RoleGate";
 import RoleSwitchOverlay from "@/components/RoleSwitchOverlay";
+import RecaptchaProvider from "@/components/RecaptchaProvider";
 import "./globals.css";
 
 const geistSans = Geist({
@@ -35,9 +36,11 @@ export default function RootLayout({
       className={`${geistSans.variable} ${geistMono.variable} ${bricolageGrotesque.variable} h-full antialiased`}
     >
       <body className="min-h-full flex flex-col">
-        <RoleGate />
-        {children}
-        <RoleSwitchOverlay />
+        <RecaptchaProvider>
+          <RoleGate />
+          {children}
+          <RoleSwitchOverlay />
+        </RecaptchaProvider>
       </body>
     </html>
   );

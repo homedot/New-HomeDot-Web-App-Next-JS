@@ -21,6 +21,7 @@ export interface CheckUserBody {
 export interface SendLoginOtpPayload {
   userContact: string;
   countryCode?: string;
+  recaptchaToken: string;
 }
 
 export interface SendLoginOtpBody {
