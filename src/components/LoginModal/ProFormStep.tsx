@@ -1,11 +1,12 @@
 "use client";
 
-import { useState } from "react";
+import { useRef, useState } from "react";
 import { colors } from "@/constants/colors";
 import { spacing, radius, fontSize } from "@/utils/size";
 import Icon from "@/components/Icon";
 import { categories, homeServices } from "@/screens/LandingScreen/data";
 import type { LocationValue } from "@/components/LocationMapPicker";
+import EmailField, { type EmailFieldHandle } from "@/components/EmailField";
 import CountryCodeSelect from "./CountryCodeSelect";
 import { inputWrap, fieldInputStyle, Field, digitLimitFor, type Method } from "./shared";
 
@@ -60,6 +61,8 @@ export default function ProFormStep({
   const [email, setEmail] = useState(method === "email" ? contactValue : "");
   const [experience, setExperience] = useState("");
   const [description, setDescription] = useState("");
+  const [submitting, setSubmitting] = useState(false);
+  const emailFieldRef = useRef<EmailFieldHandle>(null);
 
   const digitLimit = digitLimitFor(cc);
   const mobileValid = mobile.replace(/\D/g, "").length === digitLimit;
@@ -72,6 +75,29 @@ export default function ProFormStep({
     emailValid &&
     experience.trim().length > 0 &&
     description.trim().length > 0;
+
+  const handleSubmit = async () => {
+    if (!valid || !professionalType || submitting) return;
+    // The email step's own OTP flow already ran it through ZeroBounce; only
+    // a freshly-typed email (phone signup) needs validating here.
+    if (method === "phone") {
+      setSubmitting(true);
+      const emailOk = await emailFieldRef.current?.validate();
+      setSubmitting(false);
+      if (!emailOk) return;
+    }
+    onSubmit({
+      professionalType,
+      category,
+      name: name.trim(),
+      countryCode: cc,
+      mobile,
+      email,
+      experience,
+      description,
+      location,
+    });
+  };
 
   return (
     <div className="login-step">
@@ -158,17 +184,15 @@ export default function ProFormStep({
         </Field>
 
         <Field label="Email">
-          <div style={inputWrap}>
-            <Icon name="mail" size={18} color={colors.muted} />
-            <input
-              type="email"
-              placeholder="Email address"
-              value={email}
-              readOnly={method === "email"}
-              onChange={(e) => setEmail(e.target.value)}
-              style={{ ...fieldInputStyle, opacity: method === "email" ? 0.7 : 1 }}
-            />
-          </div>
+          <EmailField
+            ref={emailFieldRef}
+            value={email}
+            onChange={setEmail}
+            readOnly={method === "email"}
+            placeholder="Email address"
+            wrapStyle={inputWrap}
+            inputStyle={{ ...fieldInputStyle, opacity: method === "email" ? 0.7 : 1 }}
+          />
         </Field>
 
         <SelectField
@@ -247,21 +271,8 @@ export default function ProFormStep({
       </div>
 
       <button
-        onClick={() =>
-          valid &&
-          professionalType &&
-          onSubmit({
-            professionalType,
-            category,
-            name: name.trim(),
-            countryCode: cc,
-            mobile,
-            email,
-            experience,
-            description,
-            location,
-          })
-        }
+        onClick={handleSubmit}
+        disabled={submitting}
         className={`login-cta${valid ? " is-ready" : ""}`}
         style={{
           display: "inline-flex",
@@ -276,10 +287,11 @@ export default function ProFormStep({
           color: colors.white,
           fontWeight: 600,
           fontSize: fontSize.md - 1,
-          opacity: valid ? 1 : 0.5,
+          opacity: valid && !submitting ? 1 : 0.5,
         }}
       >
-        Submit <Icon name="arrow" size={18} color={colors.white} />
+        {submitting ? "Checking…" : "Submit"}
+        {!submitting && <Icon name="arrow" size={18} color={colors.white} />}
       </button>
     </div>
   );

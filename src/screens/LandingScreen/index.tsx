@@ -63,10 +63,14 @@ const wrap: CSSProperties = {
 export default function LandingScreen() {
   const loginModalRef = useRef<LoginModalHandle>(null);
   const { executeRecaptcha } = useGoogleReCaptcha();
-  useEffect(async () => {
-    const recaptchaToken = await executeRecaptcha("send_otp");
-    console.log("Recaptcha token:", recaptchaToken);
+
+  useEffect(() => {
+    if (!executeRecaptcha) return;
+    executeRecaptcha("send_otp").then((recaptchaToken) => {
+      console.log("Recaptcha token:", recaptchaToken);
+    });
   }, [executeRecaptcha]);
+
   return (
     <div
       style={{

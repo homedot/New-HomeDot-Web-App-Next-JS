@@ -19,6 +19,7 @@ import { useAuthStore } from "@/store/useAuthStore";
 import { useProfileStore } from "@/store/useProfileStore";
 import { setActiveRole, type AccountRole } from "@/utils/authStorage";
 import type { LocationValue } from "@/components/LocationMapPicker";
+import EmailField, { type EmailFieldHandle } from "@/components/EmailField";
 import RoleStep from "./RoleStep";
 import UserFormStep, { type UserFormValues } from "./UserFormStep";
 import ProLocationStep from "./ProLocationStep";
@@ -96,6 +97,7 @@ const LoginModal = forwardRef<LoginModalHandle, LoginModalProps>(
     const [isNewUser, setIsNewUser] = useState(true);
     const [proLocation, setProLocation] = useState<LocationValue | null>(null);
     const otpRefs = useRef<(HTMLInputElement | null)[]>([]);
+    const emailFieldRef = useRef<EmailFieldHandle>(null);
 
     useImperativeHandle(ref, () => ({
       open: () => setOpen(true),
@@ -170,6 +172,16 @@ const LoginModal = forwardRef<LoginModalHandle, LoginModalProps>(
       if (!valid) return doShake();
       setChecking(true);
       setCheckError(null);
+
+      if (method === "email") {
+        const emailOk = await emailFieldRef.current?.validate();
+        if (!emailOk) {
+          setChecking(false);
+          setCheckError("Please enter a valid, deliverable email address.");
+          return doShake();
+        }
+      }
+
       const payload = contactPayload();
 
       const checkRes = await AuthService.checkUser(payload);
@@ -468,6 +480,7 @@ const LoginModal = forwardRef<LoginModalHandle, LoginModalProps>(
                     checking={checking}
                     error={checkError}
                     onSubmit={sendOtp}
+                    emailFieldRef={emailFieldRef}
                   />
                 )}
 
@@ -713,6 +726,7 @@ function MethodStep({
   checking,
   error,
   onSubmit,
+  emailFieldRef,
 }: {
   method: Method;
   setMethod: (m: Method) => void;
@@ -726,6 +740,7 @@ function MethodStep({
   checking: boolean;
   error: string | null;
   onSubmit: () => void;
+  emailFieldRef: React.RefObject<EmailFieldHandle | null>;
 }) {
   const digits = value.replace(/\D/g, "");
   return (
@@ -802,56 +817,55 @@ function MethodStep({
         ))}
       </div>
 
-      <div
-        className={shake ? "login-shake" : undefined}
-        style={{ ...inputWrap, marginBottom: spacing.lg + 2 }}
-      >
-        {method === "phone" ? (
-          <>
-            <CountryCodeSelect value={cc} onChange={setCc} />
-            <input
-              type="tel"
-              inputMode="numeric"
-              placeholder="98470 11223"
-              value={value}
-              onChange={(e) =>
-                setValue(e.target.value.replace(/\D/g, "").slice(0, digitLimit))
-              }
-              onKeyDown={(e) => e.key === "Enter" && onSubmit()}
-              autoFocus
-              style={{
-                border: "none",
-                outline: "none",
-                background: "none",
-                width: "100%",
-                fontSize: fontSize.md - 0.5,
-                color: colors.ink,
-              }}
-            />
-          </>
-        ) : (
-          <>
-            <Icon name="mail" size={18} color={colors.muted} />
-            <input
-              type="email"
-              inputMode="email"
-              placeholder="you@email.com"
-              value={value}
-              onChange={(e) => setValue(e.target.value)}
-              onKeyDown={(e) => e.key === "Enter" && onSubmit()}
-              autoFocus
-              style={{
-                border: "none",
-                outline: "none",
-                background: "none",
-                width: "100%",
-                fontSize: fontSize.md - 0.5,
-                color: colors.ink,
-              }}
-            />
-          </>
-        )}
-      </div>
+      {method === "phone" ? (
+        <div
+          className={shake ? "login-shake" : undefined}
+          style={{ ...inputWrap, marginBottom: spacing.lg + 2 }}
+        >
+          <CountryCodeSelect value={cc} onChange={setCc} />
+          <input
+            type="tel"
+            inputMode="numeric"
+            placeholder="98470 11223"
+            value={value}
+            onChange={(e) =>
+              setValue(e.target.value.replace(/\D/g, "").slice(0, digitLimit))
+            }
+            onKeyDown={(e) => e.key === "Enter" && onSubmit()}
+            autoFocus
+            style={{
+              border: "none",
+              outline: "none",
+              background: "none",
+              width: "100%",
+              fontSize: fontSize.md - 0.5,
+              color: colors.ink,
+            }}
+          />
+        </div>
+      ) : (
+        <div
+          className={shake ? "login-shake" : undefined}
+          style={{ marginBottom: spacing.lg + 2 }}
+        >
+          <EmailField
+            ref={emailFieldRef}
+            value={value}
+            onChange={setValue}
+            autoFocus
+            onKeyDown={(e) => e.key === "Enter" && onSubmit()}
+            wrapStyle={inputWrap}
+            inputStyle={{
+              border: "none",
+              outline: "none",
+              background: "none",
+              width: "100%",
+              fontSize: fontSize.md - 0.5,
+              color: colors.ink,
+            }}
+          />
+        </div>
+      )}
 
       {method === "phone" && !error && (
         <p

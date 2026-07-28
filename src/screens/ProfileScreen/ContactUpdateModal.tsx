@@ -6,6 +6,7 @@ import { spacing, radius, fontSize } from "@/utils/size";
 import Icon from "@/components/Icon";
 import CountryCodeSelect from "@/components/LoginModal/CountryCodeSelect";
 import { digitLimitFor } from "@/components/LoginModal/shared";
+import EmailField, { type EmailFieldHandle } from "@/components/EmailField";
 import ProfileService from "@/services/ProfileService";
 
 type Mode = "phone" | "email";
@@ -35,6 +36,7 @@ export default function ContactUpdateModal({
   const [error, setError] = useState<string | null>(null);
   const [shake, setShake] = useState(false);
   const otpRefs = useRef<(HTMLInputElement | null)[]>([]);
+  const emailFieldRef = useRef<EmailFieldHandle>(null);
 
   useEffect(() => {
     if (step !== "otp") return;
@@ -67,6 +69,16 @@ export default function ContactUpdateModal({
     if (!valid) return doShake();
     setSending(true);
     setError(null);
+
+    if (mode === "email") {
+      const emailOk = await emailFieldRef.current?.validate();
+      if (!emailOk) {
+        setSending(false);
+        setError("Please enter a valid, deliverable email address.");
+        return doShake();
+      }
+    }
+
     const res = await requestOtp();
     setSending(false);
     if (!res.success || !res.data?.status) {
@@ -188,49 +200,56 @@ export default function ContactUpdateModal({
                 ? "We'll text a one-time code to confirm your new number."
                 : "We'll email a one-time code to confirm your new address."}
             </p>
-            <div
-              className={shake ? "login-shake" : undefined}
-              style={{
-                display: "flex",
-                alignItems: "center",
-                gap: 9,
-                height: 54,
-                border: `1.5px solid ${colors.line}`,
-                borderRadius: radius.md,
-                padding: "0 16px",
-                marginBottom: spacing.md,
-              }}
-            >
-              {mode === "phone" ? (
-                <>
-                  <CountryCodeSelect value={cc} onChange={setCc} />
-                  <input
-                    type="tel"
-                    inputMode="numeric"
-                    placeholder="98470 11223"
-                    value={value}
-                    onChange={(e) => setValue(e.target.value.replace(/\D/g, "").slice(0, digitLimit))}
-                    onKeyDown={(e) => e.key === "Enter" && sendOtp()}
-                    autoFocus
-                    style={{ border: "none", outline: "none", background: "none", width: "100%", fontSize: fontSize.md - 0.5, color: colors.ink }}
-                  />
-                </>
-              ) : (
-                <>
-                  <Icon name="mail" size={18} color={colors.muted} />
-                  <input
-                    type="email"
-                    inputMode="email"
-                    placeholder="you@email.com"
-                    value={value}
-                    onChange={(e) => setValue(e.target.value)}
-                    onKeyDown={(e) => e.key === "Enter" && sendOtp()}
-                    autoFocus
-                    style={{ border: "none", outline: "none", background: "none", width: "100%", fontSize: fontSize.md - 0.5, color: colors.ink }}
-                  />
-                </>
-              )}
-            </div>
+            {mode === "phone" ? (
+              <div
+                className={shake ? "login-shake" : undefined}
+                style={{
+                  display: "flex",
+                  alignItems: "center",
+                  gap: 9,
+                  height: 54,
+                  border: `1.5px solid ${colors.line}`,
+                  borderRadius: radius.md,
+                  padding: "0 16px",
+                  marginBottom: spacing.md,
+                }}
+              >
+                <CountryCodeSelect value={cc} onChange={setCc} />
+                <input
+                  type="tel"
+                  inputMode="numeric"
+                  placeholder="98470 11223"
+                  value={value}
+                  onChange={(e) => setValue(e.target.value.replace(/\D/g, "").slice(0, digitLimit))}
+                  onKeyDown={(e) => e.key === "Enter" && sendOtp()}
+                  autoFocus
+                  style={{ border: "none", outline: "none", background: "none", width: "100%", fontSize: fontSize.md - 0.5, color: colors.ink }}
+                />
+              </div>
+            ) : (
+              <div
+                className={shake ? "login-shake" : undefined}
+                style={{ marginBottom: spacing.md }}
+              >
+                <EmailField
+                  ref={emailFieldRef}
+                  value={value}
+                  onChange={setValue}
+                  autoFocus
+                  onKeyDown={(e) => e.key === "Enter" && sendOtp()}
+                  wrapStyle={{
+                    display: "flex",
+                    alignItems: "center",
+                    gap: 9,
+                    height: 54,
+                    border: `1.5px solid ${colors.line}`,
+                    borderRadius: radius.md,
+                    padding: "0 16px",
+                  }}
+                  inputStyle={{ border: "none", outline: "none", background: "none", width: "100%", fontSize: fontSize.md - 0.5, color: colors.ink }}
+                />
+              </div>
+            )}
             {error && <p style={{ color: "#C0392B", fontSize: fontSize.sm, marginBottom: spacing.md }}>{error}</p>}
             <button
               onClick={sendOtp}
