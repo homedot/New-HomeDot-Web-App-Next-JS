@@ -53,7 +53,7 @@ import {
   blogPosts,
   testimonials,
 } from "./data";
-import { useGoogleReCaptcha } from "react-google-recaptcha-v3";
+import { getRecaptchaToken } from "@/utils/recaptcha";
 const wrap: CSSProperties = {
   maxWidth,
   margin: "0 auto",
@@ -62,14 +62,12 @@ const wrap: CSSProperties = {
 
 export default function LandingScreen() {
   const loginModalRef = useRef<LoginModalHandle>(null);
-  const { executeRecaptcha } = useGoogleReCaptcha();
 
   useEffect(() => {
-    if (!executeRecaptcha) return;
-    executeRecaptcha("send_otp").then((recaptchaToken) => {
+    getRecaptchaToken("otp_login").then((recaptchaToken) => {
       console.log("Recaptcha token:", recaptchaToken);
     });
-  }, [executeRecaptcha]);
+  }, []);
 
   return (
     <div

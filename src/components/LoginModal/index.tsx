@@ -9,7 +9,7 @@ import {
   useState,
 } from "react";
 import { useRouter } from "next/navigation";
-import { useGoogleReCaptcha } from "react-google-recaptcha-v3";
+import { getRecaptchaToken } from "@/utils/recaptcha";
 import { colors } from "@/constants/colors";
 import { spacing, radius, fontSize, shadow } from "@/utils/size";
 import Icon from "@/components/Icon";
@@ -79,7 +79,6 @@ export interface LoginModalProps {
 const LoginModal = forwardRef<LoginModalHandle, LoginModalProps>(
   function LoginModal({ hideTrigger }, ref) {
     const router = useRouter();
-    const { executeRecaptcha } = useGoogleReCaptcha();
     const profile = useProfileStore((s) => s.profile);
     const [open, setOpen] = useState(false);
     const [loggedIn, setLoggedIn] = useState(false);
@@ -195,12 +194,14 @@ const LoginModal = forwardRef<LoginModalHandle, LoginModalProps>(
         return doShake();
       }
 
-      if (!executeRecaptcha) {
+      let recaptchaToken: string;
+      try {
+        recaptchaToken = await getRecaptchaToken("otp_login");
+      } catch {
         setChecking(false);
         setCheckError("Couldn't verify you're human. Please try again.");
         return doShake();
       }
-      const recaptchaToken = await executeRecaptcha("send_otp");
       const otpRes = await AuthService.sendLoginOtp({
         ...payload,
         recaptchaToken,
@@ -284,11 +285,13 @@ const LoginModal = forwardRef<LoginModalHandle, LoginModalProps>(
 
     const resendOtp = async () => {
       setOtpError(null);
-      if (!executeRecaptcha) {
+      let recaptchaToken: string;
+      try {
+        recaptchaToken = await getRecaptchaToken("otp_login");
+      } catch {
         setOtpError("Couldn't verify you're human. Please try again.");
         return;
       }
-      const recaptchaToken = await executeRecaptcha("send_otp");
       const res = await AuthService.sendLoginOtp({
         ...contactPayload(),
         recaptchaToken,
