@@ -21,6 +21,7 @@ import StoreButtons from "@/components/StoreButtons";
 import Cursor from "@/components/Cursor";
 import AmbientBackground from "@/components/AmbientBackground";
 import HeroScene from "@/components/HeroScene";
+import HeroPhotoBackdrop from "@/components/HeroPhotoBackdrop";
 import Reveal from "@/components/Reveal";
 import ScrollProgress from "@/components/ScrollProgress";
 import ScrollScrub from "@/components/ScrollScrub";
@@ -111,11 +112,12 @@ function Hero() {
         background: colors.primary,
       }}
     >
+      <HeroPhotoBackdrop />
       <div
         style={{
           position: "absolute",
           inset: 0,
-          background: `radial-gradient(120% 90% at 85% 10%, ${colors.primaryDeep} 0%, transparent 55%), radial-gradient(80% 70% at 10% 100%, rgba(41,151,255,0.3) 0%, transparent 50%)`,
+          background: `linear-gradient(180deg, rgba(10,20,34,0.55) 0%, rgba(10,20,34,0.72) 100%), radial-gradient(120% 90% at 85% 10%, ${colors.primaryDeep} 0%, transparent 55%), radial-gradient(80% 70% at 10% 100%, rgba(41,151,255,0.3) 0%, transparent 50%)`,
         }}
       />
       <HeroScene />
