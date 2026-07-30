@@ -257,11 +257,20 @@ const LoginModal = forwardRef<LoginModalHandle, LoginModalProps>(
       if (!otpFull) return doShake();
       setVerifying(true);
       setOtpError(null);
+      let recaptchaToken: string;
+      try {
+        recaptchaToken = await getRecaptchaToken("otp_login");
+      } catch {
+        setVerifying(false);
+        setOtpError("Couldn't verify you're human. Please try again.");
+        return doShake();
+      }
       const res = await AuthService.verifyLoginOtp({
         ...contactPayload(),
         otp: otp.join(""),
         deviceToken: "",
         deviceType: "ios",
+        recaptchaToken,
       });
       setVerifying(false);
       if (!res.success || !res.data || res.data.status === false) {

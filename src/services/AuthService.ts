@@ -36,6 +36,7 @@ export interface VerifyLoginOtpPayload {
   countryCode?: string;
   deviceToken: string;
   deviceType: string;
+  recaptchaToken: string;
 }
 
 export interface VerifyLoginOtpRecord {
