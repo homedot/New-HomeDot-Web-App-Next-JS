@@ -2,7 +2,7 @@
 
 const PHOTOS: { src: string; alt: string; anim: string }[] = [
   {
-    src: "https://images.unsplash.com/photo-1580587771525-78b9dba3b914?auto=format&fit=crop&w=1800&q=80",
+    src: "https://images.unsplash.com/photo-1600596542815-ffad4c1539a9?auto=format&fit=crop&w=1800&q=80",
     alt: "",
     anim: "hero-photo-a",
   },
