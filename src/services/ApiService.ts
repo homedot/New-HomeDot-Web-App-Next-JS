@@ -22,10 +22,15 @@ function buildUrl(
   endpoint: string,
   params?: ApiRequestOptions["params"],
 ): string {
+  if (!BASE_URL && !endpoint.startsWith("http")) {
+    throw new Error(
+      "NEXT_PUBLIC_API_STAGING_BASE_URL is not set",
+    );
+  }
   const url = new URL(
     endpoint.startsWith("http")
       ? endpoint
-      : `${BASE_URL.replace(/\/$/, "")}/${endpoint.replace(/^\//, "")}`,
+      : `${BASE_URL!.replace(/\/$/, "")}/${endpoint.replace(/^\//, "")}`,
   );
   if (params) {
     Object.entries(params).forEach(([key, value]) => {
