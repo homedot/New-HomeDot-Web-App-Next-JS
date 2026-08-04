@@ -3,7 +3,7 @@ import { getAuthToken, getRefreshToken } from "@/utils/authStorage";
 import { useAuthStore } from "@/store/useAuthStore";
 
 export type HttpMethod = "GET" | "POST" | "PUT" | "PATCH" | "DELETE";
-
+console.log("BASE_URL_________", BASE_URL);
 export interface ApiResponse<T = unknown> {
   success: boolean;
   statusCode: number;
@@ -23,9 +23,7 @@ function buildUrl(
   params?: ApiRequestOptions["params"],
 ): string {
   if (!BASE_URL && !endpoint.startsWith("http")) {
-    throw new Error(
-      "NEXT_PUBLIC_API_STAGING_BASE_URL is not set",
-    );
+    throw new Error("NEXT_PUBLIC_API_STAGING_BASE_URL is not set");
   }
   const url = new URL(
     endpoint.startsWith("http")
@@ -56,14 +54,19 @@ async function refreshAccessToken(): Promise<string | null> {
       const refreshToken = getRefreshToken();
       if (!refreshToken) return null;
       try {
-        const response = await fetch(buildUrl(API_ENDPOINTS.AUTH.REFRESH_TOKEN), {
-          method: "POST",
-          headers: { "Content-Type": "application/json" },
-          body: JSON.stringify({ refreshToken }),
-        });
+        const response = await fetch(
+          buildUrl(API_ENDPOINTS.AUTH.REFRESH_TOKEN),
+          {
+            method: "POST",
+            headers: { "Content-Type": "application/json" },
+            body: JSON.stringify({ refreshToken }),
+          },
+        );
         if (!response.ok) return null;
         const responseBody = (await response.json()) as RefreshTokenBody;
-        const newToken = responseBody.status ? responseBody.data?.[0]?.token : null;
+        const newToken = responseBody.status
+          ? responseBody.data?.[0]?.token
+          : null;
         if (!newToken) return null;
         // Refresh only returns a new access token — the refresh token itself
         // is unchanged, so it's carried over as-is.
@@ -93,7 +96,8 @@ export async function apiCall<T = unknown>(
   const token = getAuthToken();
   // FormData (file uploads) must be sent as-is with no Content-Type — the
   // browser sets the multipart boundary itself. Everything else is JSON.
-  const isFormData = typeof FormData !== "undefined" && body instanceof FormData;
+  const isFormData =
+    typeof FormData !== "undefined" && body instanceof FormData;
   const url = buildUrl(endpoint, params);
 
   const doFetch = (authToken: string | null) =>
@@ -104,7 +108,11 @@ export async function apiCall<T = unknown>(
         ...(authToken ? { Authorization: `Bearer ${authToken}` } : {}),
         ...headers,
       },
-      body: isFormData ? body : body !== undefined ? JSON.stringify(body) : undefined,
+      body: isFormData
+        ? body
+        : body !== undefined
+          ? JSON.stringify(body)
+          : undefined,
     });
 
   try {
@@ -113,7 +121,11 @@ export async function apiCall<T = unknown>(
     // Access token expired — refresh once and retry the original request
     // before giving up. Only applies to requests that were actually
     // authenticated to begin with; guest calls 401 for other reasons.
-    if (response.status === 401 && token && !endpoint.includes(API_ENDPOINTS.AUTH.REFRESH_TOKEN)) {
+    if (
+      response.status === 401 &&
+      token &&
+      !endpoint.includes(API_ENDPOINTS.AUTH.REFRESH_TOKEN)
+    ) {
       const newToken = await refreshAccessToken();
       if (newToken) {
         response = await doFetch(newToken);
