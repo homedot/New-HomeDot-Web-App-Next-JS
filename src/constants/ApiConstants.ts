@@ -385,5 +385,32 @@ export const API_ENDPOINTS = {
     // ("v1/professional/delete-portfolio-image") — POST { image, type }, where
     // type is "outside"/"inside" depending on which bucket the photo came from.
     GALLERY_IMAGE_DELETE: "professional/delete-portfolio-image",
+    // Requires a stored auth token. Mirrors PROFESSIONALS_API.BLOG_LIST
+    // ("v1/blog/get-blogs") — the signed-in professional's own published
+    // blogs (My Blogs list), paginated. Distinct from BLOG.LIST above, which
+    // is the guest-facing "all professionals' blogs" feed.
+    BLOG_LIST: (page: number) => `blog/get-blogs?page=${page}`,
+    // Requires a stored auth token. Mirrors PROFESSIONALS_API.BLOG_DRAFT_LIST
+    // ("v1/blog/get-draft-blogs") — the signed-in professional's saved
+    // drafts. Not paginated — mirrors homedot-mobile-app's
+    // getBlogDraftList, which fetches the full list in one call.
+    BLOG_DRAFT_LIST: "blog/get-draft-blogs",
+    // Requires a stored auth token. Mirrors PROFESSIONALS_API.CREATE_BLOG
+    // ("v1/blog/create") — POST { title, description, publishDate,
+    // status: true, blog_images: string[], draft: boolean }. Images are
+    // uploaded individually first via COMMON.IMAGE_UPLOAD (see
+    // ProfessionalDashboardService.uploadProjectImage's identical pattern
+    // for Workfolio), then their returned `_id`s go into blog_images.
+    BLOG_CREATE: "blog/create",
+    // Requires a stored auth token. Mirrors PROFESSIONALS_API.EDIT_BLOG
+    // ("v1/blog/update-blog/") — PUT, same body shape as BLOG_CREATE. Also
+    // reused for the draft→publish action (mirrors homedot-mobile-app's
+    // draftToPublishBlog, which calls this identical endpoint with
+    // draft: false rather than a dedicated one).
+    BLOG_UPDATE: (slug: string) => `blog/update-blog/${encodeURIComponent(slug)}`,
+    // Requires a stored auth token. Mirrors PROFESSIONALS_API.DELETE_BLOG
+    // ("v1/blog/delete-blog/") — PUT, no body (soft delete), same pattern as
+    // MARKETPLACE.PROPERTY_DELETE.
+    BLOG_DELETE: (id: string) => `blog/delete-blog/${encodeURIComponent(id)}`,
   },
 } as const;

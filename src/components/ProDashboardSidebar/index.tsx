@@ -26,8 +26,8 @@ type SidebarNavEntry = { icon: IconName; label: string; href?: string; onClick?:
  * shared container), so they get the default full-card version.
  *
  * Nav items are limited to routes that actually exist; the reference's extra
- * items (Blogs, Refer & earn, Support…) are shown as a disabled "Coming
- * soon" group rather than dead links. Computes its own active state from the
+ * items (Refer & earn, Support…) are shown as a disabled "Coming soon" group
+ * rather than dead links. Computes its own active state from the
  * current route (usePathname) rather than being told which item is active,
  * so it stays correct across every page it's used on. */
 export default function ProDashboardSidebar({ onLogout, loggingOut, bare = false }: { onLogout: () => void; loggingOut: boolean; bare?: boolean }) {
@@ -37,12 +37,12 @@ export default function ProDashboardSidebar({ onLogout, loggingOut, bare = false
   const live: SidebarNavEntry[] = [
     { icon: "grid", label: "Dashboard", href: "/professional/dashboard" },
     { icon: "mail", label: "Enquiries", href: "/professional/enquiries" },
+    { icon: "book", label: "Blogs", href: "/professional/blogs" },
     { icon: "user", label: "Profile", href: "/professional/profile" },
     { icon: "briefcase", label: "Workfolio", href: "/professional/workfolio" },
     { icon: "heart", label: "Favourites", href: "/favorites" },
   ];
   const soon: SidebarNavEntry[] = [
-    { icon: "chat", label: "Blogs", chip: colors.gold },
     { icon: "share", label: "Refer & earn", chip: colors.price },
     { icon: "settings", label: "Settings", chip: colors.accent },
     { icon: "phone", label: "Support", chip: colors.gold },
