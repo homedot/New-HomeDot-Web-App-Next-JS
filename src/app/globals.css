@@ -1028,14 +1028,29 @@ body.has-cursor * {
   animation: glowPulse 4s ease-in-out infinite;
 }
 
-/* Sliding pill behind the active tab — the component measures the active
-   button's offset/width and sets them inline; only the motion is CSS. */
+/* Sliding pill/underline behind the active tab — the component measures the
+   active button's offset/width and sets them inline (left/width, sometimes
+   also top/bottom for the pill variant); only the motion is CSS. */
 .pf-tab-thumb {
-  transition: transform 0.32s cubic-bezier(0.2, 0.8, 0.3, 1), width 0.32s cubic-bezier(0.2, 0.8, 0.3, 1);
+  transition:
+    left 0.32s cubic-bezier(0.2, 0.8, 0.3, 1),
+    width 0.32s cubic-bezier(0.2, 0.8, 0.3, 1),
+    transform 0.32s cubic-bezier(0.2, 0.8, 0.3, 1);
 }
 
 .pf-tab-btn {
   transition: color 0.2s ease;
+}
+
+/* Underline-style section tabs (e.g. ProfessionalBlogScreen's My Blogs/All
+   Blogs switcher) — pairs with .pf-tab-thumb rendered as a thin bottom bar
+   rather than a filled pill. */
+.pf-section-tab {
+  transition: color 0.2s ease;
+}
+
+.pf-section-tab:hover {
+  color: #1d1d1f;
 }
 
 /* Portfolio tile hover: darken + fade in a zoom affordance. */
