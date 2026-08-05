@@ -61,6 +61,11 @@ const wrap: CSSProperties = {
   padding: `0 ${spacing.xl}px`,
 };
 
+// Same support number/email as ProfileScreen's HelpPanel and the nav's
+// ContactModal (mirrors homedot-mobile-app's HelpScreen).
+const CONTACT_PHONE = "7012303017";
+const CONTACT_EMAIL = "mail@homedotapp.com";
+
 export default function LandingScreen() {
   const loginModalRef = useRef<LoginModalHandle>(null);
 
@@ -98,6 +103,7 @@ export default function LandingScreen() {
       <ProCta />
       <LatestInsights loginModalRef={loginModalRef} />
       <Testimonials />
+      <ContactSection />
       <SiteFooter />
     </div>
   );
@@ -1878,5 +1884,151 @@ function Testimonials() {
         </Reveal>
       </div>
     </section>
+  );
+}
+
+function ContactSection() {
+  return (
+    <section
+      style={{ ...wrap, padding: `0 ${spacing.xl}px ${spacing.huge}px` }}
+    >
+      <Reveal
+        className="grid grid-cols-1 lg:grid-cols-[1.1fr_1fr]"
+        style={{
+          position: "relative",
+          overflow: "hidden",
+          background: `linear-gradient(135deg, ${colors.primaryDeep}, ${colors.primary})`,
+          borderRadius: radius.lg,
+          padding: "clamp(28px, 4vw, 52px)",
+          gap: spacing.xxl,
+          alignItems: "center",
+        }}
+      >
+        <div>
+          <span
+            style={{
+              display: "inline-flex",
+              alignItems: "center",
+              gap: 7,
+              fontSize: fontSize.sm,
+              fontWeight: 600,
+              color: colors.white,
+              background: "rgba(255,255,255,0.16)",
+              padding: "6px 13px",
+              borderRadius: radius.full,
+            }}
+          >
+            <Icon name="chat" size={15} /> Get in touch
+          </span>
+          <h2
+            style={{
+              color: colors.white,
+              fontFamily: "var(--font-display)",
+              fontSize: "clamp(24px, 3vw, 34px)",
+              fontWeight: 600,
+              margin: `${spacing.lg}px 0 ${spacing.md}px`,
+            }}
+          >
+            We&apos;re here to help, every step of the way.
+          </h2>
+          <p
+            style={{
+              color: "rgba(255,255,255,0.78)",
+              fontSize: fontSize.md,
+              lineHeight: 1.6,
+              maxWidth: 460,
+            }}
+          >
+            Questions about a listing, a professional, or your account? Call
+            or email our support team — we typically respond within 24 hours
+            on business days.
+          </p>
+        </div>
+
+        <div
+          className="grid grid-cols-1 sm:grid-cols-2"
+          style={{ gap: spacing.md, position: "relative", zIndex: 1 }}
+        >
+          <ContactCard
+            icon="phone"
+            label="Call us"
+            value={`+91 ${CONTACT_PHONE.slice(0, 5)} ${CONTACT_PHONE.slice(5)}`}
+            href={`tel:${CONTACT_PHONE}`}
+          />
+          <ContactCard
+            icon="mail"
+            label="Email us"
+            value={CONTACT_EMAIL}
+            href={`mailto:${CONTACT_EMAIL}`}
+          />
+        </div>
+      </Reveal>
+    </section>
+  );
+}
+
+function ContactCard({
+  icon,
+  label,
+  value,
+  href,
+}: {
+  icon: IconName;
+  label: string;
+  value: string;
+  href: string;
+}) {
+  return (
+    <a
+      href={href}
+      className="card-hover"
+      style={{
+        display: "flex",
+        flexDirection: "column",
+        gap: spacing.md,
+        background: "rgba(255,255,255,0.07)",
+        border: "1px solid rgba(255,255,255,0.14)",
+        borderRadius: radius.md,
+        padding: "20px 18px",
+        color: colors.white,
+        textDecoration: "none",
+      }}
+    >
+      <span
+        style={{
+          width: 44,
+          height: 44,
+          borderRadius: 13,
+          background: colors.accent,
+          display: "grid",
+          placeItems: "center",
+          flexShrink: 0,
+        }}
+      >
+        <Icon name={icon} size={20} strokeWidth={2} color={colors.white} />
+      </span>
+      <span>
+        <b
+          style={{
+            display: "block",
+            fontFamily: "var(--font-display)",
+            fontSize: fontSize.md - 1,
+            fontWeight: 600,
+          }}
+        >
+          {label}
+        </b>
+        <em
+          style={{
+            fontStyle: "normal",
+            fontSize: fontSize.sm,
+            color: "rgba(255,255,255,0.72)",
+            wordBreak: "break-word",
+          }}
+        >
+          {value}
+        </em>
+      </span>
+    </a>
   );
 }

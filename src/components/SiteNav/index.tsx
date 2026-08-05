@@ -9,6 +9,9 @@ import Icon from "@/components/Icon";
 import Button from "@/components/Button";
 import Brand from "@/components/Brand";
 import LoginModal, { type LoginModalHandle } from "@/components/LoginModal";
+import ContactModal, {
+  type ContactModalHandle,
+} from "@/components/ContactModal";
 import NavShell from "@/components/NavShell";
 import { getAuthToken } from "@/utils/authStorage";
 
@@ -36,6 +39,7 @@ export default function SiteNav() {
   const pathname = usePathname();
   const router = useRouter();
   const loginModalRef = useRef<LoginModalHandle>(null);
+  const contactModalRef = useRef<ContactModalHandle>(null);
 
   const onAddProperty = () => {
     if (getAuthToken()) {
@@ -95,17 +99,29 @@ export default function SiteNav() {
               color: active ? colors.primary : colors.ink2,
               padding: "9px 14px",
               borderRadius: 10,
-              cursor: l.href ? "pointer" : "default",
+              cursor: "pointer",
               display: "inline-block",
             };
-            return l.href ? (
-              <Link key={l.label} href={l.href} style={style}>
+            if (l.href) {
+              return (
+                <Link key={l.label} href={l.href} style={style}>
+                  {l.label}
+                </Link>
+              );
+            }
+            return (
+              <button
+                key={l.label}
+                onClick={() => contactModalRef.current?.open()}
+                style={{
+                  font: "inherit",
+                  ...style,
+                  background: "none",
+                  border: "none",
+                }}
+              >
                 {l.label}
-              </Link>
-            ) : (
-              <span key={l.label} style={style}>
-                {l.label}
-              </span>
+              </button>
             );
           })}
         </nav>
@@ -147,6 +163,7 @@ export default function SiteNav() {
           <LoginModal ref={loginModalRef} />
         </div>
       </div>
+      <ContactModal ref={contactModalRef} />
     </NavShell>
   );
 }

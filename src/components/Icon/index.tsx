@@ -78,6 +78,7 @@ const PATHS: Record<IconName, React.ReactNode> = {
   heart: (
     <path d="M12 20s-7-4.5-7-9.5A3.8 3.8 0 0 1 12 7.5 3.8 3.8 0 0 1 19 10.5C19 15.5 12 20 12 20Z" />
   ),
+
   house: (
     <>
       <path d="M4 11.5 12 5l8 6.5" />
