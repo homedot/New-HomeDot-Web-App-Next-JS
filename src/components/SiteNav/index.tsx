@@ -1,10 +1,10 @@
 "use client";
 
-import { useEffect, useRef, type CSSProperties } from "react";
+import { useEffect, useRef, useState, type CSSProperties } from "react";
 import Link from "next/link";
 import { usePathname, useRouter } from "next/navigation";
 import { colors } from "@/constants/colors";
-import { spacing, fontSize, maxWidth } from "@/utils/size";
+import { spacing, maxWidth } from "@/utils/size";
 import Icon from "@/components/Icon";
 import Button from "@/components/Button";
 import Brand from "@/components/Brand";
@@ -40,6 +40,17 @@ export default function SiteNav() {
   const router = useRouter();
   const loginModalRef = useRef<LoginModalHandle>(null);
   const contactModalRef = useRef<ContactModalHandle>(null);
+  const [menuOpen, setMenuOpen] = useState(false);
+
+  // Escape-to-close, matching the modals elsewhere in the header.
+  useEffect(() => {
+    if (!menuOpen) return;
+    const onKey = (e: KeyboardEvent) => {
+      if (e.key === "Escape") setMenuOpen(false);
+    };
+    window.addEventListener("keydown", onKey);
+    return () => window.removeEventListener("keydown", onKey);
+  }, [menuOpen]);
 
   const onAddProperty = () => {
     if (getAuthToken()) {
@@ -87,24 +98,17 @@ export default function SiteNav() {
           gap: spacing.xxl,
         }}
       >
-        <Link href="/">
+        <Link href="/" className="nav-brand" onClick={() => setMenuOpen(false)}>
           <Brand />
         </Link>
         <nav className="hidden md:flex" style={{ gap: 2, marginRight: "auto" }}>
           {LINKS.map((l) => {
             const active = !!l.href && pathname === l.href;
-            const style: CSSProperties = {
-              fontSize: fontSize.sm + 0.5,
-              fontWeight: active ? 700 : 500,
-              color: active ? colors.primary : colors.ink2,
-              padding: "9px 14px",
-              borderRadius: 10,
-              cursor: "pointer",
-              display: "inline-block",
-            };
+            const style = { "--nav-color": active ? colors.primary : colors.ink2 } as CSSProperties;
+            const className = `nav-link${active ? " nav-link-active" : ""}`;
             if (l.href) {
               return (
-                <Link key={l.label} href={l.href} style={style}>
+                <Link key={l.label} href={l.href} className={className} style={style}>
                   {l.label}
                 </Link>
               );
@@ -113,12 +117,8 @@ export default function SiteNav() {
               <button
                 key={l.label}
                 onClick={() => contactModalRef.current?.open()}
-                style={{
-                  font: "inherit",
-                  ...style,
-                  background: "none",
-                  border: "none",
-                }}
+                className={className}
+                style={{ font: "inherit", ...style, background: "none", border: "none" }}
               >
                 {l.label}
               </button>
@@ -161,7 +161,53 @@ export default function SiteNav() {
             </Button>
           </span>
           <LoginModal ref={loginModalRef} />
+          <button
+            className="nav-burger flex md:hidden"
+            onClick={() => setMenuOpen((v) => !v)}
+            aria-label={menuOpen ? "Close menu" : "Open menu"}
+            aria-expanded={menuOpen}
+          >
+            <Icon name={menuOpen ? "close" : "menu"} size={20} />
+          </button>
         </div>
+      </div>
+      <div className={`nav-mobile-menu${menuOpen ? " nav-mobile-menu-open" : ""}`}>
+        <nav className="nav-mobile-links">
+          {LINKS.map((l, i) => {
+            const active = !!l.href && pathname === l.href;
+            const style = {
+              "--nav-color": active ? colors.primary : colors.ink2,
+              "--nav-delay": `${i * 30}ms`,
+            } as CSSProperties;
+            const className = `nav-mobile-link${active ? " nav-link-active" : ""}`;
+            if (l.href) {
+              return (
+                <Link
+                  key={l.label}
+                  href={l.href}
+                  className={className}
+                  style={style}
+                  onClick={() => setMenuOpen(false)}
+                >
+                  {l.label}
+                </Link>
+              );
+            }
+            return (
+              <button
+                key={l.label}
+                onClick={() => {
+                  setMenuOpen(false);
+                  contactModalRef.current?.open();
+                }}
+                className={className}
+                style={style}
+              >
+                {l.label}
+              </button>
+            );
+          })}
+        </nav>
       </div>
       <ContactModal ref={contactModalRef} />
     </NavShell>
