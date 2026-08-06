@@ -939,12 +939,18 @@ function MethodStep({
       >
         By continuing you agree to HomeDot&apos;s{" "}
         <a
+          href="/termsandconditions"
+          target="_blank"
+          rel="noopener noreferrer"
           style={{ color: colors.primary, fontWeight: 600, cursor: "pointer" }}
         >
           Terms
         </a>{" "}
         &amp;{" "}
         <a
+          href="/privacy"
+          target="_blank"
+          rel="noopener noreferrer"
           style={{ color: colors.primary, fontWeight: 600, cursor: "pointer" }}
         >
           Privacy Policy

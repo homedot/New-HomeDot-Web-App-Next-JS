@@ -587,63 +587,22 @@ body.has-cursor * {
   }
 }
 
-/* Pinned/cinematic scroll section (ScrollPin component): the outer element is a tall
-   (multi-viewport) block; its child is position:sticky so it stays fixed on screen
-   while its --pin custom property sweeps 0→1 across the outer block's scroll range.
-   This is the "scroll to zoom/reveal a full-bleed scene" pattern from agency sites. */
-.scroll-pin-outer {
-  position: relative;
-}
-
-.scroll-pin-inner {
-  position: sticky;
-  top: 0;
-  height: 100vh;
-  overflow: hidden;
-  display: flex;
-  align-items: center;
-  justify-content: center;
-}
-
-.pin-scale {
-  transform: scale(calc(1 + var(--pin, 0) * 0.24));
+/* ExploreScroll's full-bleed banner photo: a slow, purely time-based Ken Burns
+   zoom (same pattern as .hero-photo-a etc) — no scroll-linked math, so it can
+   never leave a blank/flat gap mid-scroll the way a pinned scrub section can. */
+.explore-photo img {
+  animation: exploreZoom 22s ease-in-out infinite alternate;
   will-change: transform;
 }
 
-.pin-rise {
-  opacity: var(--pin, 0);
-  transform: translateY(calc((1 - var(--pin, 0)) * 44px));
-  will-change: transform, opacity;
-}
-
-/* Dissolves the pinned scene into the page background over the final stretch of its
-   scroll range (--pin 0.7→1), so unpinning hands off to the next section smoothly
-   instead of hard-cutting to an empty gap. */
-.pin-fade-out {
-  opacity: clamp(0, calc((var(--pin, 0) - 0.7) * 3.4), 1);
-  will-change: opacity;
+@keyframes exploreZoom {
+  from { transform: scale(1); }
+  to { transform: scale(1.08); }
 }
 
 @media (prefers-reduced-motion: reduce) {
-  .pin-fade-out {
-    opacity: 0;
-  }
-}
-
-@media (prefers-reduced-motion: reduce) {
-  .scroll-pin-outer {
-    height: auto !important;
-  }
-  .scroll-pin-inner {
-    position: relative;
-    height: auto;
-  }
-  .pin-scale {
-    transform: none;
-  }
-  .pin-rise {
-    opacity: 1;
-    transform: none;
+  .explore-photo img {
+    animation: none;
   }
 }
 
@@ -683,6 +642,150 @@ body.has-cursor * {
   .nav-shell,
   .nav-inner {
     transition: none;
+  }
+}
+
+/* Brand mark: small lift + dot pulse on hover, echoes the pulse used on the
+   dot itself (see Brand component) without being distracting at rest. */
+.nav-brand {
+  transition: transform 0.2s ease;
+}
+.nav-brand:hover {
+  transform: translateY(-1px);
+}
+
+/* Desktop nav links: color comes from the --nav-color custom property (set
+   inline per-link from colors.primary/ink2) rather than an inline `color`
+   style, so this stylesheet's :hover rule can still win over the resting
+   state — inline styles would otherwise out-specificity any CSS pseudo-class. */
+.nav-link {
+  position: relative;
+  font-size: 14.5px;
+  font-weight: 500;
+  color: var(--nav-color);
+  padding: 9px 14px;
+  border-radius: 10px;
+  cursor: pointer;
+  display: inline-block;
+  transition: color 0.2s ease, background-color 0.2s ease;
+}
+.nav-link:hover {
+  color: #101c30; /* colors.primary */
+  background-color: rgba(16, 28, 48, 0.05);
+}
+.nav-link::after {
+  content: "";
+  position: absolute;
+  left: 14px;
+  right: 14px;
+  bottom: 5px;
+  height: 2px;
+  border-radius: 1px;
+  background: #2997ff; /* colors.accent */
+  transform: scaleX(0);
+  transform-origin: left;
+  opacity: 0;
+  transition: transform 0.3s cubic-bezier(0.16, 1, 0.3, 1), opacity 0.2s ease;
+}
+.nav-link:hover::after {
+  transform: scaleX(1);
+  opacity: 1;
+}
+.nav-link-active {
+  font-weight: 700;
+}
+.nav-link-active::after {
+  transform: scaleX(1);
+  opacity: 1;
+}
+
+/* Mobile hamburger: only shown under md, toggles the drawer below. */
+.nav-burger {
+  width: 38px;
+  height: 38px;
+  border-radius: 10px;
+  border: 1px solid #d7d9de; /* colors.line */
+  background: #ffffff;
+  color: #1d1d1f;
+  align-items: center;
+  justify-content: center;
+  flex-shrink: 0;
+}
+.nav-burger:active {
+  transform: scale(0.94);
+}
+
+/* Mobile drawer: collapsed via grid-template-rows (animatable, unlike
+   height:auto) so it can smoothly expand/collapse without measuring
+   content height in JS. Links fade/slide in with a short per-item stagger
+   driven by the --nav-delay custom property set per link. */
+.nav-mobile-menu {
+  display: grid;
+  grid-template-rows: 0fr;
+  transition: grid-template-rows 0.3s cubic-bezier(0.16, 1, 0.3, 1);
+}
+.nav-mobile-menu-open {
+  grid-template-rows: 1fr;
+}
+.nav-mobile-links {
+  overflow: hidden;
+  display: flex;
+  flex-direction: column;
+  padding: 0 20px;
+}
+.nav-mobile-menu-open .nav-mobile-links {
+  padding: 6px 20px 14px;
+  border-top: 1px solid #d7d9de; /* colors.line */
+}
+.nav-mobile-link {
+  font: inherit;
+  font-size: 16px;
+  font-weight: 500;
+  color: var(--nav-color);
+  text-align: left;
+  padding: 13px 4px;
+  background: none;
+  border: none;
+  border-bottom: 1px solid rgba(16, 28, 48, 0.06);
+  opacity: 0;
+  transform: translateY(-6px);
+  transition: color 0.2s ease;
+}
+.nav-mobile-menu-open .nav-mobile-link {
+  animation: navMobileLinkIn 0.3s ease forwards;
+  animation-delay: var(--nav-delay, 0ms);
+}
+.nav-mobile-link:last-child {
+  border-bottom: none;
+}
+.nav-mobile-link.nav-link-active {
+  font-weight: 700;
+}
+
+@keyframes navMobileLinkIn {
+  to {
+    opacity: 1;
+    transform: translateY(0);
+  }
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .nav-brand,
+  .nav-link,
+  .nav-link::after,
+  .nav-mobile-menu {
+    transition: none;
+  }
+  .nav-mobile-link {
+    opacity: 1;
+    transform: none;
+    animation: none;
+  }
+}
+
+@media (min-width: 768px) {
+  .nav-mobile-menu {
+    display: none;
   }
 }
 
@@ -1028,14 +1131,29 @@ body.has-cursor * {
   animation: glowPulse 4s ease-in-out infinite;
 }
 
-/* Sliding pill behind the active tab — the component measures the active
-   button's offset/width and sets them inline; only the motion is CSS. */
+/* Sliding pill/underline behind the active tab — the component measures the
+   active button's offset/width and sets them inline (left/width, sometimes
+   also top/bottom for the pill variant); only the motion is CSS. */
 .pf-tab-thumb {
-  transition: transform 0.32s cubic-bezier(0.2, 0.8, 0.3, 1), width 0.32s cubic-bezier(0.2, 0.8, 0.3, 1);
+  transition:
+    left 0.32s cubic-bezier(0.2, 0.8, 0.3, 1),
+    width 0.32s cubic-bezier(0.2, 0.8, 0.3, 1),
+    transform 0.32s cubic-bezier(0.2, 0.8, 0.3, 1);
 }
 
 .pf-tab-btn {
   transition: color 0.2s ease;
+}
+
+/* Underline-style section tabs (e.g. ProfessionalBlogScreen's My Blogs/All
+   Blogs switcher) — pairs with .pf-tab-thumb rendered as a thin bottom bar
+   rather than a filled pill. */
+.pf-section-tab {
+  transition: color 0.2s ease;
+}
+
+.pf-section-tab:hover {
+  color: #1d1d1f;
 }
 
 /* Portfolio tile hover: darken + fade in a zoom affordance. */

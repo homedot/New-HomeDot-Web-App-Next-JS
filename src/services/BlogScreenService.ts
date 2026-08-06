@@ -63,9 +63,17 @@ export interface BlogDetailAuthor {
 
 export interface BlogDetailRelated {
   slug: string;
-  title: string;
+  // Optional, not required — same defensive typing as BlogRecord.title
+  // below; a related-blog row missing this crashed toBlogArticle's
+  // `r.title.trim()` (TypeError: Cannot read properties of undefined) for
+  // records that omit it.
+  title?: string;
   description?: string;
-  blogImage?: string;
+  // Arrives in the same string/object/array shapes as every other blogImage
+  // field (see RawBlogImage) — typing this as a bare `string` let a
+  // non-string value flow straight into an <img src>, which is why related
+  // article images were showing blank instead of falling back.
+  blogImage?: RawBlogImage;
 }
 
 export interface BlogDetailData {
@@ -210,7 +218,7 @@ export function toBlogArticle(data: BlogDetailData): BlogArticle {
   return {
     id: blog._id,
     slug: blog.slug,
-    title: blog.title.trim(),
+    title: (blog.title || "").trim(),
     description: blog.description?.trim() || "",
     image: normalizeBlogImage(blog.blogImage),
     date: formatBlogDate(blog.publishDate),
@@ -220,12 +228,12 @@ export function toBlogArticle(data: BlogDetailData): BlogArticle {
     authorBio: user?.description,
     professionalSlug: user?.professionalSlug,
     related: (relatedBlogs ?? []).map((r) => ({
-      id: r.slug,
-      slug: r.slug,
-      image: r.blogImage || FALLBACK_BLOG_IMAGE,
+      id: r.slug || "",
+      slug: r.slug || "",
+      image: normalizeBlogImage(r.blogImage),
       author: "HomeDot",
       date: "",
-      title: r.title.trim(),
+      title: (r.title || "").trim(),
       excerpt: r.description ? truncate(r.description, 110) : "",
       fav: false,
     })),

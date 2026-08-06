@@ -25,7 +25,6 @@ import HeroPhotoBackdrop from "@/components/HeroPhotoBackdrop";
 import Reveal from "@/components/Reveal";
 import ScrollProgress from "@/components/ScrollProgress";
 import ScrollScrub from "@/components/ScrollScrub";
-import ScrollPin from "@/components/ScrollPin";
 import Parallax from "@/components/Parallax";
 import SiteNav from "@/components/SiteNav";
 import SiteFooter from "@/components/SiteFooter";
@@ -49,7 +48,6 @@ import {
   properties,
   professionals,
   steps,
-  trustImage,
   exploreImage,
   blogPosts,
   testimonials,
@@ -60,6 +58,11 @@ const wrap: CSSProperties = {
   margin: "0 auto",
   padding: `0 ${spacing.xl}px`,
 };
+
+// Same support number/email as ProfileScreen's HelpPanel and the nav's
+// ContactModal (mirrors homedot-mobile-app's HelpScreen).
+const CONTACT_PHONE = "7012303017";
+const CONTACT_EMAIL = "mail@homedotapp.com";
 
 export default function LandingScreen() {
   const loginModalRef = useRef<LoginModalHandle>(null);
@@ -92,12 +95,11 @@ export default function LandingScreen() {
       <PosterShowcase />
       <TopProfessionals loginModalRef={loginModalRef} />
       <HowItWorks />
-      <ExploreScroll />
-      <TrustBanner />
-      <AppPromo />
+      <StoryShowcase />
       <ProCta />
       <LatestInsights loginModalRef={loginModalRef} />
       <Testimonials />
+      <ContactSection />
       <SiteFooter />
     </div>
   );
@@ -1100,10 +1102,28 @@ function HowItWorks() {
   );
 }
 
-function ExploreScroll() {
+// One continuous, immersive chapter — replaces the old ExploreScroll /
+// TrustBanner / AppPromo trio, which were three separate white-gapped cards
+// that read as interruptions rather than a continuation of the scroll. A
+// single photo-dissolving-to-solid-color backdrop spans the whole section so
+// each beat (story intro → trust promise → app promo) flows into the next,
+// echoing the immersive full-bleed treatment the Hero section opens with.
+function StoryShowcase() {
+  const appFeatures = [
+    "Browse 240+ verified properties",
+    "Hire 180+ trusted professionals",
+    "Real-time chat & instant booking",
+  ];
+
   return (
-    <ScrollPin heightVh={230} navOffset={72}>
-      <div className="pin-scale" style={{ position: "absolute", inset: 0 }}>
+    <section
+      style={{
+        position: "relative",
+        overflow: "hidden",
+        background: colors.primary,
+      }}
+    >
+      <div className="explore-photo" style={{ position: "absolute", inset: 0 }}>
         {/* eslint-disable-next-line @next/next/no-img-element */}
         <img
           src={exploreImage}
@@ -1111,102 +1131,44 @@ function ExploreScroll() {
           style={{ width: "100%", height: "100%", objectFit: "cover" }}
         />
       </div>
+      {/* The photo only needs to read clearly behind the opening line — this
+          scrim dissolves it into the section's flat --primary from ~55% down,
+          so the trust/app beats beneath sit on solid color instead of a
+          stretched, half-visible image. */}
       <div
         style={{
           position: "absolute",
           inset: 0,
-          background: `linear-gradient(180deg, rgba(10,20,34,0.5), rgba(10,20,34,0.78))`,
+          background: `linear-gradient(180deg, rgba(10,20,34,0.34) 0%, rgba(10,20,34,0.58) 26%, ${colors.primary} 56%, ${colors.primary} 100%), radial-gradient(65% 40% at 50% 12%, rgba(41,151,255,0.2), transparent 68%)`,
         }}
       />
       <div
-        className="pin-rise"
-        style={{
-          position: "relative",
-          zIndex: 1,
-          textAlign: "center",
-          padding: `0 ${spacing.xl}px`,
-          maxWidth: 760,
-          margin: "0 auto",
-        }}
-      >
-        <span
-          style={{
-            display: "inline-flex",
-            alignItems: "center",
-            gap: 7,
-            fontSize: fontSize.sm,
-            fontWeight: 600,
-            color: colors.white,
-            background: "rgba(255,255,255,0.16)",
-            padding: "6px 13px",
-            borderRadius: radius.full,
-          }}
-        >
-          <Icon name="sparkle" size={15} filled color={colors.white} /> Keep
-          exploring
-        </span>
-        <h2
-          style={{
-            color: colors.white,
-            fontFamily: "var(--font-display)",
-            fontSize: "clamp(30px, 5vw, 56px)",
-            fontWeight: 600,
-            lineHeight: 1.08,
-            letterSpacing: "-0.02em",
-            margin: `${spacing.lg}px 0 ${spacing.md}px`,
-          }}
-        >
-          Every home has a story.
-          <br />
-          Scroll to find yours.
-        </h2>
-        <p
-          style={{
-            color: "rgba(255,255,255,0.82)",
-            fontSize: fontSize.md + 1,
-            lineHeight: 1.6,
-            maxWidth: 480,
-            margin: "0 auto",
-          }}
-        >
-          From a first walkthrough to move-in day, HomeDot keeps you moving
-          forward — one scroll at a time.
-        </p>
-      </div>
-      <div
-        className="pin-fade-out"
+        className="animate-glow-pulse"
+        aria-hidden="true"
         style={{
           position: "absolute",
-          inset: 0,
-          zIndex: 2,
-          background: colors.bg,
-          pointerEvents: "none",
+          top: "46%",
+          right: "-10%",
+          width: 460,
+          height: 460,
+          borderRadius: "50%",
+          background:
+            "radial-gradient(circle, rgba(41,151,255,0.3), transparent 65%)",
+          filter: "blur(30px)",
         }}
       />
-    </ScrollPin>
-  );
-}
 
-function TrustBanner() {
-  return (
-    <section
-      style={{
-        ...wrap,
-        padding: `${spacing.xxl}px ${spacing.xl}px ${spacing.huge}px`,
-      }}
-    >
-      <Reveal
-        className="grid grid-cols-1 lg:grid-cols-2"
+      <div
         style={{
-          background: colors.primary,
-          borderRadius: radius.lg,
-          padding: "clamp(28px, 4vw, 52px)",
-          gap: spacing.xxl,
-          alignItems: "center",
-          overflow: "hidden",
+          ...wrap,
+          position: "relative",
+          padding: `${spacing.huge + 20}px ${spacing.xl}px ${spacing.huge}px`,
         }}
       >
-        <div>
+        {/* Chapter 1 — story intro */}
+        <Reveal
+          style={{ textAlign: "center", maxWidth: 760, margin: "0 auto" }}
+        >
           <span
             style={{
               display: "inline-flex",
@@ -1220,119 +1182,191 @@ function TrustBanner() {
               borderRadius: radius.full,
             }}
           >
-            <Icon name="shield" size={15} /> The HomeDot promise
+            <Icon name="sparkle" size={15} filled color={colors.white} /> Keep
+            exploring
           </span>
           <h2
             style={{
               color: colors.white,
               fontFamily: "var(--font-display)",
-              fontSize: "clamp(24px, 3vw, 34px)",
+              fontSize: "clamp(30px, 5vw, 56px)",
               fontWeight: 600,
+              lineHeight: 1.08,
+              letterSpacing: "-0.02em",
               margin: `${spacing.lg}px 0 ${spacing.md}px`,
             }}
           >
-            Verified people. Real reviews. Zero guesswork.
+            Every home has a story.
+            <br />
+            Scroll to find yours.
           </h2>
           <p
             style={{
               color: "rgba(255,255,255,0.82)",
-              fontSize: fontSize.md,
+              fontSize: fontSize.md + 1,
               lineHeight: 1.6,
-              maxWidth: 460,
+              maxWidth: 480,
+              margin: "0 auto",
             }}
           >
-            Every professional is manually checked for credentials and past work
-            before they appear. You see genuine reviews from real projects —
-            never paid placements.
+            From a first walkthrough to move-in day, HomeDot keeps you moving
+            forward — one scroll at a time.
           </p>
+        </Reveal>
+
+        {/* Chapter 2 — trust promise */}
+        <Reveal
+          className="grid grid-cols-1 lg:grid-cols-2"
+          style={{
+            marginTop: "clamp(56px, 9vw, 112px)",
+            gap: spacing.xxl,
+            alignItems: "center",
+          }}
+        >
+          <div>
+            <span
+              style={{
+                display: "inline-flex",
+                alignItems: "center",
+                gap: 7,
+                fontSize: fontSize.sm,
+                fontWeight: 600,
+                color: colors.white,
+                background: "rgba(255,255,255,0.16)",
+                padding: "6px 13px",
+                borderRadius: radius.full,
+              }}
+            >
+              <Icon name="shield" size={15} /> The HomeDot promise
+            </span>
+            <h2
+              style={{
+                color: colors.white,
+                fontFamily: "var(--font-display)",
+                fontSize: "clamp(24px, 3vw, 34px)",
+                fontWeight: 600,
+                margin: `${spacing.lg}px 0 ${spacing.md}px`,
+              }}
+            >
+              Verified people. Real reviews. Zero guesswork.
+            </h2>
+            <p
+              style={{
+                color: "rgba(255,255,255,0.82)",
+                fontSize: fontSize.md,
+                lineHeight: 1.6,
+                maxWidth: 460,
+              }}
+            >
+              Every professional is manually checked for credentials and past
+              work before they appear. You see genuine reviews from real
+              projects — never paid placements.
+            </p>
+            <div
+              style={{
+                display: "flex",
+                flexDirection: "column",
+                gap: spacing.sm + 2,
+                margin: `${spacing.xxl}px 0`,
+              }}
+            >
+              {[
+                "ID & license verified",
+                "Portfolio reviewed",
+                "Reviews from real clients",
+              ].map((t) => (
+                <span
+                  key={t}
+                  style={{
+                    display: "inline-flex",
+                    alignItems: "center",
+                    gap: spacing.sm + 2,
+                    color: colors.white,
+                    fontWeight: 500,
+                    fontSize: fontSize.md - 1,
+                  }}
+                >
+                  <Icon name="check" size={18} color={colors.accent} /> {t}
+                </span>
+              ))}
+            </div>
+            <Button
+              variant="light"
+              size="lg"
+              icon={<Icon name="arrow" size={18} />}
+            >
+              Start your search
+            </Button>
+          </div>
           <div
             style={{
+              borderRadius: radius.md,
+              background: "rgba(255,255,255,0.06)",
+              border: "1px solid rgba(255,255,255,0.14)",
+              padding: "clamp(28px, 4vw, 40px)",
               display: "flex",
               flexDirection: "column",
-              gap: spacing.sm + 2,
-              margin: `${spacing.xxl}px 0`,
+              gap: spacing.xl,
             }}
           >
             {[
-              "ID & license verified",
-              "Portfolio reviewed",
-              "Reviews from real clients",
-            ].map((t) => (
-              <span
-                key={t}
+              {
+                value: "12,000+",
+                label: "Verified reviews from real homeowners",
+              },
+              {
+                value: "98%",
+                label: "Professionals pass ID & license checks",
+              },
+              { value: "< 24 hrs", label: "Average first response time" },
+            ].map((stat, i, arr) => (
+              <div
+                key={stat.value}
                 style={{
-                  display: "inline-flex",
-                  alignItems: "center",
-                  gap: spacing.sm + 2,
-                  color: colors.white,
-                  fontWeight: 500,
-                  fontSize: fontSize.md - 1,
+                  paddingBottom: i < arr.length - 1 ? spacing.xl : 0,
+                  borderBottom:
+                    i < arr.length - 1
+                      ? "1px solid rgba(255,255,255,0.12)"
+                      : "none",
                 }}
               >
-                <Icon name="check" size={18} color={colors.accent} /> {t}
-              </span>
+                <b
+                  style={{
+                    display: "block",
+                    fontFamily: "var(--font-display)",
+                    fontSize: "clamp(30px, 4vw, 40px)",
+                    fontWeight: 600,
+                    color: colors.white,
+                    lineHeight: 1,
+                  }}
+                >
+                  {stat.value}
+                </b>
+                <span
+                  style={{
+                    display: "block",
+                    marginTop: spacing.sm,
+                    color: "rgba(255,255,255,0.72)",
+                    fontSize: fontSize.md - 1,
+                  }}
+                >
+                  {stat.label}
+                </span>
+              </div>
             ))}
           </div>
-          <Button
-            variant="light"
-            size="lg"
-            icon={<Icon name="arrow" size={18} />}
-          >
-            Start your search
-          </Button>
-        </div>
-        <ScrollScrub
+        </Reveal>
+
+        {/* Chapter 3 — app promo, the "wow" closer */}
+        <Reveal
+          className="grid grid-cols-1 lg:grid-cols-2"
           style={{
-            position: "relative",
-            overflow: "hidden",
-            borderRadius: radius.md,
+            marginTop: "clamp(56px, 9vw, 112px)",
+            gap: spacing.xxl,
+            alignItems: "center",
           }}
         >
-          <Parallax speed={0.06}>
-            {/* eslint-disable-next-line @next/next/no-img-element */}
-            <img
-              src={trustImage}
-              alt="Beautiful home interior"
-              className="scrub-zoom"
-              style={{
-                width: "100%",
-                borderRadius: radius.md,
-                objectFit: "cover",
-                aspectRatio: "4/3",
-                boxShadow: shadow.lg,
-              }}
-            />
-          </Parallax>
-        </ScrollScrub>
-      </Reveal>
-    </section>
-  );
-}
-
-function AppPromo() {
-  const features = [
-    "Browse 240+ verified properties",
-    "Hire 180+ trusted professionals",
-    "Real-time chat & instant booking",
-  ];
-  return (
-    <section
-      style={{ ...wrap, padding: `0 ${spacing.xl}px ${spacing.huge}px` }}
-    >
-      <Reveal
-        className="grid grid-cols-1 lg:grid-cols-2"
-        style={{
-          position: "relative",
-          overflow: "hidden",
-          background: `linear-gradient(135deg, ${colors.primaryDeep}, ${colors.primary})`,
-          borderRadius: radius.lg,
-          padding: "clamp(32px, 5vw, 60px)",
-          gap: spacing.xxl,
-          alignItems: "center",
-        }}
-      >
-        <div style={{ position: "relative", zIndex: 1 }}>
-          <ScrollScrub className="scrub-rise">
+          <div>
             <span
               style={{
                 display: "inline-flex",
@@ -1375,109 +1409,109 @@ function AppPromo() {
               you are. Track every project and get instant updates from one
               beautiful app.
             </p>
-          </ScrollScrub>
-          <div
-            style={{
-              display: "flex",
-              flexDirection: "column",
-              gap: spacing.sm + 3,
-              margin: `${spacing.xxl}px 0 ${spacing.xl}px`,
-            }}
-          >
-            {features.map((f) => (
-              <span
-                key={f}
-                style={{
-                  display: "flex",
-                  alignItems: "center",
-                  gap: spacing.md,
-                  color: "rgba(255,255,255,0.92)",
-                  fontWeight: 500,
-                  fontSize: fontSize.md - 1,
-                }}
-              >
+            <div
+              style={{
+                display: "flex",
+                flexDirection: "column",
+                gap: spacing.sm + 3,
+                margin: `${spacing.xxl}px 0 ${spacing.xl}px`,
+              }}
+            >
+              {appFeatures.map((f) => (
                 <span
+                  key={f}
                   style={{
-                    width: 24,
-                    height: 24,
-                    borderRadius: "50%",
-                    background: colors.accent,
-                    display: "grid",
-                    placeItems: "center",
-                    flexShrink: 0,
+                    display: "flex",
+                    alignItems: "center",
+                    gap: spacing.md,
+                    color: "rgba(255,255,255,0.92)",
+                    fontWeight: 500,
+                    fontSize: fontSize.md - 1,
                   }}
                 >
-                  <Icon name="check" size={15} color={colors.white} />
+                  <span
+                    style={{
+                      width: 24,
+                      height: 24,
+                      borderRadius: "50%",
+                      background: colors.accent,
+                      display: "grid",
+                      placeItems: "center",
+                      flexShrink: 0,
+                    }}
+                  >
+                    <Icon name="check" size={15} color={colors.white} />
+                  </span>
+                  {f}
                 </span>
-                {f}
-              </span>
-            ))}
+              ))}
+            </div>
+            <StoreButtons />
+            <div
+              style={{
+                display: "flex",
+                alignItems: "center",
+                gap: spacing.md - 2,
+                marginTop: spacing.lg,
+                color: "rgba(255,255,255,0.8)",
+                fontSize: fontSize.sm,
+              }}
+            >
+              <Icon name="star" size={16} filled color={colors.gold} />
+              <span>4.8 average · 12,000+ ratings</span>
+            </div>
           </div>
-          <StoreButtons />
-          <div
-            style={{
-              display: "flex",
-              alignItems: "center",
-              gap: spacing.md - 2,
-              marginTop: spacing.lg,
-              color: "rgba(255,255,255,0.8)",
-              fontSize: fontSize.sm,
-            }}
-          >
-            <Icon name="star" size={16} filled color={colors.gold} />
-            <span>4.8 average · 12,000+ ratings</span>
-          </div>
-        </div>
 
-        <div
-          className="hidden lg:flex"
-          style={{
-            position: "relative",
-            justifyContent: "center",
-            minHeight: 480,
-          }}
-        >
           <div
-            className="animate-glow-pulse"
+            className="hidden lg:flex"
             style={{
-              position: "absolute",
-              width: 430,
-              height: 430,
-              borderRadius: "50%",
-              background:
-                "radial-gradient(circle, rgba(41,151,255,0.48), transparent 62%)",
-              filter: "blur(26px)",
+              position: "relative",
+              justifyContent: "center",
+              minHeight: 480,
             }}
-          />
-          <Parallax
-            speed={0.1}
-            className="animate-floaty"
-            style={{ position: "relative", zIndex: 1 }}
           >
-            <PhoneFrame
-              src={appHomeImg}
-              alt="HomeDot mobile app home screen"
-              width={288}
+            <div
+              className="animate-glow-pulse"
+              style={{
+                position: "absolute",
+                width: 430,
+                height: 430,
+                borderRadius: "50%",
+                background:
+                  "radial-gradient(circle, rgba(41,151,255,0.48), transparent 62%)",
+                filter: "blur(26px)",
+              }}
             />
-          </Parallax>
-          <PhoneChip
-            icon={
-              <Icon name="verified" size={16} filled color={colors.white} />
-            }
-            title="Verified pros"
-            subtitle="Manually checked"
-            tone="accent"
-            style={{ left: 0, top: 64 }}
-          />
-          <PhoneChip
-            icon={<Icon name="star" size={16} filled color={colors.white} />}
-            title="4.8 rating"
-            subtitle="12k+ reviews"
-            tone="green"
-            style={{ right: -6, bottom: 92 }}
-          />
-        </div>
-      </Reveal>
+            <Parallax
+              speed={0.1}
+              className="animate-floaty"
+              style={{ position: "relative", zIndex: 1 }}
+            >
+              <PhoneFrame
+                src={appHomeImg}
+                alt="HomeDot mobile app home screen"
+                width={288}
+              />
+            </Parallax>
+            <PhoneChip
+              icon={
+                <Icon name="verified" size={16} filled color={colors.white} />
+              }
+              title="Verified pros"
+              subtitle="Manually checked"
+              tone="accent"
+              style={{ left: 0, top: 64 }}
+            />
+            <PhoneChip
+              icon={<Icon name="star" size={16} filled color={colors.white} />}
+              title="4.8 rating"
+              subtitle="12k+ reviews"
+              tone="green"
+              style={{ right: -6, bottom: 92 }}
+            />
+          </div>
+        </Reveal>
+      </div>
     </section>
   );
 }
@@ -1878,5 +1912,151 @@ function Testimonials() {
         </Reveal>
       </div>
     </section>
+  );
+}
+
+function ContactSection() {
+  return (
+    <section
+      style={{ ...wrap, padding: `0 ${spacing.xl}px ${spacing.huge}px` }}
+    >
+      <Reveal
+        className="grid grid-cols-1 lg:grid-cols-[1.1fr_1fr]"
+        style={{
+          position: "relative",
+          overflow: "hidden",
+          background: `linear-gradient(135deg, ${colors.primaryDeep}, ${colors.primary})`,
+          borderRadius: radius.lg,
+          padding: "clamp(28px, 4vw, 52px)",
+          gap: spacing.xxl,
+          alignItems: "center",
+        }}
+      >
+        <div>
+          <span
+            style={{
+              display: "inline-flex",
+              alignItems: "center",
+              gap: 7,
+              fontSize: fontSize.sm,
+              fontWeight: 600,
+              color: colors.white,
+              background: "rgba(255,255,255,0.16)",
+              padding: "6px 13px",
+              borderRadius: radius.full,
+            }}
+          >
+            <Icon name="chat" size={15} /> Get in touch
+          </span>
+          <h2
+            style={{
+              color: colors.white,
+              fontFamily: "var(--font-display)",
+              fontSize: "clamp(24px, 3vw, 34px)",
+              fontWeight: 600,
+              margin: `${spacing.lg}px 0 ${spacing.md}px`,
+            }}
+          >
+            We&apos;re here to help, every step of the way.
+          </h2>
+          <p
+            style={{
+              color: "rgba(255,255,255,0.78)",
+              fontSize: fontSize.md,
+              lineHeight: 1.6,
+              maxWidth: 460,
+            }}
+          >
+            Questions about a listing, a professional, or your account? Call or
+            email our support team — we typically respond within 24 hours on
+            business days.
+          </p>
+        </div>
+
+        <div
+          className="grid grid-cols-1 sm:grid-cols-2"
+          style={{ gap: spacing.md, position: "relative", zIndex: 1 }}
+        >
+          <ContactCard
+            icon="phone"
+            label="Call us"
+            value={`+91 ${CONTACT_PHONE.slice(0, 5)} ${CONTACT_PHONE.slice(5)}`}
+            href={`tel:${CONTACT_PHONE}`}
+          />
+          <ContactCard
+            icon="mail"
+            label="Email us"
+            value={CONTACT_EMAIL}
+            href={`mailto:${CONTACT_EMAIL}`}
+          />
+        </div>
+      </Reveal>
+    </section>
+  );
+}
+
+function ContactCard({
+  icon,
+  label,
+  value,
+  href,
+}: {
+  icon: IconName;
+  label: string;
+  value: string;
+  href: string;
+}) {
+  return (
+    <a
+      href={href}
+      className="card-hover"
+      style={{
+        display: "flex",
+        flexDirection: "column",
+        gap: spacing.md,
+        background: "rgba(255,255,255,0.07)",
+        border: "1px solid rgba(255,255,255,0.14)",
+        borderRadius: radius.md,
+        padding: "20px 18px",
+        color: colors.white,
+        textDecoration: "none",
+      }}
+    >
+      <span
+        style={{
+          width: 44,
+          height: 44,
+          borderRadius: 13,
+          background: colors.accent,
+          display: "grid",
+          placeItems: "center",
+          flexShrink: 0,
+        }}
+      >
+        <Icon name={icon} size={20} strokeWidth={2} color={colors.white} />
+      </span>
+      <span>
+        <b
+          style={{
+            display: "block",
+            fontFamily: "var(--font-display)",
+            fontSize: fontSize.md - 1,
+            fontWeight: 600,
+          }}
+        >
+          {label}
+        </b>
+        <em
+          style={{
+            fontStyle: "normal",
+            fontSize: fontSize.sm,
+            color: "rgba(255,255,255,0.72)",
+            wordBreak: "break-word",
+          }}
+        >
+          {value}
+        </em>
+      </span>
+    </a>
   );
 }
