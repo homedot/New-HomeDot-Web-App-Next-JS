@@ -587,63 +587,22 @@ body.has-cursor * {
   }
 }
 
-/* Pinned/cinematic scroll section (ScrollPin component): the outer element is a tall
-   (multi-viewport) block; its child is position:sticky so it stays fixed on screen
-   while its --pin custom property sweeps 0→1 across the outer block's scroll range.
-   This is the "scroll to zoom/reveal a full-bleed scene" pattern from agency sites. */
-.scroll-pin-outer {
-  position: relative;
-}
-
-.scroll-pin-inner {
-  position: sticky;
-  top: 0;
-  height: 100vh;
-  overflow: hidden;
-  display: flex;
-  align-items: center;
-  justify-content: center;
-}
-
-.pin-scale {
-  transform: scale(calc(1 + var(--pin, 0) * 0.24));
+/* ExploreScroll's full-bleed banner photo: a slow, purely time-based Ken Burns
+   zoom (same pattern as .hero-photo-a etc) — no scroll-linked math, so it can
+   never leave a blank/flat gap mid-scroll the way a pinned scrub section can. */
+.explore-photo img {
+  animation: exploreZoom 22s ease-in-out infinite alternate;
   will-change: transform;
 }
 
-.pin-rise {
-  opacity: var(--pin, 0);
-  transform: translateY(calc((1 - var(--pin, 0)) * 44px));
-  will-change: transform, opacity;
-}
-
-/* Dissolves the pinned scene into the page background over the final stretch of its
-   scroll range (--pin 0.7→1), so unpinning hands off to the next section smoothly
-   instead of hard-cutting to an empty gap. */
-.pin-fade-out {
-  opacity: clamp(0, calc((var(--pin, 0) - 0.7) * 3.4), 1);
-  will-change: opacity;
+@keyframes exploreZoom {
+  from { transform: scale(1); }
+  to { transform: scale(1.08); }
 }
 
 @media (prefers-reduced-motion: reduce) {
-  .pin-fade-out {
-    opacity: 0;
-  }
-}
-
-@media (prefers-reduced-motion: reduce) {
-  .scroll-pin-outer {
-    height: auto !important;
-  }
-  .scroll-pin-inner {
-    position: relative;
-    height: auto;
-  }
-  .pin-scale {
-    transform: none;
-  }
-  .pin-rise {
-    opacity: 1;
-    transform: none;
+  .explore-photo img {
+    animation: none;
   }
 }
 
