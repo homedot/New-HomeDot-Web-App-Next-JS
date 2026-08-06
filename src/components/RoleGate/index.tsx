@@ -15,6 +15,16 @@ function isProfessionalRoute(pathname: string): boolean {
   return pathname === PROFESSIONAL_PREFIX || pathname.startsWith(`${PROFESSIONAL_PREFIX}/`);
 }
 
+// Legal pages are reachable from either mode — a signed-in professional
+// following the Settings/Support screens' Privacy Policy / Terms &
+// Conditions links shouldn't get bounced back to the dashboard before the
+// page ever renders, and there's no "Professional" variant of this content
+// to duplicate a route for (see PrivacyPolicyScreen/TermsScreen).
+const EXEMPT_ROUTES = ["/privacy", "/termsandconditions"];
+function isExemptRoute(pathname: string): boolean {
+  return EXEMPT_ROUTES.includes(pathname);
+}
+
 /** App-wide mode gate — mirrors homedot-mobile-app's root navigator, which
  * mounts either the whole User stack or the whole Professional stack based
  * on `isScreenUserOrProfessional`, never both. There's no such split-tree
@@ -28,7 +38,7 @@ export default function RoleGate() {
   const router = useRouter();
 
   useEffect(() => {
-    if (!getAuthToken()) return;
+    if (!getAuthToken() || isExemptRoute(pathname)) return;
     const onProfessionalRoute = isProfessionalRoute(pathname);
     const role = getActiveRole();
     if (role === "professional" && !onProfessionalRoute) {

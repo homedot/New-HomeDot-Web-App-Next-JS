@@ -36,7 +36,7 @@ const COLS: { h: string; links: { label: string; href?: string }[] }[] = [
   },
   {
     h: "Support",
-    links: [{ label: "Help center" }, { label: "Safety & trust" }, { label: "Terms" }, { label: "Privacy" }],
+    links: [{ label: "Help center" }, { label: "Safety & trust" }, { label: "Terms", href: "/termsandconditions" }, { label: "Privacy", href: "/privacy" }],
   },
 ];
 
@@ -128,8 +128,12 @@ export default function SiteFooter() {
       >
         <span>© 2026 HomeDot · Made in Kerala, India</span>
         <span style={{ display: "flex", gap: spacing.lg }}>
-          <a style={{ cursor: "pointer" }}>Terms</a>
-          <a style={{ cursor: "pointer" }}>Privacy</a>
+          <Link href="/termsandconditions" style={{ color: "inherit" }}>
+            Terms
+          </Link>
+          <Link href="/privacy" style={{ color: "inherit" }}>
+            Privacy
+          </Link>
           <a style={{ cursor: "pointer" }}>Cookies</a>
         </span>
       </div>

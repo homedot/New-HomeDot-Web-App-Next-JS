@@ -25,11 +25,9 @@ type SidebarNavEntry = { icon: IconName; label: string; href?: string; onClick?:
  * ProfessionalWorkfolioScreen render it standalone (no profile card, no
  * shared container), so they get the default full-card version.
  *
- * Nav items are limited to routes that actually exist; the reference's extra
- * items (Refer & earn, Support…) are shown as a disabled "Coming soon" group
- * rather than dead links. Computes its own active state from the
- * current route (usePathname) rather than being told which item is active,
- * so it stays correct across every page it's used on. */
+ * Nav items are limited to routes that actually exist. Computes its own
+ * active state from the current route (usePathname) rather than being told
+ * which item is active, so it stays correct across every page it's used on. */
 export default function ProDashboardSidebar({ onLogout, loggingOut, bare = false }: { onLogout: () => void; loggingOut: boolean; bare?: boolean }) {
   const router = useRouter();
   const pathname = usePathname();
@@ -42,14 +40,15 @@ export default function ProDashboardSidebar({ onLogout, loggingOut, bare = false
     { icon: "briefcase", label: "Workfolio", href: "/professional/workfolio" },
     { icon: "heart", label: "Favourites", href: "/favorites" },
   ];
-  const soon: SidebarNavEntry[] = [
-    { icon: "share", label: "Refer & earn", chip: colors.price },
-    { icon: "settings", label: "Settings", chip: colors.accent },
-    { icon: "phone", label: "Support", chip: colors.gold },
+  const more: SidebarNavEntry[] = [
+    { icon: "share", label: "Refer & earn", href: "/professional/refer" },
+    { icon: "settings", label: "Settings", href: "/professional/settings" },
+    { icon: "phone", label: "Support", href: "/professional/support" },
   ];
-  // The "Soon" chip needs to pop against whatever sits behind this
-  // component: colors.bg on the standalone white card, colors.card on the
-  // dashboard's tinted (colors.bg) rail — otherwise it'd blend invisibly.
+  // The chip surface (unused now that Refer/Settings/Support are live links,
+  // kept for any future disabled/"Soon" item) needs to pop against whatever
+  // sits behind this component: colors.bg on the standalone white card,
+  // colors.card on the dashboard's tinted (colors.bg) rail.
   const chipSurface = bare ? colors.card : colors.bg;
 
   return (
@@ -98,10 +97,10 @@ export default function ProDashboardSidebar({ onLogout, loggingOut, bare = false
 
       <div style={{ borderTop: `1px solid ${colors.line}`, paddingTop: spacing.md, display: "flex", flexDirection: "column", gap: 2 }}>
         <span style={{ display: "block", fontSize: 10, fontWeight: 700, color: colors.muted, textTransform: "uppercase", letterSpacing: 0.6, padding: "0 14px 6px" }}>
-          Coming soon
+          More
         </span>
-        {soon.map((n) => (
-          <SidebarNavItem key={n.label} {...n} chipSurface={chipSurface} />
+        {more.map((n) => (
+          <SidebarNavItem key={n.label} {...n} active={!!n.href && pathname === n.href} onClick={n.href ? () => router.push(n.href!) : n.onClick} chipSurface={chipSurface} />
         ))}
       </div>
 
