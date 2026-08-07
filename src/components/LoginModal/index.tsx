@@ -289,7 +289,9 @@ const LoginModal = forwardRef<LoginModalHandle, LoginModalProps>(
         setStep("role");
         return;
       }
-      finishSuccess(record?.userType);
+      const role: AccountRole =
+        record?.userType && record.userType !== "normal-user" ? "professional" : "user";
+      finishSuccess(role);
     };
 
     const resendOtp = async () => {
@@ -317,17 +319,14 @@ const LoginModal = forwardRef<LoginModalHandle, LoginModalProps>(
     };
 
     // Mirrors homedot-mobile-app's verifyOtp branch (LoginOrRegisterUsingNumberScreen.js):
-    // the verify-OTP response carries a `userType` string ("normal-user" vs a
-    // professional account) for which of the account's roles this login
-    // session comes back scoped to — distinct from the profile's `userType`
-    // array of *all* roles the account holds. A normal user stays wherever
-    // they were (mirrors mobile just clearing the flag and continuing); a
-    // professional gets routed into their dashboard, since there's no other
-    // way to reach that section of the app from here.
-    const finishSuccess = (userType?: string) => {
+    // a normal user stays wherever they were (mirrors mobile just clearing
+    // the flag and continuing); a professional gets routed into their
+    // dashboard, since there's no other way to reach that section of the app
+    // from here. Callers resolve the role themselves — the OTP-verify path
+    // infers it from the response's `userType` string, while the two signup
+    // paths below already know which form the user filled in.
+    const finishSuccess = (role: AccountRole) => {
       setStep("success");
-      const role: AccountRole =
-        userType && userType !== "normal-user" ? "professional" : "user";
       setActiveRole(role);
       useProfileStore.getState().fetch();
       setTimeout(() => {
@@ -337,14 +336,48 @@ const LoginModal = forwardRef<LoginModalHandle, LoginModalProps>(
       }, 1500);
     };
 
-    const submitUserForm = (values: UserFormValues) => {
-      console.log("User registration payload:", values);
-      finishSuccess();
+    const submitUserForm = async (values: UserFormValues): Promise<string | null> => {
+      const res = await AuthService.userSignUp({
+        name: values.name,
+        email: values.email,
+        mobile: values.mobile,
+        countryCode: values.countryCode.replace("+", ""),
+        location: values.location.address,
+        latitude: values.location.lat,
+        longitude: values.location.lng,
+      });
+      if (!res.success || !res.data?.status || res.data.data.length === 0) {
+        return res.data?.message || res.message || "Something went wrong. Please try again.";
+      }
+      const record = res.data.data[0];
+      useAuthStore.getState().setTokens({ token: record.token, refreshToken: record.reToken });
+      finishSuccess("user");
+      return null;
     };
 
-    const submitProForm = (values: ProFormValues) => {
-      console.log("Professional registration payload:", values);
-      finishSuccess();
+    const submitProForm = async (values: ProFormValues): Promise<string | null> => {
+      const res = await AuthService.professionalSignUp({
+        name: values.name,
+        email: values.email,
+        mobile: values.mobile,
+        countryCode: values.countryCode.replace("+", ""),
+        location: values.location.address,
+        latitude: values.location.lat,
+        longitude: values.location.lng,
+        professionalType: values.professionalType,
+        professionalCategory: values.categoryId,
+        subCategory: values.subCategoryId,
+        experience: values.experience,
+        skills: values.skills,
+        description: values.description,
+      });
+      if (!res.success || !res.data?.status || res.data.data.length === 0) {
+        return res.data?.message || res.message || "Something went wrong. Please try again.";
+      }
+      const record = res.data.data[0];
+      useAuthStore.getState().setTokens({ token: record.token, refreshToken: record.reToken });
+      finishSuccess("professional");
+      return null;
     };
 
     const masked =

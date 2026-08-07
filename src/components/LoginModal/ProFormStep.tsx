@@ -1,30 +1,32 @@
 "use client";
 
-import { useRef, useState } from "react";
+import { useEffect, useRef, useState } from "react";
 import { colors } from "@/constants/colors";
 import { spacing, radius, fontSize } from "@/utils/size";
 import Icon from "@/components/Icon";
-import { categories, homeServices } from "@/screens/LandingScreen/data";
 import type { LocationValue } from "@/components/LocationMapPicker";
 import EmailField, { type EmailFieldHandle } from "@/components/EmailField";
+import SkillsPicker from "@/components/SkillsPicker";
+import SwitchProfessionalService, {
+  PROFESSIONAL_TYPES,
+  buildSkillsPayload,
+  type ProfessionalCategoryOption,
+  type ProfessionalSubCategoryOption,
+  type ProfessionalSkillRecord,
+} from "@/services/SwitchProfessionalService";
 import CountryCodeSelect from "./CountryCodeSelect";
 import { inputWrap, fieldInputStyle, Field, digitLimitFor, type Method } from "./shared";
 
-export type ProfessionalType = "design" | "household";
-
-const PROFESSIONAL_TYPES: { value: ProfessionalType; label: string }[] = [
-  { value: "design", label: "Design & Build Professional" },
-  { value: "household", label: "Household Service Provider" },
-];
-
-const CATEGORY_OPTIONS: Record<ProfessionalType, string[]> = {
-  design: categories.map((c) => c.name),
-  household: homeServices.map((s) => s.name),
-};
-
 export interface ProFormValues {
-  professionalType: ProfessionalType;
-  category: string;
+  professionalType: string;
+  categoryId: string;
+  categoryName: string;
+  subCategoryId: string;
+  subCategoryName: string;
+  /** Pre-built via SwitchProfessionalService.buildSkillsPayload — each entry
+   * already carries the full category/sub-category hierarchy alongside its
+   * own levelThreeId/levelThreeName, matching what the signup API expects. */
+  skills: string[];
   name: string;
   countryCode: string;
   mobile: string;
@@ -49,10 +51,17 @@ export default function ProFormStep({
   location: LocationValue;
   onChangeLocation: () => void;
   onBack: () => void;
-  onSubmit: (values: ProFormValues) => void;
+  /** Resolves to `null` on success, or an error message to display inline
+   * (the step stays mounted so the user doesn't lose entered data). */
+  onSubmit: (values: ProFormValues) => Promise<string | null>;
 }) {
-  const [professionalType, setProfessionalType] = useState<ProfessionalType | "">("");
-  const [category, setCategory] = useState("");
+  const [professionalType, setProfessionalType] = useState<number | null>(null);
+  const [categories, setCategories] = useState<ProfessionalCategoryOption[]>([]);
+  const [categoryId, setCategoryId] = useState("");
+  const [subCategories, setSubCategories] = useState<ProfessionalSubCategoryOption[]>([]);
+  const [subCategoryId, setSubCategoryId] = useState("");
+  const [loadingSubCategories, setLoadingSubCategories] = useState(false);
+  const [selectedSkills, setSelectedSkills] = useState<ProfessionalSkillRecord[]>([]);
   const [name, setName] = useState("");
   const [cc, setCc] = useState(countryCode);
   const [mobile, setMobile] = useState(
@@ -62,41 +71,89 @@ export default function ProFormStep({
   const [experience, setExperience] = useState("");
   const [description, setDescription] = useState("");
   const [submitting, setSubmitting] = useState(false);
+  const [error, setError] = useState<string | null>(null);
   const emailFieldRef = useRef<EmailFieldHandle>(null);
+
+  useEffect(() => {
+    SwitchProfessionalService.getCategories().then((res) => {
+      if (res.success && res.data?.status) setCategories(res.data.data);
+    });
+  }, []);
+
+  const onCategoryChange = (id: string) => {
+    setCategoryId(id);
+    setSubCategoryId("");
+    setSubCategories([]);
+    setSelectedSkills([]);
+    if (!id) return;
+    setLoadingSubCategories(true);
+    SwitchProfessionalService.getSubCategories(id).then((res) => {
+      setLoadingSubCategories(false);
+      if (res.success && res.data?.status) setSubCategories(res.data.data);
+    });
+  };
+
+  const onSubCategoryChange = (id: string) => {
+    setSubCategoryId(id);
+    setSelectedSkills([]);
+  };
 
   const digitLimit = digitLimitFor(cc);
   const mobileValid = mobile.replace(/\D/g, "").length === digitLimit;
   const emailValid = /\S+@\S+\.\S+/.test(email);
+  const selectedType = PROFESSIONAL_TYPES.find((t) => t.id === professionalType);
+  const expNum = Number(experience);
   const valid =
-    !!professionalType &&
-    !!category &&
+    !!selectedType &&
+    !!categoryId &&
+    !!subCategoryId &&
+    selectedSkills.length > 0 &&
     name.trim().length > 1 &&
     mobileValid &&
     emailValid &&
-    experience.trim().length > 0 &&
-    description.trim().length > 0;
+    experience.trim() !== "" &&
+    Number.isFinite(expNum) &&
+    expNum >= 0 &&
+    expNum <= 70;
 
   const handleSubmit = async () => {
-    if (!valid || !professionalType || submitting) return;
+    if (!valid || !selectedType || submitting) return;
+    setSubmitting(true);
+    setError(null);
     // The email step's own OTP flow already ran it through ZeroBounce; only
     // a freshly-typed email (phone signup) needs validating here.
     if (method === "phone") {
-      setSubmitting(true);
       const emailOk = await emailFieldRef.current?.validate();
-      setSubmitting(false);
-      if (!emailOk) return;
+      if (!emailOk) {
+        setSubmitting(false);
+        return;
+      }
     }
-    onSubmit({
-      professionalType,
-      category,
+    const categoryName = categories.find((c) => c._id === categoryId)?.categoryName || "";
+    const subCategoryName =
+      subCategories.find((s) => s.subcategoryId === subCategoryId)?.subcategoryName || "";
+    const errorMessage = await onSubmit({
+      professionalType: selectedType.title,
+      categoryId,
+      categoryName,
+      subCategoryId,
+      subCategoryName,
+      skills: buildSkillsPayload(selectedSkills, {
+        levelOneId: categoryId,
+        levelOneName: categoryName,
+        levelTwoId: subCategoryId,
+        levelTwoName: subCategoryName,
+      }),
       name: name.trim(),
       countryCode: cc,
       mobile,
       email,
-      experience,
-      description,
+      experience: experience.trim(),
+      description: description.trim(),
       location,
     });
+    setSubmitting(false);
+    if (errorMessage) setError(errorMessage);
   };
 
   return (
@@ -140,13 +197,10 @@ export default function ProFormStep({
       <div style={{ display: "flex", flexDirection: "column", gap: spacing.lg }}>
         <SelectField
           label="Professional Type"
-          value={professionalType}
+          value={professionalType !== null ? String(professionalType) : ""}
           placeholder="Select"
-          options={PROFESSIONAL_TYPES}
-          onChange={(v) => {
-            setProfessionalType(v as ProfessionalType);
-            setCategory("");
-          }}
+          options={PROFESSIONAL_TYPES.map((t) => ({ value: String(t.id), label: t.title }))}
+          onChange={(v) => setProfessionalType(Number(v))}
         />
 
         <Field label="Name">
@@ -197,22 +251,42 @@ export default function ProFormStep({
 
         <SelectField
           label="Professional category"
-          value={category}
-          placeholder={professionalType ? "Select" : "Choose a professional type first"}
-          options={
-            professionalType
-              ? CATEGORY_OPTIONS[professionalType].map((name) => ({ value: name, label: name }))
-              : []
-          }
-          disabled={!professionalType}
-          onChange={setCategory}
+          value={categoryId}
+          placeholder="Select a category"
+          options={categories.map((c) => ({ value: c._id, label: c.categoryName }))}
+          onChange={onCategoryChange}
         />
 
-        <Field label="Year of Experience">
+        <SelectField
+          label="Sub category"
+          value={subCategoryId}
+          placeholder={
+            !categoryId
+              ? "Choose a category first"
+              : loadingSubCategories
+                ? "Loading…"
+                : "Select a sub category"
+          }
+          options={subCategories.map((s) => ({ value: s.subcategoryId, label: s.subcategoryName }))}
+          disabled={!categoryId || loadingSubCategories}
+          onChange={onSubCategoryChange}
+        />
+
+        <Field label="Skills">
+          <SkillsPicker
+            categoryId={categoryId}
+            subCategoryId={subCategoryId}
+            selected={selectedSkills}
+            onChange={setSelectedSkills}
+          />
+        </Field>
+
+        <Field label="Years of Experience">
           <div style={inputWrap}>
             <input
               type="number"
               min={0}
+              max={70}
               placeholder="Experience"
               value={experience}
               onChange={(e) => setExperience(e.target.value)}
@@ -221,9 +295,9 @@ export default function ProFormStep({
           </div>
         </Field>
 
-        <Field label="Description">
+        <Field label="Description (optional)">
           <textarea
-            placeholder="Description"
+            placeholder="Tell homeowners about your trade — leave blank to use a default description"
             value={description}
             onChange={(e) => setDescription(e.target.value)}
             rows={4}
@@ -270,6 +344,12 @@ export default function ProFormStep({
         </Field>
       </div>
 
+      {error && (
+        <p style={{ fontSize: fontSize.sm, color: "#C0392B", marginTop: spacing.md, marginBottom: 0 }}>
+          {error}
+        </p>
+      )}
+
       <button
         onClick={handleSubmit}
         disabled={submitting}
@@ -290,7 +370,7 @@ export default function ProFormStep({
           opacity: valid && !submitting ? 1 : 0.5,
         }}
       >
-        {submitting ? "Checking…" : "Submit"}
+        {submitting ? "Submitting…" : "Submit"}
         {!submitting && <Icon name="arrow" size={18} color={colors.white} />}
       </button>
     </div>

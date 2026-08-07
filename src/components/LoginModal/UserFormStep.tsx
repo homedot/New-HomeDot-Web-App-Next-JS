@@ -30,7 +30,9 @@ export default function UserFormStep({
   contactValue: string;
   countryCode: string;
   onBack: () => void;
-  onSubmit: (values: UserFormValues) => void;
+  /** Resolves to `null` on success, or an error message to display inline
+   * (the step stays mounted so the user doesn't lose entered data). */
+  onSubmit: (values: UserFormValues) => Promise<string | null>;
 }) {
   const [name, setName] = useState("");
   const [cc, setCc] = useState(countryCode);
@@ -40,6 +42,7 @@ export default function UserFormStep({
   const [email, setEmail] = useState(method === "email" ? contactValue : "");
   const [location, setLocation] = useState<LocationValue | null>(null);
   const [submitting, setSubmitting] = useState(false);
+  const [error, setError] = useState<string | null>(null);
   const emailFieldRef = useRef<EmailFieldHandle>(null);
 
   const digitLimit = digitLimitFor(cc);
@@ -49,15 +52,26 @@ export default function UserFormStep({
 
   const handleSubmit = async () => {
     if (!valid || !location || submitting) return;
+    setSubmitting(true);
+    setError(null);
     // The email step's own OTP flow already ran it through ZeroBounce; only
     // a freshly-typed email (phone signup) needs validating here.
     if (method === "phone") {
-      setSubmitting(true);
       const emailOk = await emailFieldRef.current?.validate();
-      setSubmitting(false);
-      if (!emailOk) return;
+      if (!emailOk) {
+        setSubmitting(false);
+        return;
+      }
     }
-    onSubmit({ name: name.trim(), countryCode: cc, mobile, email, location });
+    const errorMessage = await onSubmit({
+      name: name.trim(),
+      countryCode: cc,
+      mobile,
+      email,
+      location,
+    });
+    setSubmitting(false);
+    if (errorMessage) setError(errorMessage);
   };
 
   return (
@@ -152,6 +166,12 @@ export default function UserFormStep({
           <LocationMapPicker value={location} onChange={setLocation} />
         </Field>
       </div>
+
+      {error && (
+        <p style={{ fontSize: fontSize.sm, color: "#C0392B", marginTop: spacing.md, marginBottom: 0 }}>
+          {error}
+        </p>
+      )}
 
       <button
         onClick={handleSubmit}

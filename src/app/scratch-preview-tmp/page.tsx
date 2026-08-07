@@ -1,40 +1,29 @@
 "use client";
 
-import { colors } from "@/constants/colors";
-import { spacing, radius, shadow } from "@/utils/size";
-import ProDashboardActivityChart from "@/components/ProDashboardActivityChart";
-import type { ProfessionalProjectRecord } from "@/services/ProfessionalDashboardService";
-
-function mk(id: string, monthsAgo: number, status: string): ProfessionalProjectRecord {
-  const d = new Date();
-  d.setMonth(d.getMonth() - monthsAgo);
-  return { _id: id, projectName: `Project ${id}`, projectStatus: status, startDate: d.toISOString(), projectSlug: id };
-}
-const mockProjects: ProfessionalProjectRecord[] = [
-  mk("1", 5, "completed"),
-  mk("2", 5, "completed"),
-  mk("3", 4, "cancelled"),
-  mk("4", 3, "ongoing"),
-  mk("5", 3, "ongoing"),
-  mk("6", 3, "ongoing"),
-  mk("7", 2, "completed"),
-  mk("8", 1, "ongoing"),
-  mk("9", 0, "completed"),
-  mk("10", 0, "completed"),
-  mk("11", 0, "ongoing"),
-];
+import { useState } from "react";
+import ProFormStep, { type ProFormValues } from "@/components/LoginModal/ProFormStep";
 
 export default function ScratchPreviewPage() {
+  const [result, setResult] = useState<ProFormValues | null>(null);
   return (
-    <div style={{ maxWidth: 900, margin: "40px auto", padding: 16, background: colors.bg }}>
-      <div className="grid grid-cols-1 lg:grid-cols-2" style={{ gap: spacing.xl }}>
-        <div id="chart-panel" style={{ background: colors.card, border: `1px solid ${colors.line}`, borderRadius: radius.lg, boxShadow: shadow.sm }}>
-          <ProDashboardActivityChart projects={mockProjects} />
-        </div>
-        <div style={{ background: colors.card, border: `1px solid ${colors.line}`, borderRadius: radius.lg, boxShadow: shadow.sm, padding: 20 }}>
-          <ProDashboardActivityChart projects={[]} />
-        </div>
-      </div>
+    <div style={{ maxWidth: 640, margin: "40px auto", padding: 16 }}>
+      <ProFormStep
+        method="email"
+        contactValue="preview@example.com"
+        countryCode="+91"
+        location={{ address: "Kochi, Kerala", lat: 9.9312, lng: 76.2673 }}
+        onChangeLocation={() => {}}
+        onBack={() => {}}
+        onSubmit={async (values) => {
+          setResult(values);
+          return null;
+        }}
+      />
+      {result && (
+        <pre id="submit-result" style={{ marginTop: 20, whiteSpace: "pre-wrap" }}>
+          {JSON.stringify(result, null, 2)}
+        </pre>
+      )}
     </div>
   );
 }

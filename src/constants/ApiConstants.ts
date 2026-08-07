@@ -32,6 +32,11 @@ export const API_ENDPOINTS = {
     // User) — only reachable once an account already has both roles. Returns
     // a fresh token pair scoped to the new active role.
     SWITCH_ROLE: "auth/switch-user",
+    // Guest-accessible — no auth required. Mirrors
+    // BACKEND_AUTH_URL.PROFESSIOANL_OR_USER_SIGN_IN ("v1/auth/signup") — single
+    // endpoint for both normal-user and professional-user registration,
+    // distinguished by the `userType` field in the request body.
+    SIGNUP: "auth/signup",
   },
   USER: {
     // Requires a stored auth token. Mirrors USERS_APIS.PROFILE_IMAGE_UPDATE
