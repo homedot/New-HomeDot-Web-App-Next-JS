@@ -1,5 +1,6 @@
 import type { Metadata } from "next";
 import { Geist, Geist_Mono, Bricolage_Grotesque } from "next/font/google";
+import localFont from "next/font/local";
 import RoleGate from "@/components/RoleGate";
 import RoleSwitchOverlay from "@/components/RoleSwitchOverlay";
 import "./globals.css";
@@ -19,6 +20,11 @@ const bricolageGrotesque = Bricolage_Grotesque({
   subsets: ["latin"],
 });
 
+const bubbleboy = localFont({
+  src: "../assets/fonts/Bubbleboy-Regular.ttf",
+  variable: "--font-logo",
+});
+
 export const metadata: Metadata = {
   title: "HomeDot — Design, build & maintain your dream home",
   description: "Find verified properties and trusted home professionals across Kerala.",
@@ -32,7 +38,7 @@ export default function RootLayout({
   return (
     <html
       lang="en"
-      className={`${geistSans.variable} ${geistMono.variable} ${bricolageGrotesque.variable} h-full antialiased`}
+      className={`${geistSans.variable} ${geistMono.variable} ${bricolageGrotesque.variable} ${bubbleboy.variable} h-full antialiased`}
     >
       <body className="min-h-full flex flex-col">
         <RoleGate />
