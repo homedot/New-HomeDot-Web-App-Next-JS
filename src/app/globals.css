@@ -1550,6 +1550,31 @@ body.has-cursor * {
   animation: prProGlow 3.6s ease-in-out infinite;
 }
 
+/* Small animated badge replacing a static icon square — the codebase avoids
+   stock imagery (see ProDashboardHero's HeroIllustration), so "an animated
+   image" here means a code-built floating icon + twinkling sparkle accent,
+   consistent with the rest of the site's line-art motifs. */
+@keyframes prProFloat {
+  0%, 100% { transform: translateY(0) rotate(0deg); }
+  50% { transform: translateY(-3px) rotate(-4deg); }
+}
+
+.pr-pro-badge-icon {
+  animation: prProFloat 2.6s ease-in-out infinite;
+}
+
+@keyframes prProTwinkle {
+  0%, 100% { opacity: 0.35; transform: scale(0.8); }
+  50% { opacity: 1; transform: scale(1.15); }
+}
+
+.pr-pro-sparkle {
+  position: absolute;
+  top: -5px;
+  right: -5px;
+  animation: prProTwinkle 1.6s ease-in-out infinite;
+}
+
 @media (prefers-reduced-motion: reduce) {
   .pr-navitem,
   .pr-railitem,
@@ -1569,6 +1594,10 @@ body.has-cursor * {
     transform: none;
   }
   .pr-pro-card {
+    animation: none;
+  }
+  .pr-pro-badge-icon,
+  .pr-pro-sparkle {
     animation: none;
   }
 }

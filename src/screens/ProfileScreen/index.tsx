@@ -567,18 +567,23 @@ export default function ProfileScreen() {
                 >
                   <span className="pdash-sheen" aria-hidden="true" />
                   <div style={{ display: "flex", alignItems: "center", gap: 10, position: "relative" }}>
-                    <span
-                      style={{
-                        width: 34,
-                        height: 34,
-                        borderRadius: 9,
-                        background: "rgba(255,255,255,0.16)",
-                        display: "grid",
-                        placeItems: "center",
-                        flexShrink: 0,
-                      }}
-                    >
-                      <Icon name="hardhat" size={16} color={colors.white} />
+                    <span style={{ position: "relative", flexShrink: 0 }}>
+                      <span
+                        className="pr-pro-badge-icon"
+                        style={{
+                          width: 34,
+                          height: 34,
+                          borderRadius: 9,
+                          background: "rgba(255,255,255,0.16)",
+                          display: "grid",
+                          placeItems: "center",
+                        }}
+                      >
+                        <Icon name="hardhat" size={16} color={colors.white} />
+                      </span>
+                      <span className="pr-pro-sparkle" aria-hidden="true">
+                        <Icon name="sparkle" size={11} color="#F5A623" />
+                      </span>
                     </span>
                     <div style={{ flex: 1 }}>
                       <b style={{ fontSize: fontSize.sm, display: "block", color: colors.white }}>You&apos;re also a professional</b>
