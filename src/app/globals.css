@@ -1480,14 +1480,96 @@ body.has-cursor * {
   transform: rotate(-90deg) translateX(2px);
 }
 
+/* ProfileScreen "Switch to Professional" CTA — filled primary button with a
+   hover lift + press + sheen sweep so returning users spot it immediately,
+   mirroring ProDashboardScreen's .pdash-switch-btn treatment. */
+.pr-switch-btn {
+  position: relative;
+  overflow: hidden;
+  transition: transform 0.2s cubic-bezier(0.2, 0.8, 0.3, 1), box-shadow 0.2s ease;
+}
+
+.pr-switch-btn:hover:not(:disabled) {
+  transform: translateY(-2px) scale(1.015);
+  box-shadow: 0 14px 24px -10px rgba(16, 28, 48, 0.5);
+}
+
+.pr-switch-btn:active:not(:disabled) {
+  transform: translateY(0) scale(0.97);
+  box-shadow: 0 4px 10px -6px rgba(16, 28, 48, 0.4);
+}
+
+.pr-switch-btn::before {
+  content: "";
+  position: absolute;
+  top: -50%;
+  left: -60%;
+  width: 30%;
+  height: 200%;
+  background: linear-gradient(100deg, transparent, rgba(255, 255, 255, 0.35), transparent);
+  transform: skewX(-20deg);
+  transition: left 0.6s ease;
+  pointer-events: none;
+}
+
+.pr-switch-btn:hover:not(:disabled)::before {
+  left: 130%;
+}
+
+.pr-switch-arrow {
+  display: inline-flex;
+  transition: transform 0.2s ease;
+}
+
+.pr-switch-btn:hover:not(:disabled) .pr-switch-arrow {
+  transform: translateX(3px);
+}
+
+.pr-switch-btn.pr-switch-loading {
+  animation: pdashSwitchPulse 1.1s ease-in-out infinite;
+}
+
+/* Light variant for .pr-switch-btn when it sits on a dark/gradient surface
+   (the "You're also a professional" card) — swaps the white sheen for a
+   dark one so the sweep stays visible against the white button fill. */
+.pr-switch-btn-light::before {
+  background: linear-gradient(100deg, transparent, rgba(16, 28, 48, 0.12), transparent);
+}
+
+/* "You're also a professional" card — was a flat white card easy to miss;
+   now gradient-filled with a slow breathing glow plus the shared sheen
+   sweep and live pulse dot (same combo ProDashboardHero uses for its Live
+   indicator) so the option to switch reads as available right now. */
+@keyframes prProGlow {
+  0%, 100% { box-shadow: 0 8px 20px -10px rgba(16, 28, 48, 0.55); }
+  50% { box-shadow: 0 10px 28px -8px rgba(41, 151, 255, 0.4); }
+}
+
+.pr-pro-card {
+  position: relative;
+  animation: prProGlow 3.6s ease-in-out infinite;
+}
+
 @media (prefers-reduced-motion: reduce) {
   .pr-navitem,
   .pr-railitem,
-  .pr-railchev {
+  .pr-railchev,
+  .pr-switch-btn,
+  .pr-switch-btn::before,
+  .pr-switch-arrow {
     transition: none;
   }
   .pr-railitem:hover .pr-railchev {
     transform: rotate(-90deg);
+  }
+  .pr-switch-btn.pr-switch-loading {
+    animation: none;
+  }
+  .pr-switch-btn:hover:not(:disabled) {
+    transform: none;
+  }
+  .pr-pro-card {
+    animation: none;
   }
 }
 
@@ -1775,6 +1857,60 @@ body.has-cursor * {
   background-color: rgba(16, 28, 48, 0.05);
 }
 
+/* Profile rail's "Switch to Home Owner" CTA — hover lift + press + a sheen
+   sweep so the mode switch reads as a deliberate, satisfying tap rather than
+   a flat link; pulses while the switch request is in flight. */
+.pdash-switch-btn {
+  position: relative;
+  overflow: hidden;
+  transition: transform 0.2s cubic-bezier(0.2, 0.8, 0.3, 1), box-shadow 0.2s ease;
+}
+
+.pdash-switch-btn:hover:not(:disabled) {
+  transform: translateY(-2px) scale(1.015);
+  box-shadow: 0 14px 24px -10px rgba(16, 28, 48, 0.5);
+}
+
+.pdash-switch-btn:active:not(:disabled) {
+  transform: translateY(0) scale(0.97);
+  box-shadow: 0 4px 10px -6px rgba(16, 28, 48, 0.4);
+}
+
+.pdash-switch-btn::before {
+  content: "";
+  position: absolute;
+  top: -50%;
+  left: -60%;
+  width: 30%;
+  height: 200%;
+  background: linear-gradient(100deg, transparent, rgba(255, 255, 255, 0.35), transparent);
+  transform: skewX(-20deg);
+  transition: left 0.6s ease;
+  pointer-events: none;
+}
+
+.pdash-switch-btn:hover:not(:disabled)::before {
+  left: 130%;
+}
+
+.pdash-switch-arrow {
+  display: inline-flex;
+  transition: transform 0.2s ease;
+}
+
+.pdash-switch-btn:hover:not(:disabled) .pdash-switch-arrow {
+  transform: translateX(3px);
+}
+
+@keyframes pdashSwitchPulse {
+  0%, 100% { opacity: 0.65; }
+  50% { opacity: 1; }
+}
+
+.pdash-switch-btn.pdash-switch-loading {
+  animation: pdashSwitchPulse 1.1s ease-in-out infinite;
+}
+
 @media (prefers-reduced-motion: reduce) {
   .pdash-sheen::before,
   .pdash-pulse-dot::after {
@@ -1783,12 +1919,21 @@ body.has-cursor * {
   }
   .pdash-stat,
   .pdash-soon-chip,
-  .pdash-navitem {
+  .pdash-navitem,
+  .pdash-switch-btn,
+  .pdash-switch-btn::before,
+  .pdash-switch-arrow {
     transition: none;
   }
   .pdash-illustration,
   .pdash-illustration-sub,
   .pdash-illustration-sub2 {
     animation: none;
+  }
+  .pdash-switch-btn.pdash-switch-loading {
+    animation: none;
+  }
+  .pdash-switch-btn:hover:not(:disabled) {
+    transform: none;
   }
 }

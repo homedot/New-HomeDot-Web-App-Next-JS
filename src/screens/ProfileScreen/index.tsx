@@ -554,51 +554,77 @@ export default function ProfileScreen() {
 
               {hasProfessionalRole ? (
                 <div
+                  className="pr-pro-card"
                   style={{
-                    background: colors.card,
-                    border: `1px solid ${colors.line}`,
+                    background: `linear-gradient(150deg, ${colors.primaryDeep}, ${colors.primary})`,
                     borderRadius: radius.lg,
-                    boxShadow: shadow.sm,
                     padding: 18,
                     display: "flex",
                     flexDirection: "column",
                     gap: 10,
+                    overflow: "hidden",
                   }}
                 >
-                  <div style={{ display: "flex", alignItems: "center", gap: 10 }}>
+                  <span className="pdash-sheen" aria-hidden="true" />
+                  <div style={{ display: "flex", alignItems: "center", gap: 10, position: "relative" }}>
                     <span
                       style={{
                         width: 34,
                         height: 34,
                         borderRadius: 9,
-                        background: colors.primarySoft,
-                        color: colors.primary,
+                        background: "rgba(255,255,255,0.16)",
                         display: "grid",
                         placeItems: "center",
                         flexShrink: 0,
                       }}
                     >
-                      <Icon name="hardhat" size={16} />
+                      <Icon name="hardhat" size={16} color={colors.white} />
                     </span>
-                    <div>
-                      <b style={{ fontSize: fontSize.sm, display: "block" }}>You&apos;re also a professional</b>
-                      <span style={{ fontSize: fontSize.xs, color: colors.muted }}>Switch to manage enquiries and projects.</span>
+                    <div style={{ flex: 1 }}>
+                      <b style={{ fontSize: fontSize.sm, display: "block", color: colors.white }}>You&apos;re also a professional</b>
+                      <span style={{ fontSize: fontSize.xs, color: "rgba(255,255,255,0.75)" }}>Switch to manage enquiries and projects.</span>
                     </div>
+                    <span
+                      style={{
+                        display: "inline-flex",
+                        alignItems: "center",
+                        gap: 5,
+                        fontSize: 10,
+                        fontWeight: 700,
+                        color: "rgba(255,255,255,0.9)",
+                        background: "rgba(255,255,255,0.14)",
+                        padding: "4px 9px",
+                        borderRadius: radius.full,
+                        flexShrink: 0,
+                      }}
+                    >
+                      <span className="pdash-pulse-dot" /> Live
+                    </span>
                   </div>
-                  {roleError && <p style={{ color: "#C0392B", fontSize: fontSize.xs, margin: 0 }}>{roleError}</p>}
+                  {roleError && <p style={{ color: "#FFD3CC", fontSize: fontSize.xs, margin: 0, position: "relative" }}>{roleError}</p>}
                   <button
                     onClick={switchRole}
                     disabled={switchingRole}
+                    className={`pr-switch-btn pr-switch-btn-light${switchingRole ? " pr-switch-loading" : ""}`}
                     style={{
                       height: 40,
                       borderRadius: radius.md,
-                      background: colors.primarySoft,
+                      background: colors.white,
+                      border: `1px solid ${colors.white}`,
                       color: colors.primary,
                       fontSize: fontSize.xs,
                       fontWeight: 700,
+                      display: "inline-flex",
+                      alignItems: "center",
+                      justifyContent: "center",
+                      gap: 6,
+                      position: "relative",
                     }}
                   >
                     {switchingRole ? "Switching…" : "Switch to Professional"}
+                    <span className="pr-switch-arrow">
+                      <Icon name="arrow" size={13} color={colors.primary} />
+                    </span>
                   </button>
                 </div>
               ) : (
