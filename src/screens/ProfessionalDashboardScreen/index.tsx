@@ -752,6 +752,7 @@ function ProfileRailCard({
       <button
         onClick={onSwitch}
         disabled={switching}
+        className={`pdash-switch-btn${switching ? " pdash-switch-loading" : ""}`}
         style={{
           width: "100%",
           display: "inline-flex",
@@ -761,14 +762,18 @@ function ProfileRailCard({
           marginTop: spacing.lg,
           height: 42,
           borderRadius: radius.full,
-          background: colors.card,
-          border: `1px solid ${colors.line}`,
-          color: colors.primary,
+          background: colors.primary,
+          border: `1px solid ${colors.primary}`,
+          color: colors.white,
           fontSize: fontSize.sm,
           fontWeight: 700,
+          boxShadow: shadow.sm,
         }}
       >
-        {switching ? "Switching…" : "Switch to Home Owner"} <Icon name="arrow" size={14} />
+        {switching ? "Switching…" : "Switch to Home Owner"}
+        <span className="pdash-switch-arrow">
+          <Icon name="arrow" size={14} color={colors.white} />
+        </span>
       </button>
     </Reveal>
   );

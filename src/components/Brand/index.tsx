@@ -5,28 +5,17 @@ export default function Brand({ light }: { light?: boolean }) {
   return (
     <span
       style={{
-        fontFamily: "var(--font-display)",
-        fontWeight: 700,
-        fontSize: fontSize.xl,
+        fontFamily: "var(--font-logo)",
+        // fontWeight: 700,
+        fontSize: 40,
         letterSpacing: "-0.03em",
-        color: light ? colors.white : colors.ink,
+        color: "#00BFFF",
         display: "inline-flex",
         alignItems: "center",
         gap: 2,
       }}
     >
-      <span
-        style={{
-          width: 9,
-          height: 9,
-          borderRadius: "50%",
-          background: colors.accent,
-          marginRight: 8,
-          boxShadow: "0 0 0 4px rgba(41,151,255,0.22)",
-        }}
-      />
-      Home
-      <span style={{ color: light ? colors.white : colors.primary }}>Dot</span>
+      HOME.
     </span>
   );
 }
