@@ -2,6 +2,7 @@
 
 # dependencies
 /node_modules
+/.env
 /HomeDot_Web_UI_Reference
 /homedot_mobile_app
 /.pnp
