@@ -15,8 +15,7 @@ export default function Brand({ light }: { light?: boolean }) {
         gap: 2,
       }}
     >
-      HOME
-      <span style={{ color: "#00BFFF" }}>DOT.</span>
+      HOME.
     </span>
   );
 }
