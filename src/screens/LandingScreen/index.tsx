@@ -128,6 +128,7 @@ export default function LandingScreen() {
       <LoginModal ref={loginModalRef} hideTrigger />
       <Hero />
       <MarqueeStrip />
+      <FeatureShowcase />
       <FeaturedProperties />
       <Categories />
       <PropertyCategories />
@@ -411,6 +412,283 @@ function MarqueeStrip() {
     </div>
   );
 }
+
+const FEATURES: {
+  id: string;
+  icon: IconName;
+  tabLabel: string;
+  title: string;
+  description: string;
+  image: string;
+  cta: string;
+  href: string;
+}[] = [
+  {
+    id: "browse",
+    icon: "house",
+    tabLabel: "Browse properties",
+    title: "Find your next home",
+    description:
+      "240+ verified homes, villas and plots across Kerala — filtered by budget, location and type.",
+    image:
+      "https://images.unsplash.com/photo-1522708323590-d24dbb6b0267?auto=format&fit=crop&w=1600&q=80",
+    cta: "Explore listings",
+    href: "/marketplace",
+  },
+  {
+    id: "hire",
+    icon: "hardhat",
+    tabLabel: "Hire professionals",
+    title: "Work with verified experts",
+    description:
+      "180+ architects, interior designers and contractors — manually checked, with real portfolios.",
+    image:
+      "https://images.unsplash.com/photo-1487958449943-2429e8be8625?auto=format&fit=crop&w=1600&q=80",
+    cta: "Meet the pros",
+    href: "/professionals",
+  },
+  {
+    id: "design",
+    icon: "ruler",
+    tabLabel: "Design & build",
+    title: "Plan it, then build it",
+    description:
+      "Get matched with the right specialists for every stage — from blueprint to handover.",
+    image:
+      "https://images.unsplash.com/photo-1503387762-592deb58ef4e?auto=format&fit=crop&w=1600&q=80",
+    cta: "See categories",
+    href: "/professionals",
+  },
+  {
+    id: "insights",
+    icon: "book",
+    tabLabel: "Read insights",
+    title: "Learn before you leap",
+    description:
+      "Guides, checklists and stories from real homeowners and professionals on HomeDot.",
+    image:
+      "https://images.unsplash.com/photo-1618221195710-dd6b41faaea6?auto=format&fit=crop&w=1600&q=80",
+    cta: "Browse the blog",
+    href: "/blog",
+  },
+  {
+    id: "app",
+    icon: "sparkle",
+    tabLabel: "Get the app",
+    title: "Your whole journey, in your pocket",
+    description:
+      "Search, chat and book — track every project from one beautiful app.",
+    image:
+      "https://images.unsplash.com/photo-1600585154340-be6161a56a0c?auto=format&fit=crop&w=1600&q=80",
+    cta: "Get the app",
+    href: "#get-app",
+  },
+];
+
+const FEATURE_ROTATE_MS = 5000;
+
+/** Tabbed, auto-rotating photo showcase — one tab per core HomeDot feature.
+ * Sits right under the Hero as a menu of "what's inside", crossfading a large
+ * photo behind each tab's title/description so the page invites exploration
+ * beyond just the Hero (mirrors HeroPhotoBackdrop's crossfade convention, but
+ * driven by tab state instead of a fixed CSS keyframe loop). Auto-advances on
+ * a timer that resets whenever the visitor picks a tab themselves, and stops
+ * entirely under prefers-reduced-motion. */
+function FeatureShowcase() {
+  const [active, setActive] = useState(0);
+  const timerRef = useRef<ReturnType<typeof setInterval> | null>(null);
+
+  const startTimer = () => {
+    if (timerRef.current) clearInterval(timerRef.current);
+    if (window.matchMedia("(prefers-reduced-motion: reduce)").matches) return;
+    timerRef.current = setInterval(() => {
+      setActive((i) => (i + 1) % FEATURES.length);
+    }, FEATURE_ROTATE_MS);
+  };
+
+  useEffect(() => {
+    startTimer();
+    return () => {
+      if (timerRef.current) clearInterval(timerRef.current);
+    };
+  }, []);
+
+  const selectTab = (i: number) => {
+    setActive(i);
+    startTimer();
+  };
+
+  const current = FEATURES[active];
+
+  return (
+    <section style={{ ...wrap, padding: `${spacing.xxl}px ${spacing.xl}px` }}>
+      <ScrollScrub className="scrub-rise">
+        <SectionHead
+          center
+          eyebrow="Explore HomeDot"
+          title="One platform, every step of your home journey"
+          subtitle="From your first search to move-in day — see what's inside."
+        />
+      </ScrollScrub>
+
+      <Reveal>
+        <div
+          className="flex flex-wrap justify-center"
+          style={{ gap: spacing.sm, marginBottom: spacing.xl }}
+        >
+          {FEATURES.map((f, i) => (
+            <button
+              key={f.id}
+              onClick={() => selectTab(i)}
+              style={{
+                display: "inline-flex",
+                alignItems: "center",
+                gap: 8,
+                padding: "10px 18px",
+                borderRadius: radius.full,
+                fontSize: fontSize.sm,
+                fontWeight: 600,
+                whiteSpace: "nowrap",
+                background: i === active ? colors.primary : colors.card,
+                color: i === active ? colors.white : colors.ink2,
+                boxShadow: i === active ? "none" : `inset 0 0 0 1.5px ${colors.line}`,
+                transition: "background .2s ease, color .2s ease",
+              }}
+            >
+              <Icon
+                name={f.icon}
+                size={15}
+                color={i === active ? colors.white : colors.muted}
+              />
+              {f.tabLabel}
+            </button>
+          ))}
+        </div>
+
+        <div
+          style={{
+            position: "relative",
+            overflow: "hidden",
+            borderRadius: radius.lg,
+            aspectRatio: "16/8",
+            boxShadow: shadow.lg,
+          }}
+        >
+          {FEATURES.map((f, i) => (
+            // eslint-disable-next-line @next/next/no-img-element
+            <img
+              key={f.id}
+              src={f.image}
+              alt=""
+              style={{
+                position: "absolute",
+                inset: 0,
+                width: "100%",
+                height: "100%",
+                objectFit: "cover",
+                opacity: i === active ? 1 : 0,
+                transform: i === active ? "scale(1.06)" : "scale(1)",
+                transition:
+                  "opacity 900ms ease, transform 6000ms cubic-bezier(0.16, 1, 0.3, 1)",
+              }}
+            />
+          ))}
+          <div
+            style={{
+              position: "absolute",
+              inset: 0,
+              background:
+                "linear-gradient(180deg, rgba(10,20,34,0.05) 30%, rgba(10,20,34,0.82) 100%)",
+            }}
+          />
+          <div
+            style={{
+              position: "absolute",
+              left: 0,
+              right: 0,
+              bottom: 0,
+              padding: "clamp(22px, 4vw, 44px)",
+              display: "flex",
+              alignItems: "flex-end",
+              justifyContent: "space-between",
+              gap: spacing.xl,
+              flexWrap: "wrap",
+            }}
+          >
+            <div style={{ maxWidth: 520 }}>
+              <span
+                style={{
+                  width: 42,
+                  height: 42,
+                  borderRadius: 12,
+                  background: "rgba(255,255,255,0.16)",
+                  display: "grid",
+                  placeItems: "center",
+                  marginBottom: spacing.md,
+                }}
+              >
+                <Icon name={current.icon} size={20} color={colors.white} />
+              </span>
+              <h3
+                style={{
+                  color: colors.white,
+                  fontFamily: "var(--font-display)",
+                  fontSize: "clamp(21px, 2.6vw, 30px)",
+                  fontWeight: 600,
+                  marginBottom: spacing.sm,
+                }}
+              >
+                {current.title}
+              </h3>
+              <p
+                style={{
+                  color: "rgba(255,255,255,0.82)",
+                  fontSize: fontSize.md - 1,
+                  lineHeight: 1.55,
+                }}
+              >
+                {current.description}
+              </p>
+            </div>
+            {current.href.startsWith("#") ? (
+              <a
+                href={current.href}
+                onClick={(e) => {
+                  e.preventDefault();
+                  document
+                    .getElementById(current.href.slice(1))
+                    ?.scrollIntoView({ behavior: "smooth" });
+                }}
+                style={featureCtaStyle}
+              >
+                {current.cta} <Icon name="arrow" size={16} color={colors.primary} />
+              </a>
+            ) : (
+              <Link href={current.href} style={featureCtaStyle}>
+                {current.cta} <Icon name="arrow" size={16} color={colors.primary} />
+              </Link>
+            )}
+          </div>
+        </div>
+      </Reveal>
+    </section>
+  );
+}
+
+const featureCtaStyle: CSSProperties = {
+  display: "inline-flex",
+  alignItems: "center",
+  gap: 8,
+  flexShrink: 0,
+  background: colors.white,
+  color: colors.primary,
+  fontWeight: 600,
+  fontSize: fontSize.sm + 0.5,
+  padding: "12px 20px",
+  borderRadius: radius.full,
+  textDecoration: "none",
+  whiteSpace: "nowrap",
+};
 
 function HeroSegment({
   icon,
@@ -1395,7 +1673,10 @@ function StoryShowcase() {
           </div>
         </Reveal>
 
-        {/* Chapter 3 — app promo, the "wow" closer */}
+        {/* Chapter 3 — app promo, the "wow" closer. Wrapped in an id so
+            FeatureShowcase's "Get the app" tab can smooth-scroll straight
+            here instead of duplicating the store badges up top. */}
+        <div id="get-app" />
         <Reveal
           className="grid grid-cols-1 lg:grid-cols-2"
           style={{
