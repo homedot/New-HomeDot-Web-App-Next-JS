@@ -127,12 +127,67 @@ export default function MarketplaceScreen() {
   // data that then gets swapped for the real thing.
   const [initialLoad, setInitialLoad] = useState(true);
 
+  const propertyTypeIdsRef = useRef<string[]>([]);
+
   useEffect(() => {
     MarketplaceScreenService.getPropertyTypes().then((res) => {
-      if (res.success && res.data?.status)
+      if (res.success && res.data?.status) {
         setPropertyTypeOptions(res.data.data);
+        propertyTypeIdsRef.current = res.data.data.map((t) => t._id);
+      }
     });
   }, []);
+
+  // The property-types endpoint above returns one fixed, purpose-agnostic
+  // count per type (confirmed against the live API — identical response
+  // regardless of any purpose/type query param), so it never reflected Buy
+  // vs Rent and looked "stuck" when switching tabs. Re-derive each type's
+  // count from the same properties-filter endpoint the listing grid itself
+  // uses, scoped to that type + the active purpose, which *does* differ
+  // between Buy and Rent.
+  useEffect(() => {
+    if (propertyTypeIdsRef.current.length === 0) return;
+    let cancelled = false;
+    const neutralFilters: PropertiesFilterPayload = {
+      min: null,
+      max: null,
+      address: null,
+      featured: false,
+      bedrooms: null,
+      bathrooms: null,
+      cities: null,
+      propertyType: null,
+    };
+    Promise.all(
+      propertyTypeIdsRef.current.map((id) =>
+        MarketplaceScreenService.getPropertiesFilter(
+          1,
+          { ...neutralFilters, propertyType: id },
+          purpose,
+        ).then(
+          (res) =>
+            [
+              id,
+              res.success && res.data?.status
+                ? (res.data.data[0]?.totalCount?.total_rows ?? 0)
+                : null,
+            ] as const,
+        ),
+      ),
+    ).then((results) => {
+      if (cancelled) return;
+      const counts = new Map(results);
+      setPropertyTypeOptions((prev) =>
+        prev.map((t) => {
+          const count = counts.get(t._id);
+          return count == null ? t : { ...t, propertyCount: count };
+        }),
+      );
+    });
+    return () => {
+      cancelled = true;
+    };
+  }, [purpose, propertyTypeOptions.length]);
 
   // Seeds the saved/favorited set from the backend on load, for signed-in
   // users, so the heart state persists across sessions instead of resetting
