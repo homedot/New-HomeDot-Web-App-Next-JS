@@ -139,6 +139,17 @@ export interface HomeDataBody {
   data: HomeDataEntry[];
 }
 
+export interface ContactPayload {
+  name: string;
+  email: string;
+  message: string;
+}
+
+export interface ContactBody {
+  status: boolean;
+  message: string;
+}
+
 // All Landing screen API calls live here. The screen only ever imports
 // this file — never ApiService or fetch directly.
 export const LandingScreenService = {
@@ -171,6 +182,10 @@ export const LandingScreenService = {
   // Guest-accessible — no auth required.
   getHomeData: (): Promise<ApiResponse<HomeDataBody>> =>
     ApiService.get<HomeDataBody>(API_ENDPOINTS.DATA.HOME),
+
+  // Guest-accessible — no auth required. Public "Get in touch" contact form.
+  submitContact: (payload: ContactPayload): Promise<ApiResponse<ContactBody>> =>
+    ApiService.post<ContactBody>(API_ENDPOINTS.DATA.SUBMIT_CONTACT, payload),
 };
 
 function truncate(text: string, max: number): string {

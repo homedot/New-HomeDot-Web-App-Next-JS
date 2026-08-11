@@ -4,7 +4,9 @@ import {
   useEffect,
   useRef,
   useState,
+  type ChangeEvent,
   type CSSProperties,
+  type FormEvent,
   type ReactNode,
   type RefObject,
 } from "react";
@@ -62,7 +64,47 @@ const wrap: CSSProperties = {
 // Same support number/email as ProfileScreen's HelpPanel and the nav's
 // ContactModal (mirrors homedot-mobile-app's HelpScreen).
 const CONTACT_PHONE = "7012303017";
-const CONTACT_EMAIL = "mail@homedotapp.com";
+const CONTACT_ADDRESS =
+  "14/77 Recca Valley Road, Mavelipuram, Kakkanad, Kochi, Kerala 682030";
+const CONTACT_HOURS = [
+  "Monday - Friday: 9:00 AM - 6:00 PM",
+  "Saturday: 10:00 AM - 4:00 PM",
+];
+
+const contactInputStyle: CSSProperties = {
+  width: "100%",
+  height: 50,
+  border: `1.5px solid ${colors.line}`,
+  borderRadius: radius.md,
+  padding: "0 16px",
+  fontSize: fontSize.md - 1,
+  color: colors.ink,
+  background: colors.white,
+  outline: "none",
+};
+
+const contactSubmitStyle: CSSProperties = {
+  display: "inline-flex",
+  alignItems: "center",
+  justifyContent: "center",
+  gap: 8,
+  height: 52,
+  borderRadius: radius.full,
+  background: colors.primary,
+  color: colors.white,
+  fontWeight: 600,
+  fontSize: fontSize.md - 1,
+  marginTop: spacing.sm,
+};
+
+const contactSocialIconStyle: CSSProperties = {
+  width: 40,
+  height: 40,
+  borderRadius: "50%",
+  background: "rgba(255,255,255,0.14)",
+  display: "grid",
+  placeItems: "center",
+};
 
 export default function LandingScreen() {
   const loginModalRef = useRef<LoginModalHandle>(null);
@@ -1915,148 +1957,307 @@ function Testimonials() {
   );
 }
 
+type ContactField = "name" | "email" | "message";
+type ContactFormValues = Record<ContactField, string>;
+
+const EMPTY_CONTACT_FORM: ContactFormValues = { name: "", email: "", message: "" };
+
 function ContactSection() {
+  const [form, setForm] = useState<ContactFormValues>(EMPTY_CONTACT_FORM);
+  const [errors, setErrors] = useState<Partial<Record<ContactField, string>>>({});
+  const [submitting, setSubmitting] = useState(false);
+  const [result, setResult] = useState<{ ok: boolean; text: string } | null>(null);
+
+  const updateField =
+    (field: ContactField) =>
+    (e: ChangeEvent<HTMLInputElement | HTMLTextAreaElement>) => {
+      setForm((f) => ({ ...f, [field]: e.target.value }));
+    };
+
+  const validate = (): boolean => {
+    const next: Partial<Record<ContactField, string>> = {};
+    if (!form.name.trim()) next.name = "Please enter your name.";
+    if (!/\S+@\S+\.\S+/.test(form.email.trim()))
+      next.email = "Enter a valid email address.";
+    if (!form.message.trim()) next.message = "Please write a message.";
+    setErrors(next);
+    return Object.keys(next).length === 0;
+  };
+
+  const handleSubmit = async (e: FormEvent) => {
+    e.preventDefault();
+    if (submitting) return;
+    setResult(null);
+    if (!validate()) return;
+
+    setSubmitting(true);
+    const res = await LandingScreenService.submitContact({
+      name: form.name.trim(),
+      email: form.email.trim(),
+      message: form.message.trim(),
+    });
+    setSubmitting(false);
+
+    if (res.success) {
+      setResult({
+        ok: true,
+        text: "Thanks — we've received your message and will get back to you soon.",
+      });
+      setForm(EMPTY_CONTACT_FORM);
+      setErrors({});
+    } else {
+      setResult({
+        ok: false,
+        text: res.message || "Something went wrong. Please try again.",
+      });
+    }
+  };
+
   return (
     <section
       style={{ ...wrap, padding: `0 ${spacing.xl}px ${spacing.huge}px` }}
     >
+      <ScrollScrub className="scrub-rise">
+        <SectionHead
+          center
+          eyebrow="Contact us"
+          title="Get in touch"
+          subtitle="Ready to transform your space? Let's discuss your project and bring your vision to life."
+        />
+      </ScrollScrub>
       <Reveal
-        className="grid grid-cols-1 lg:grid-cols-[1.1fr_1fr]"
+        className="grid grid-cols-1 lg:grid-cols-2"
         style={{
-          position: "relative",
-          overflow: "hidden",
-          background: `linear-gradient(135deg, ${colors.primaryDeep}, ${colors.primary})`,
           borderRadius: radius.lg,
-          padding: "clamp(28px, 4vw, 52px)",
-          gap: spacing.xxl,
-          alignItems: "center",
+          overflow: "hidden",
+          boxShadow: shadow.lg,
         }}
       >
-        <div>
-          <span
+        <form
+          onSubmit={handleSubmit}
+          style={{
+            background: colors.card,
+            padding: "clamp(28px, 4vw, 48px)",
+            display: "flex",
+            flexDirection: "column",
+            gap: spacing.lg,
+          }}
+        >
+          <h3
             style={{
-              display: "inline-flex",
-              alignItems: "center",
-              gap: 7,
-              fontSize: fontSize.sm,
-              fontWeight: 600,
-              color: colors.white,
-              background: "rgba(255,255,255,0.16)",
-              padding: "6px 13px",
-              borderRadius: radius.full,
-            }}
-          >
-            <Icon name="chat" size={15} /> Get in touch
-          </span>
-          <h2
-            style={{
-              color: colors.white,
               fontFamily: "var(--font-display)",
-              fontSize: "clamp(24px, 3vw, 34px)",
+              fontSize: fontSize.xl,
               fontWeight: 600,
-              margin: `${spacing.lg}px 0 ${spacing.md}px`,
             }}
           >
-            We&apos;re here to help, every step of the way.
-          </h2>
-          <p
-            style={{
-              color: "rgba(255,255,255,0.78)",
-              fontSize: fontSize.md,
-              lineHeight: 1.6,
-              maxWidth: 460,
-            }}
+            Let&apos;s talk with us!
+          </h3>
+
+          <ContactFieldRow label="Full name" error={errors.name}>
+            <input
+              type="text"
+              placeholder="John Doe"
+              value={form.name}
+              onChange={updateField("name")}
+              style={contactInputStyle}
+            />
+          </ContactFieldRow>
+
+          <ContactFieldRow label="Email address" error={errors.email}>
+            <input
+              type="email"
+              inputMode="email"
+              placeholder="john@example.com"
+              value={form.email}
+              onChange={updateField("email")}
+              style={contactInputStyle}
+            />
+          </ContactFieldRow>
+
+          <ContactFieldRow label="Your message" error={errors.message}>
+            <textarea
+              placeholder="Write your message"
+              value={form.message}
+              onChange={updateField("message")}
+              rows={5}
+              style={{
+                ...contactInputStyle,
+                height: "auto",
+                padding: "14px 16px",
+                resize: "vertical",
+              }}
+            />
+          </ContactFieldRow>
+
+          {result && (
+            <p
+              style={{
+                fontSize: fontSize.sm,
+                fontWeight: 600,
+                color: result.ok ? "#1F8A5B" : "#C0392B",
+              }}
+            >
+              {result.text}
+            </p>
+          )}
+
+          <button
+            type="submit"
+            disabled={submitting}
+            style={{ ...contactSubmitStyle, opacity: submitting ? 0.6 : 1 }}
           >
-            Questions about a listing, a professional, or your account? Call or
-            email our support team — we typically respond within 24 hours on
-            business days.
-          </p>
-        </div>
+            {submitting ? "Sending…" : "Send message"}
+            {!submitting && <Icon name="arrow" size={18} color={colors.white} />}
+          </button>
+        </form>
 
         <div
-          className="grid grid-cols-1 sm:grid-cols-2"
-          style={{ gap: spacing.md, position: "relative", zIndex: 1 }}
+          style={{
+            background: `linear-gradient(135deg, ${colors.primaryDeep}, ${colors.primary})`,
+            color: colors.white,
+            padding: "clamp(28px, 4vw, 48px)",
+            display: "flex",
+            flexDirection: "column",
+            justifyContent: "space-between",
+            gap: spacing.xxl,
+          }}
         >
-          <ContactCard
-            icon="phone"
-            label="Call us"
-            value={`+91 ${CONTACT_PHONE.slice(0, 5)} ${CONTACT_PHONE.slice(5)}`}
-            href={`tel:${CONTACT_PHONE}`}
-          />
-          <ContactCard
-            icon="mail"
-            label="Email us"
-            value={CONTACT_EMAIL}
-            href={`mailto:${CONTACT_EMAIL}`}
-          />
+          <div>
+            <h3
+              style={{
+                fontFamily: "var(--font-display)",
+                fontSize: fontSize.xl,
+                fontWeight: 600,
+                marginBottom: spacing.xl,
+              }}
+            >
+              Connect with us
+            </h3>
+            <div
+              style={{ display: "flex", flexDirection: "column", gap: spacing.xl }}
+            >
+              <ConnectRow
+                icon="location"
+                label="Visit our office"
+                lines={[CONTACT_ADDRESS]}
+              />
+              <ConnectRow
+                icon="phone"
+                label="Call us"
+                lines={[`+91 - ${CONTACT_PHONE}`]}
+                href={`tel:${CONTACT_PHONE}`}
+              />
+              <ConnectRow icon="clock" label="Office hours" lines={CONTACT_HOURS} />
+            </div>
+          </div>
+          <div style={{ display: "flex", gap: spacing.md }}>
+            {(["facebook", "twitter", "instagram", "linkedin"] as const).map(
+              (icon) => (
+                <span key={icon} style={contactSocialIconStyle}>
+                  <Icon name={icon} size={18} color={colors.white} />
+                </span>
+              ),
+            )}
+          </div>
         </div>
       </Reveal>
     </section>
   );
 }
 
-function ContactCard({
+function ContactFieldRow({
+  label,
+  error,
+  children,
+}: {
+  label: string;
+  error?: string;
+  children: ReactNode;
+}) {
+  return (
+    <label style={{ display: "flex", flexDirection: "column", gap: 6 }}>
+      <span
+        style={{
+          fontSize: fontSize.xs,
+          fontWeight: 700,
+          letterSpacing: "0.06em",
+          textTransform: "uppercase",
+          color: colors.muted,
+        }}
+      >
+        {label}
+      </span>
+      {children}
+      {error && (
+        <span style={{ fontSize: fontSize.xs, color: "#C0392B" }}>{error}</span>
+      )}
+    </label>
+  );
+}
+
+function ConnectRow({
   icon,
   label,
-  value,
+  lines,
   href,
 }: {
   icon: IconName;
   label: string;
-  value: string;
-  href: string;
+  lines: string[];
+  href?: string;
 }) {
-  return (
-    <a
-      href={href}
-      className="card-hover"
-      style={{
-        display: "flex",
-        flexDirection: "column",
-        gap: spacing.md,
-        background: "rgba(255,255,255,0.07)",
-        border: "1px solid rgba(255,255,255,0.14)",
-        borderRadius: radius.md,
-        padding: "20px 18px",
-        color: colors.white,
-        textDecoration: "none",
-      }}
-    >
+  const rowStyle: CSSProperties = {
+    display: "flex",
+    alignItems: "flex-start",
+    gap: spacing.md,
+  };
+  const content = (
+    <>
       <span
         style={{
           width: 44,
           height: 44,
           borderRadius: 13,
-          background: colors.accent,
+          background: "rgba(255,255,255,0.14)",
           display: "grid",
           placeItems: "center",
           flexShrink: 0,
         }}
       >
-        <Icon name={icon} size={20} strokeWidth={2} color={colors.white} />
+        <Icon name={icon} size={19} color={colors.white} />
       </span>
       <span>
         <b
           style={{
             display: "block",
-            fontFamily: "var(--font-display)",
             fontSize: fontSize.md - 1,
-            fontWeight: 600,
+            fontWeight: 700,
+            marginBottom: 3,
           }}
         >
           {label}
         </b>
-        <em
-          style={{
-            fontStyle: "normal",
-            fontSize: fontSize.sm,
-            color: "rgba(255,255,255,0.72)",
-            wordBreak: "break-word",
-          }}
-        >
-          {value}
-        </em>
+        {lines.map((line) => (
+          <em
+            key={line}
+            style={{
+              fontStyle: "normal",
+              display: "block",
+              fontSize: fontSize.sm,
+              color: "rgba(255,255,255,0.75)",
+            }}
+          >
+            {line}
+          </em>
+        ))}
       </span>
+    </>
+  );
+  return href ? (
+    <a href={href} style={{ ...rowStyle, color: "inherit", textDecoration: "none" }}>
+      {content}
     </a>
+  ) : (
+    <div style={rowStyle}>{content}</div>
   );
 }
