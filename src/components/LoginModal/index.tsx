@@ -317,6 +317,8 @@ const LoginModal = forwardRef<LoginModalHandle, LoginModalProps>(
         );
         return;
       }
+      setOtp(["", "", "", "", "", ""]);
+      otpRefs.current[0]?.focus();
       setSecs(120);
     };
 
