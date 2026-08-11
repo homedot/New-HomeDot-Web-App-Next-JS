@@ -290,7 +290,9 @@ const LoginModal = forwardRef<LoginModalHandle, LoginModalProps>(
         return;
       }
       const role: AccountRole =
-        record?.userType && record.userType !== "normal-user" ? "professional" : "user";
+        record?.userType && record.userType !== "normal-user"
+          ? "professional"
+          : "user";
       finishSuccess(role);
     };
 
@@ -336,7 +338,9 @@ const LoginModal = forwardRef<LoginModalHandle, LoginModalProps>(
       }, 1500);
     };
 
-    const submitUserForm = async (values: UserFormValues): Promise<string | null> => {
+    const submitUserForm = async (
+      values: UserFormValues,
+    ): Promise<string | null> => {
       const res = await AuthService.userSignUp({
         name: values.name,
         email: values.email,
@@ -347,15 +351,23 @@ const LoginModal = forwardRef<LoginModalHandle, LoginModalProps>(
         longitude: values.location.lng,
       });
       if (!res.success || !res.data?.status || res.data.data.length === 0) {
-        return res.data?.message || res.message || "Something went wrong. Please try again.";
+        return (
+          res.data?.message ||
+          res.message ||
+          "Something went wrong. Please try again."
+        );
       }
       const record = res.data.data[0];
-      useAuthStore.getState().setTokens({ token: record.token, refreshToken: record.reToken });
+      useAuthStore
+        .getState()
+        .setTokens({ token: record.token, refreshToken: record.reToken });
       finishSuccess("user");
       return null;
     };
 
-    const submitProForm = async (values: ProFormValues): Promise<string | null> => {
+    const submitProForm = async (
+      values: ProFormValues,
+    ): Promise<string | null> => {
       const res = await AuthService.professionalSignUp({
         name: values.name,
         email: values.email,
@@ -372,10 +384,16 @@ const LoginModal = forwardRef<LoginModalHandle, LoginModalProps>(
         description: values.description,
       });
       if (!res.success || !res.data?.status || res.data.data.length === 0) {
-        return res.data?.message || res.message || "Something went wrong. Please try again.";
+        return (
+          res.data?.message ||
+          res.message ||
+          "Something went wrong. Please try again."
+        );
       }
       const record = res.data.data[0];
-      useAuthStore.getState().setTokens({ token: record.token, refreshToken: record.reToken });
+      useAuthStore
+        .getState()
+        .setTokens({ token: record.token, refreshToken: record.reToken });
       finishSuccess("professional");
       return null;
     };
@@ -637,7 +655,7 @@ function BrandPanel() {
       <span
         style={{
           position: "relative",
-          fontFamily: "var(--font-display)",
+          fontFamily: "var(--font-logo)",
           fontWeight: 700,
           fontSize: fontSize.xl,
           letterSpacing: "-0.03em",
@@ -646,17 +664,7 @@ function BrandPanel() {
           gap: 2,
         }}
       >
-        <span
-          style={{
-            width: 9,
-            height: 9,
-            borderRadius: "50%",
-            background: colors.accent,
-            marginRight: 8,
-            boxShadow: "0 0 0 4px rgba(41,151,255,0.22)",
-          }}
-        />
-        Home<span>Dot</span>
+        HOME.
       </span>
 
       <div style={{ position: "relative" }}>

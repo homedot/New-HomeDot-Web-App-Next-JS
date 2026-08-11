@@ -1318,7 +1318,7 @@ function StoryShowcase() {
                 value: "98%",
                 label: "Professionals pass ID & license checks",
               },
-              { value: "< 24 hrs", label: "Average first response time" },
+              { value: "24 hrs", label: "Average first response time" },
             ].map((stat, i, arr) => (
               <div
                 key={stat.value}
