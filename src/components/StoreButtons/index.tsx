@@ -19,13 +19,22 @@ function PlayGlyph() {
   );
 }
 
+const APP_STORE_URL =
+  "https://apps.apple.com/in/app/home-dot-design-build-maintain/id6472264263";
+const PLAY_STORE_URL =
+  "https://play.google.com/store/apps/details?id=com.demands.homedot";
+
 export default function StoreButtons({ size = "md" }: { size?: "sm" | "md" }) {
   const small = size === "sm";
   return (
     <div style={{ display: "flex", gap: 12, flexWrap: "wrap" }}>
-      <button
+      <a
+        href={APP_STORE_URL}
+        target="_blank"
+        rel="noopener noreferrer"
         aria-label="Download on the App Store"
         style={{
+          textDecoration: "none",
           display: "inline-flex",
           alignItems: "center",
           gap: small ? 9 : 11,
@@ -43,10 +52,14 @@ export default function StoreButtons({ size = "md" }: { size?: "sm" | "md" }) {
           <em style={{ fontStyle: "normal", fontSize: 10.5, letterSpacing: "0.02em", opacity: 0.85, textTransform: "uppercase" }}>Download on the</em>
           <b style={{ fontFamily: "var(--font-display)", fontSize: small ? 15 : 17, fontWeight: 600, letterSpacing: "-0.02em" }}>App Store</b>
         </span>
-      </button>
-      <button
+      </a>
+      <a
+        href={PLAY_STORE_URL}
+        target="_blank"
+        rel="noopener noreferrer"
         aria-label="Get it on Google Play"
         style={{
+          textDecoration: "none",
           display: "inline-flex",
           alignItems: "center",
           gap: small ? 9 : 11,
@@ -64,7 +77,7 @@ export default function StoreButtons({ size = "md" }: { size?: "sm" | "md" }) {
           <em style={{ fontStyle: "normal", fontSize: 10.5, letterSpacing: "0.02em", opacity: 0.85, textTransform: "uppercase" }}>Get it on</em>
           <b style={{ fontFamily: "var(--font-display)", fontSize: small ? 15 : 17, fontWeight: 600, letterSpacing: "-0.02em" }}>Google Play</b>
         </span>
-      </button>
+      </a>
     </div>
   );
 }
