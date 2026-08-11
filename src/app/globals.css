@@ -227,33 +227,48 @@ body {
   }
 }
 
-/* Hero photo backdrop: crossfading, slow Ken-Burns zoom over four home/property/
-   professional photos behind the hero copy (HeroPhotoBackdrop). All four share
-   one 24s cycle; each keyframe only holds nonzero opacity during its own quarter
-   of the cycle so they hand off to one another, then loops. */
+/* Hero photo backdrop: crossfading, slow Ken-Burns zoom over six home/property/
+   professional photos behind the hero copy (HeroPhotoBackdrop) — the section's
+   sole background treatment now that the abstract blob layers (AmbientBackground,
+   HeroScene) have been removed from the landing page, so this carries the
+   "explore" feel on its own. All six share one 36s cycle; each keyframe only
+   holds nonzero opacity during its own sixth of the cycle so they hand off to
+   one another in sequence, then loops. */
 @keyframes heroPhotoA {
   0% { opacity: 0; transform: scale(1.05); }
-  2% { opacity: 1; }
-  21% { opacity: 1; }
-  25% { opacity: 0; transform: scale(1.18); }
+  1.5% { opacity: 1; }
+  14% { opacity: 1; }
+  16.7% { opacity: 0; transform: scale(1.16); }
 }
 @keyframes heroPhotoB {
-  0%, 25% { opacity: 0; transform: scale(1.05); }
-  27% { opacity: 1; }
-  46% { opacity: 1; }
-  50% { opacity: 0; transform: scale(1.18); }
+  0%, 16.7% { opacity: 0; transform: scale(1.05); }
+  18.2% { opacity: 1; }
+  31% { opacity: 1; }
+  33.3% { opacity: 0; transform: scale(1.16); }
 }
 @keyframes heroPhotoC {
-  0%, 50% { opacity: 0; transform: scale(1.05); }
-  52% { opacity: 1; }
-  71% { opacity: 1; }
-  75% { opacity: 0; transform: scale(1.18); }
+  0%, 33.3% { opacity: 0; transform: scale(1.05); }
+  34.8% { opacity: 1; }
+  47.7% { opacity: 1; }
+  50% { opacity: 0; transform: scale(1.16); }
 }
 @keyframes heroPhotoD {
-  0%, 75% { opacity: 0; transform: scale(1.05); }
-  77% { opacity: 1; }
-  96% { opacity: 1; }
-  100% { opacity: 0; transform: scale(1.18); }
+  0%, 50% { opacity: 0; transform: scale(1.05); }
+  51.5% { opacity: 1; }
+  64.4% { opacity: 1; }
+  66.7% { opacity: 0; transform: scale(1.16); }
+}
+@keyframes heroPhotoE {
+  0%, 66.7% { opacity: 0; transform: scale(1.05); }
+  68.2% { opacity: 1; }
+  81.1% { opacity: 1; }
+  83.3% { opacity: 0; transform: scale(1.16); }
+}
+@keyframes heroPhotoF {
+  0%, 83.3% { opacity: 0; transform: scale(1.05); }
+  84.8% { opacity: 1; }
+  97.7% { opacity: 1; }
+  100% { opacity: 0; transform: scale(1.16); }
 }
 
 .hero-photo-backdrop {
@@ -272,16 +287,20 @@ body {
   will-change: opacity, transform;
 }
 
-.hero-photo-a { animation: heroPhotoA 24s ease-in-out infinite; }
-.hero-photo-b { animation: heroPhotoB 24s ease-in-out infinite; }
-.hero-photo-c { animation: heroPhotoC 24s ease-in-out infinite; }
-.hero-photo-d { animation: heroPhotoD 24s ease-in-out infinite; }
+.hero-photo-a { animation: heroPhotoA 36s ease-in-out infinite; }
+.hero-photo-b { animation: heroPhotoB 36s ease-in-out infinite; }
+.hero-photo-c { animation: heroPhotoC 36s ease-in-out infinite; }
+.hero-photo-d { animation: heroPhotoD 36s ease-in-out infinite; }
+.hero-photo-e { animation: heroPhotoE 36s ease-in-out infinite; }
+.hero-photo-f { animation: heroPhotoF 36s ease-in-out infinite; }
 
 @media (prefers-reduced-motion: reduce) {
   .hero-photo-a,
   .hero-photo-b,
   .hero-photo-c,
-  .hero-photo-d {
+  .hero-photo-d,
+  .hero-photo-e,
+  .hero-photo-f {
     animation: none;
     opacity: 0;
   }

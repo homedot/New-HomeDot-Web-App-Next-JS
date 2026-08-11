@@ -21,8 +21,6 @@ import ProCard, { type Professional } from "@/components/ProCard";
 import PhoneFrame, { PhoneChip } from "@/components/PhoneFrame";
 import StoreButtons from "@/components/StoreButtons";
 import Cursor from "@/components/Cursor";
-import AmbientBackground from "@/components/AmbientBackground";
-import HeroScene from "@/components/HeroScene";
 import HeroPhotoBackdrop from "@/components/HeroPhotoBackdrop";
 import Reveal from "@/components/Reveal";
 import ScrollProgress from "@/components/ScrollProgress";
@@ -124,7 +122,6 @@ export default function LandingScreen() {
         zIndex: 0,
       }}
     >
-      <AmbientBackground />
       <ScrollProgress />
       <Cursor />
       <SiteNav />
@@ -161,10 +158,9 @@ function Hero() {
         style={{
           position: "absolute",
           inset: 0,
-          background: `linear-gradient(180deg, rgba(10,20,34,0.55) 0%, rgba(10,20,34,0.72) 100%), radial-gradient(120% 90% at 85% 10%, ${colors.primaryDeep} 0%, transparent 55%), radial-gradient(80% 70% at 10% 100%, rgba(41,151,255,0.3) 0%, transparent 50%)`,
+          background: `linear-gradient(180deg, rgba(10,20,34,0.42) 0%, rgba(10,20,34,0.64) 100%), radial-gradient(120% 90% at 85% 10%, ${colors.primaryDeep} 0%, transparent 55%), radial-gradient(80% 70% at 10% 100%, rgba(41,151,255,0.3) 0%, transparent 50%)`,
         }}
       />
-      <HeroScene />
       <div
         className="grid grid-cols-1 lg:grid-cols-[1fr_340px]"
         style={{
