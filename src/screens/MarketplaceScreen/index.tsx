@@ -1219,7 +1219,11 @@ export default function MarketplaceScreen() {
         </>
       )}
 
-      <SiteFooter />
+      {/* flush only when the StoryBand branch above actually rendered —
+          the detail/loading branches end on light content, where the
+          footer's default top margin is invisible against the same
+          page background rather than a stray seam. */}
+      <SiteFooter flush={!detail && !initialSlugLoading} />
     </div>
   );
 }

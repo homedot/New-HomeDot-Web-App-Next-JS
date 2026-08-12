@@ -1005,7 +1005,11 @@ export default function ProfessionalsScreen() {
         </>
       )}
 
-      <SiteFooter />
+      {/* flush only when the StoryBand branch above actually rendered —
+          the detail branch ends on light content, where the footer's
+          default top margin is invisible against the same page
+          background rather than a stray seam. */}
+      <SiteFooter flush={!detail} />
     </div>
   );
 }
