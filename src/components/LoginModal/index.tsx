@@ -668,7 +668,6 @@ function BrandPanel() {
       >
         HOME.
       </span>
-
       <div style={{ position: "relative" }}>
         <h2
           style={{

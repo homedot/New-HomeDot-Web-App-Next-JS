@@ -184,7 +184,7 @@ export default function ProfessionalDashboardScreen() {
           .getState()
           .setTokens({ token: pair.token, refreshToken: pair.reToken });
       setActiveRole("user");
-      router.push("/profile");
+      router.push("/");
       return true;
     });
     setSwitchingRole(false);

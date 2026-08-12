@@ -88,7 +88,7 @@ export default function ProfessionalSettingsScreen() {
       const pair = res.data?.data?.[0];
       if (pair) useAuthStore.getState().setTokens({ token: pair.token, refreshToken: pair.reToken });
       setActiveRole("user");
-      router.push("/profile");
+      router.push("/");
       return true;
     });
     setSwitchingRole(false);
