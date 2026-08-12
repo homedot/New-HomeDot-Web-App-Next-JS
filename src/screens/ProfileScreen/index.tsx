@@ -55,6 +55,7 @@ export default function ProfileScreen() {
   const [tab, setTab] = useState<MainTab>("profile");
   const [uploadingAvatar, setUploadingAvatar] = useState(false);
   const [avatarExpanded, setAvatarExpanded] = useState(false);
+  const [removingAvatar, setRemovingAvatar] = useState(false);
   const [editing, setEditing] = useState(false);
   const [name, setName] = useState("");
   const [location, setLocation] = useState<LocationValue | null>(null);
@@ -176,6 +177,16 @@ export default function ProfileScreen() {
     }
   };
 
+  const onRemoveAvatar = async () => {
+    setRemovingAvatar(true);
+    const res = await ProfileService.removeProfileImage();
+    setRemovingAvatar(false);
+    if (res.success) {
+      if (profile) useProfileStore.getState().setProfile({ ...profile, profileImage: undefined });
+      setAvatarExpanded(false);
+    }
+  };
+
   const logout = async () => {
     setLoggingOut(true);
     await ProfileService.logout().catch(() => null);
@@ -201,7 +212,13 @@ export default function ProfileScreen() {
       <SiteNav />
       <LoginModal ref={loginModalRef} hideTrigger />
       {avatarExpanded && profile?.profileImage && (
-        <AvatarLightbox src={profile.profileImage} alt={profile.name || "Profile photo"} onClose={() => setAvatarExpanded(false)} />
+        <AvatarLightbox
+          src={profile.profileImage}
+          alt={profile.name || "Profile photo"}
+          onClose={() => setAvatarExpanded(false)}
+          onRemove={onRemoveAvatar}
+          removing={removingAvatar}
+        />
       )}
       {contactModal && (
         <ContactUpdateModal

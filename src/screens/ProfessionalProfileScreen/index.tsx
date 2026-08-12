@@ -72,6 +72,7 @@ export default function ProfessionalProfileScreen() {
 
   const [uploadingAvatar, setUploadingAvatar] = useState(false);
   const [avatarExpanded, setAvatarExpanded] = useState(false);
+  const [removingAvatar, setRemovingAvatar] = useState(false);
   const avatarInputRef = useRef<HTMLInputElement>(null);
   const [managingSkills, setManagingSkills] = useState(false);
   const [savingSkills, setSavingSkills] = useState(false);
@@ -199,6 +200,22 @@ export default function ProfessionalProfileScreen() {
     }
   };
 
+  // Shared auth endpoint (ProfileService, not ProfessionalDashboardService)
+  // — there's only one photo on the account regardless of which side
+  // removes it, unlike the upload endpoints above which are split per role.
+  const onRemoveAvatar = async () => {
+    setRemovingAvatar(true);
+    const res = await ProfileService.removeProfileImage();
+    setRemovingAvatar(false);
+    if (res.success) {
+      setToast({ text: "Photo removed.", tone: "success" });
+      setAvatarExpanded(false);
+      refreshHome();
+    } else {
+      setToast({ text: res.data?.message || res.message || "Couldn't remove your photo.", tone: "error" });
+    }
+  };
+
   const saveSkills = async (skills: ProfessionalSkillRecord[]) => {
     const loc = currentLocation();
     if (!loc?.address) {
@@ -285,7 +302,13 @@ export default function ProfessionalProfileScreen() {
           ProfessionalDashboardScreen (see its own comment on this). */}
       <LoginModal ref={loginModalRef} hideTrigger />
       {avatarExpanded && home?.profileImage && (
-        <AvatarLightbox src={home.profileImage} alt={home.name || "Profile photo"} onClose={() => setAvatarExpanded(false)} />
+        <AvatarLightbox
+          src={home.profileImage}
+          alt={home.name || "Profile photo"}
+          onClose={() => setAvatarExpanded(false)}
+          onRemove={onRemoveAvatar}
+          removing={removingAvatar}
+        />
       )}
 
       {signedIn && (

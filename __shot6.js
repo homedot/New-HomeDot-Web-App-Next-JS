@@ -16,19 +16,16 @@ const { chromium } = require("playwright");
   await page.screenshot({
     path: "/private/tmp/claude-501/-Users-homedot-Documents-Next-JS-New-HomeDot-Web-App-Next-JS/f4b6136c-aa7d-4d74-b7e2-c57c44329c26/scratchpad/avatar_1_idle.png",
   });
-
   await page.hover("button.avatar-photo-btn");
   await page.waitForTimeout(300);
   await page.screenshot({
     path: "/private/tmp/claude-501/-Users-homedot-Documents-Next-JS-New-HomeDot-Web-App-Next-JS/f4b6136c-aa7d-4d74-b7e2-c57c44329c26/scratchpad/avatar_2_hover.png",
   });
-
   await page.click("button.avatar-photo-btn");
   await page.waitForTimeout(500);
   await page.screenshot({
     path: "/private/tmp/claude-501/-Users-homedot-Documents-Next-JS-New-HomeDot-Web-App-Next-JS/f4b6136c-aa7d-4d74-b7e2-c57c44329c26/scratchpad/avatar_3_expanded.png",
   });
-
   console.log("ERRORS:", JSON.stringify(errors));
   await browser.close();
 })();

@@ -2,7 +2,7 @@
 
 import { useEffect } from "react";
 import { colors } from "@/constants/colors";
-import { radius } from "@/utils/size";
+import { radius, fontSize } from "@/utils/size";
 import Icon from "@/components/Icon";
 
 /** Full-screen viewer for a single profile photo — same overlay/close-button
@@ -10,8 +10,24 @@ import Icon from "@/components/Icon";
  * scale-in image, Escape/click-outside to close), just without the
  * multi-image arrows/thumbnails those galleries need. Used by ProfileScreen
  * (homeowner) and ProfessionalProfileScreen so tapping the avatar actually
- * does something instead of it looking like a static icon. */
-export default function AvatarLightbox({ src, alt = "", onClose }: { src: string; alt?: string; onClose: () => void }) {
+ * does something instead of it looking like a static icon. `onRemove` is
+ * optional — same "Remove photo" affordance as WorkfolioLightbox's delete
+ * button, only shown where the caller actually wants a remove action
+ * (both edit-profile screens; ProfessionalDashboardScreen's read-only rail
+ * avatar omits it). */
+export default function AvatarLightbox({
+  src,
+  alt = "",
+  onClose,
+  onRemove,
+  removing = false,
+}: {
+  src: string;
+  alt?: string;
+  onClose: () => void;
+  onRemove?: () => void;
+  removing?: boolean;
+}) {
   useEffect(() => {
     const onKey = (e: KeyboardEvent) => {
       if (e.key === "Escape") onClose();
@@ -56,24 +72,45 @@ export default function AvatarLightbox({ src, alt = "", onClose }: { src: string
         <Icon name="close" size={22} color={colors.white} />
       </button>
 
-      {/* eslint-disable-next-line @next/next/no-img-element */}
-      <img
-        src={src}
-        alt={alt}
-        onClick={(e) => e.stopPropagation()}
-        className="pd-lightbox-img"
-        style={{
-          maxWidth: "min(90vw, 520px)",
-          maxHeight: "80vh",
-          width: "100%",
-          height: "auto",
-          aspectRatio: "1 / 1",
-          objectFit: "cover",
-          borderRadius: radius.lg,
-          cursor: "default",
-          boxShadow: "0 30px 80px -20px rgba(0,0,0,0.6)",
-        }}
-      />
+      <div onClick={(e) => e.stopPropagation()} style={{ display: "flex", flexDirection: "column", alignItems: "center", gap: 16, maxWidth: "90vw" }}>
+        {/* eslint-disable-next-line @next/next/no-img-element */}
+        <img
+          src={src}
+          alt={alt}
+          className="pd-lightbox-img"
+          style={{
+            maxWidth: "min(90vw, 520px)",
+            maxHeight: "80vh",
+            width: "100%",
+            height: "auto",
+            aspectRatio: "1 / 1",
+            objectFit: "cover",
+            borderRadius: radius.lg,
+            cursor: "default",
+            boxShadow: "0 30px 80px -20px rgba(0,0,0,0.6)",
+          }}
+        />
+
+        {onRemove && (
+          <button
+            onClick={onRemove}
+            disabled={removing}
+            style={{
+              display: "inline-flex",
+              alignItems: "center",
+              gap: 6,
+              fontSize: fontSize.xs,
+              fontWeight: 700,
+              color: "#FCA5A5",
+              background: "rgba(220,38,38,0.16)",
+              padding: "8px 16px",
+              borderRadius: radius.full,
+            }}
+          >
+            <Icon name="trash" size={13} color="#FCA5A5" /> {removing ? "Removing…" : "Remove photo"}
+          </button>
+        )}
+      </div>
     </div>
   );
 }

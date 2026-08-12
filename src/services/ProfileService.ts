@@ -105,6 +105,12 @@ export const ProfileService = {
   verifyPhoneUpdateOtp: (phone: string, otp: string, countryCode: string): Promise<ApiResponse<ContactOtpBody>> =>
     ApiService.put<ContactOtpBody>(API_ENDPOINTS.USER.PHONE_UPDATE, { phone, otp, countryCode }),
 
+  // Requires a stored auth token. PUT with no body. Shared by both the
+  // user and professional profile screens — there's only one photo on the
+  // account regardless of which "side" removes it.
+  removeProfileImage: (): Promise<ApiResponse<UpdateProfileImageBody>> =>
+    ApiService.put<UpdateProfileImageBody>(API_ENDPOINTS.AUTH.PROFILE_IMAGE_REMOVE),
+
   // Requires a stored auth token. Same send/verify pattern as the phone
   // update above, mirroring userEmailUpdateOtpSent/userEmailUpdateOtpVerify.
   sendEmailUpdateOtp: (email: string): Promise<ApiResponse<ContactOtpBody>> =>
