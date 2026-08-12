@@ -148,8 +148,6 @@ export default function PropertyDetail({
   const isSaved = saved.includes(prop.id);
   const isRent = prop.purpose === "Rent";
   const priceVal = parsePrice(prop.price);
-  const psf =
-    prop.area > 0 ? Math.round(priceVal / prop.area).toLocaleString() : null;
   const emi = !isRent && priceVal > 0 ? estimateMonthlyEmi(priceVal) : null;
 
   const kind = getPropertyKind(prop.category);
@@ -312,11 +310,6 @@ export default function PropertyDetail({
             label: "Road width",
             value: prop.roadWidth ? `${prop.roadWidth} ft` : "—",
           },
-          {
-            icon: "sparkle",
-            label: "Price / sqft",
-            value: psf ? `₹${psf}` : "On request",
-          },
         ]
       : kind === "office"
         ? [
@@ -337,11 +330,6 @@ export default function PropertyDetail({
               label: "Floors",
               value: prop.noOfFloors ? String(prop.noOfFloors) : "—",
             },
-            {
-              icon: "sparkle",
-              label: "Price / sqft",
-              value: psf ? `₹${psf}` : "On request",
-            },
           ]
         : [
             {
@@ -358,11 +346,6 @@ export default function PropertyDetail({
               icon: "cube",
               label: "Built-up area",
               value: prop.area ? `${prop.area.toLocaleString()} sqft` : "—",
-            },
-            {
-              icon: "sparkle",
-              label: "Price / sqft",
-              value: psf ? `₹${psf}` : "On request",
             },
           ];
 
@@ -922,7 +905,7 @@ export default function PropertyDetail({
         {/* key facts */}
         <Reveal
           stagger
-          className="grid grid-cols-2 lg:grid-cols-4"
+          className="grid grid-cols-2 lg:grid-cols-3"
           style={{ gap: spacing.md, margin: `${spacing.xl}px 0 4px` }}
         >
           {keyFacts.map((k) => (
