@@ -15,6 +15,7 @@ import ScrollProgress from "@/components/ScrollProgress";
 import Cursor from "@/components/Cursor";
 import Reveal from "@/components/Reveal";
 import LoginModal, { type LoginModalHandle } from "@/components/LoginModal";
+import StoryBand from "@/components/StoryBand";
 import { getAuthToken } from "@/utils/authStorage";
 import {
   loadGoogleMapsScript,
@@ -31,7 +32,7 @@ import ProfessionalsScreenService, {
   type ProfessionalsFilterPayload,
 } from "@/services/ProfessionalsScreenService";
 import ProfessionalDetail from "./ProfessionalDetail";
-import { ratingBuckets, experienceBuckets, budgetBuckets, type ProfessionalRecord } from "./data";
+import { ratingBuckets, experienceBuckets, budgetBuckets, unsplash, type ProfessionalRecord } from "./data";
 
 const wrap: CSSProperties = {
   maxWidth,
@@ -978,6 +979,29 @@ export default function ProfessionalsScreen() {
               </main>
             </div>
           </section>
+
+          <StoryBand
+            image={unsplash("1618221195710-dd6b41faaea6", 1800)}
+            eyebrow="Keep exploring"
+            heading={
+              <>
+                Every professional has a story.
+                <br />
+                Scroll to find yours.
+              </>
+            }
+            description="From first hello to final handover, HomeDot connects you with people who've done the work before — and can prove it."
+            promiseHeading="Vetted experts. Verified work. Zero guesswork."
+            promiseDescription="Every professional is manually checked for credentials and past work before they appear on HomeDot. You see genuine reviews from real projects — never paid placements."
+            checklist={["ID & license verified", "Past work reviewed by our team", "Ratings from real clients only"]}
+            stats={[
+              { value: "180+", label: "Verified professionals ready to hire" },
+              { value: "98%", label: "Pass ID & license checks" },
+              { value: "24 hrs", label: "Average first response time" },
+            ]}
+            ctaLabel="Browse the marketplace"
+            onCta={() => router.push("/marketplace")}
+          />
         </>
       )}
 

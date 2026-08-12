@@ -22,6 +22,7 @@ import ScrollProgress from "@/components/ScrollProgress";
 import Cursor from "@/components/Cursor";
 import Reveal from "@/components/Reveal";
 import LoginModal, { type LoginModalHandle } from "@/components/LoginModal";
+import StoryBand from "@/components/StoryBand";
 import PropertyDetail from "./PropertyDetail";
 import MarketplaceScreenService, {
   toMarketplaceProperty,
@@ -41,6 +42,7 @@ import {
   priceOptions,
   budgetRanges,
   parsePrice,
+  unsplash,
   type MarketplaceProperty,
 } from "./data";
 
@@ -1191,6 +1193,29 @@ export default function MarketplaceScreen() {
               </main>
             </div>
           </section>
+
+          <StoryBand
+            image={unsplash("1512917774080-9991f1c4c750", 1800)}
+            eyebrow="Keep exploring"
+            heading={
+              <>
+                Every property has a story.
+                <br />
+                Scroll to find yours.
+              </>
+            }
+            description="From the first photo to move-in day, HomeDot helps you find a place that truly feels like home."
+            promiseHeading="Verified listings. Real photos. Zero guesswork."
+            promiseDescription="Every listing is checked against ownership documents before it goes live. What you see in the photos is exactly what you'll find at the door."
+            checklist={["Ownership documents verified", "Photos matched to the property", "Genuine reviews from real visits"]}
+            stats={[
+              { value: "1,200+", label: "Verified listings across Kerala" },
+              { value: "100%", label: "Listings checked before going live" },
+              { value: "24 hrs", label: "Average time to first response" },
+            ]}
+            ctaLabel="Find a professional next"
+            onCta={() => router.push("/professionals")}
+          />
         </>
       )}
 
