@@ -1985,3 +1985,22 @@ body.has-cursor * {
     transform: none;
   }
 }
+
+/* Profile avatar (ProfileScreen + ProfessionalProfileScreen): a dark
+   scrim + search-icon hint fades in on hover/focus so the photo reads as
+   clickable, expanding via AvatarLightbox on click. */
+.avatar-photo-hint {
+  opacity: 0;
+  transition: opacity 0.15s ease;
+}
+
+.avatar-photo-btn:hover .avatar-photo-hint,
+.avatar-photo-btn:focus-visible .avatar-photo-hint {
+  opacity: 1;
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .avatar-photo-hint {
+    transition: none;
+  }
+}

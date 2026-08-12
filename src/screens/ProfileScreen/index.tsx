@@ -15,6 +15,7 @@ import ScrollProgress from "@/components/ScrollProgress";
 import Cursor from "@/components/Cursor";
 import Reveal from "@/components/Reveal";
 import LoginModal, { type LoginModalHandle } from "@/components/LoginModal";
+import AvatarLightbox from "@/components/AvatarLightbox";
 import ContactUpdateModal from "./ContactUpdateModal";
 import BecomeProfessionalModal from "./BecomeProfessionalModal";
 import InviteFriendPanel from "./InviteFriendPanel";
@@ -53,6 +54,7 @@ export default function ProfileScreen() {
 
   const [tab, setTab] = useState<MainTab>("profile");
   const [uploadingAvatar, setUploadingAvatar] = useState(false);
+  const [avatarExpanded, setAvatarExpanded] = useState(false);
   const [editing, setEditing] = useState(false);
   const [name, setName] = useState("");
   const [location, setLocation] = useState<LocationValue | null>(null);
@@ -198,6 +200,9 @@ export default function ProfileScreen() {
       <Cursor />
       <SiteNav />
       <LoginModal ref={loginModalRef} hideTrigger />
+      {avatarExpanded && profile?.profileImage && (
+        <AvatarLightbox src={profile.profileImage} alt={profile.name || "Profile photo"} onClose={() => setAvatarExpanded(false)} />
+      )}
       {contactModal && (
         <ContactUpdateModal
           mode={contactModal}
@@ -342,7 +347,12 @@ export default function ProfileScreen() {
 
               <div style={{ position: "relative", display: "flex", flexDirection: "column", alignItems: "center", textAlign: "center", gap: 4 }}>
                 <div style={{ position: "relative", marginBottom: 10 }}>
-                  <span
+                  <button
+                    type="button"
+                    className="avatar-photo-btn"
+                    aria-label={profile?.profileImage ? "View profile photo" : "Profile photo"}
+                    onClick={() => profile?.profileImage && setAvatarExpanded(true)}
+                    disabled={!profile?.profileImage}
                     style={{
                       display: "block",
                       width: 96,
@@ -351,17 +361,28 @@ export default function ProfileScreen() {
                       overflow: "hidden",
                       border: "3px solid rgba(255,255,255,0.9)",
                       background: "rgba(255,255,255,0.14)",
+                      padding: 0,
+                      position: "relative",
+                      cursor: profile?.profileImage ? "zoom-in" : "default",
                     }}
                   >
                     {profile?.profileImage ? (
-                      // eslint-disable-next-line @next/next/no-img-element
-                      <img src={profile.profileImage} alt="" style={{ width: "100%", height: "100%", objectFit: "cover" }} />
+                      <>
+                        {/* eslint-disable-next-line @next/next/no-img-element */}
+                        <img src={profile.profileImage} alt="" style={{ width: "100%", height: "100%", objectFit: "cover", display: "block" }} />
+                        <span
+                          className="avatar-photo-hint"
+                          style={{ position: "absolute", inset: 0, background: "rgba(16,28,48,0.35)", display: "grid", placeItems: "center" }}
+                        >
+                          <Icon name="search" size={18} color={colors.white} />
+                        </span>
+                      </>
                     ) : (
                       <span style={{ width: "100%", height: "100%", display: "grid", placeItems: "center", color: colors.white }}>
                         <Icon name="user" size={40} />
                       </span>
                     )}
-                  </span>
+                  </button>
                   <span
                     style={{
                       position: "absolute",

@@ -14,6 +14,7 @@ import ScrollProgress from "@/components/ScrollProgress";
 import Cursor from "@/components/Cursor";
 import Reveal from "@/components/Reveal";
 import LoginModal, { type LoginModalHandle } from "@/components/LoginModal";
+import AvatarLightbox from "@/components/AvatarLightbox";
 import EmptyState from "@/components/EmptyState";
 import SkeletonGrid from "@/components/SkeletonGrid";
 import LoadMoreButton from "@/components/LoadMoreButton";
@@ -105,6 +106,7 @@ export default function ProfessionalDashboardScreen() {
   const [switchingRole, setSwitchingRole] = useState(false);
   const [roleError, setRoleError] = useState<string | null>(null);
   const [loggingOut, setLoggingOut] = useState(false);
+  const [avatarExpanded, setAvatarExpanded] = useState(false);
 
   const [tab, setTab] = useState<Tab>("job");
 
@@ -340,6 +342,17 @@ export default function ProfessionalDashboardScreen() {
           Brand/switch-role/logout live inside the sidebar and profile rail
           below instead of a top bar — see reference screen-pro-dashboard.jsx. */}
       <LoginModal ref={loginModalRef} hideTrigger />
+      {/* Rendered at the screen root, not inside ProfileRailCard's Reveal —
+          the dashboard's "single unified container" Reveal (below) sets both
+          a `transform` (via .reveal, even translateY(0) once in view) and
+          `overflow: hidden`. A transformed ancestor becomes the containing
+          block for position:fixed descendants, and overflow:hidden then
+          clips this overlay to that container's box instead of the full
+          viewport — see AvatarLightbox usage in ProfileScreen for the
+          same fix applied there. */}
+      {avatarExpanded && home?.profileImage && (
+        <AvatarLightbox src={home.profileImage} alt={home.name || "Profile photo"} onClose={() => setAvatarExpanded(false)} />
+      )}
 
       {signedIn && home && (
         <ProDashboardHero maxWidth={DASHBOARD_MAX_WIDTH}>
@@ -508,6 +521,7 @@ export default function ProfessionalDashboardScreen() {
                       onSwitch={switchToUser}
                       switching={switchingRole}
                       roleError={roleError}
+                      onAvatarClick={() => setAvatarExpanded(true)}
                     />
                     <ProDashboardSidebar
                       bare
@@ -942,12 +956,14 @@ function ProfileRailCard({
   onSwitch,
   switching,
   roleError,
+  onAvatarClick,
 }: {
   home: ProfessionalHomeRecord;
   profile: { location?: string; email?: string } | null;
   onSwitch: () => void;
   switching: boolean;
   roleError: string | null;
+  onAvatarClick: () => void;
 }) {
   const info = home.professionalInfo?.[0];
   const title = [info?.professionalCategoryName, info?.subCategoryName]
@@ -966,7 +982,12 @@ function ProfileRailCard({
       }}
     >
       <span style={{ position: "relative", flexShrink: 0 }}>
-        <span
+        <button
+          type="button"
+          className="avatar-photo-btn"
+          aria-label={home.profileImage ? "View profile photo" : "Profile photo"}
+          onClick={() => home.profileImage && onAvatarClick()}
+          disabled={!home.profileImage}
           style={{
             width: 76,
             height: 76,
@@ -977,19 +998,30 @@ function ProfileRailCard({
             background: colors.primarySoft,
             display: "grid",
             placeItems: "center",
+            padding: 0,
+            position: "relative",
+            cursor: home.profileImage ? "zoom-in" : "default",
           }}
         >
           {home.profileImage ? (
-            // eslint-disable-next-line @next/next/no-img-element
-            <img
-              src={home.profileImage}
-              alt=""
-              style={{ width: "100%", height: "100%", objectFit: "cover" }}
-            />
+            <>
+              {/* eslint-disable-next-line @next/next/no-img-element */}
+              <img
+                src={home.profileImage}
+                alt=""
+                style={{ width: "100%", height: "100%", objectFit: "cover", display: "block" }}
+              />
+              <span
+                className="avatar-photo-hint"
+                style={{ position: "absolute", inset: 0, background: "rgba(16,28,48,0.35)", display: "grid", placeItems: "center" }}
+              >
+                <Icon name="search" size={16} color={colors.white} />
+              </span>
+            </>
           ) : (
             <Icon name="user" size={30} color={colors.primary} />
           )}
-        </span>
+        </button>
         <span
           className="pdash-pulse-dot"
           style={{

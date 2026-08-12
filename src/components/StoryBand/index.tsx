@@ -7,11 +7,6 @@ import Icon, { type IconName } from "@/components/Icon";
 import Button from "@/components/Button";
 import Reveal from "@/components/Reveal";
 
-/** Full-bleed cinematic closing band — same visual system as LandingScreen's
- * StoryShowcase (dark photo backdrop + scrim, glow-pulse blob, badge pill,
- * display headline, trust checklist + stat panel) parametrized so
- * MarketplaceScreen and ProfessionalsScreen can each close on their own
- * "keep exploring" moment instead of dropping straight into the footer. */
 export default function StoryBand({
   image,
   eyebrow,
