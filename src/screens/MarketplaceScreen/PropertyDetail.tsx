@@ -1526,9 +1526,7 @@ export default function PropertyDetail({
                         });
                         const data = await res.json();
                         if (!res.ok || !data.ok) {
-                          throw new Error(
-                            data.error || "Something went wrong",
-                          );
+                          throw new Error(data.error || "Something went wrong");
                         }
                         setSent(true);
                       } catch (err) {
@@ -1587,9 +1585,7 @@ export default function PropertyDetail({
                       }}
                     />
                     {submitError && (
-                      <span
-                        style={{ fontSize: fontSize.xs, color: "#E5484D" }}
-                      >
+                      <span style={{ fontSize: fontSize.xs, color: "#E5484D" }}>
                         {submitError}
                       </span>
                     )}
@@ -1611,10 +1607,43 @@ export default function PropertyDetail({
                   size="md"
                   full
                   icon={<Icon name="whatsapp" size={16} color="#25D366" />}
-                  onClick={() => {
-                    const message = `Hi, I'm interested in "${prop.title}" - ${
-                      typeof window !== "undefined" ? window.location.href : ""
+                  onClick={async () => {
+                    const pageUrl =
+                      typeof window !== "undefined" ? window.location.href : "";
+                    const priceLine = `${prop.price}${
+                      prop.priceUnit ? `/${prop.priceUnit}` : ""
                     }`;
+                    const message = [
+                      "Hi, I'm interested in this property on HomeDot:",
+                      "",
+                      `*${prop.title}*`,
+                      `📍 ${prop.location}, ${prop.city}`,
+                      `💰 ${priceLine}`,
+                      "",
+                      pageUrl,
+                    ].join("\n");
+                    const imageUrl = prop.gallery?.[0];
+
+                    // On mobile, share the image file itself through the OS
+                    // share sheet (wa.me can't attach media, only prefill text).
+                    if (imageUrl && navigator.share && navigator.canShare) {
+                      try {
+                        const res = await fetch(imageUrl);
+                        const blob = await res.blob();
+                        const file = new File([blob], `${prop.id}.jpg`, {
+                          type: blob.type || "image/jpeg",
+                        });
+                        if (navigator.canShare({ files: [file] })) {
+                          await navigator.share({
+                            files: [file],
+                            text: message,
+                          });
+                          return;
+                        }
+                      } catch {
+                        // fall through to the text-only wa.me link below
+                      }
+                    }
                     window.open(
                       `https://wa.me/917012899166?text=${encodeURIComponent(message)}`,
                       "_blank",

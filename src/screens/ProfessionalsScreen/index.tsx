@@ -669,9 +669,6 @@ export default function ProfessionalsScreen() {
                   </div>
                 )}
               </div>
-              <Button variant="primary" size="md" icon={<Icon name="search" size={17} />} onClick={applyTypedLocation}>
-                Search
-              </Button>
             </div>
 
             {/* category pills */}
