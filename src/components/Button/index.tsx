@@ -28,6 +28,7 @@ export default function Button({
   onClick,
   type = "button",
   className,
+  disabled,
 }: {
   children: ReactNode;
   variant?: Variant;
@@ -37,12 +38,14 @@ export default function Button({
   onClick?: () => void;
   type?: "button" | "submit";
   className?: string;
+  disabled?: boolean;
 }) {
   return (
     <button
       type={type}
       onClick={onClick}
       className={className}
+      disabled={disabled}
       style={{
         display: "inline-flex",
         alignItems: "center",
@@ -52,6 +55,8 @@ export default function Button({
         borderRadius: radius.full,
         whiteSpace: "nowrap",
         width: full ? "100%" : undefined,
+        opacity: disabled ? 0.6 : 1,
+        cursor: disabled ? "not-allowed" : "pointer",
         transition: "transform .12s ease, filter .15s ease",
         ...VARIANT_STYLE[variant],
         ...SIZE_STYLE[size],

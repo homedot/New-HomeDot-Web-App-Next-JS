@@ -108,6 +108,8 @@ export default function PropertyDetail({
 }) {
   const [lightbox, setLightbox] = useState<number | null>(null);
   const [sent, setSent] = useState(false);
+  const [submitting, setSubmitting] = useState(false);
+  const [submitError, setSubmitError] = useState<string | null>(null);
   const [mobileIndex, setMobileIndex] = useState(0);
   const [copied, setCopied] = useState(false);
   const [activeSection, setActiveSection] = useState("overview");
@@ -123,6 +125,8 @@ export default function PropertyDetail({
     setPrevPropId(prop.id);
     setLightbox(null);
     setSent(false);
+    setSubmitting(false);
+    setSubmitError(null);
     setMobileIndex(0);
     setCopied(false);
     setActiveSection("overview");
@@ -1490,9 +1494,52 @@ export default function PropertyDetail({
                   </div>
                 ) : (
                   <form
-                    onSubmit={(e) => {
+                    onSubmit={async (e) => {
                       e.preventDefault();
-                      setSent(true);
+                      const form = e.currentTarget;
+                      const formData = new FormData(form);
+                      const name = String(formData.get("name") ?? "").trim();
+                      const phone = String(formData.get("phone") ?? "").trim();
+                      const message = String(
+                        formData.get("message") ?? "",
+                      ).trim();
+
+                      if (!name || !phone) return;
+
+                      setSubmitting(true);
+                      setSubmitError(null);
+                      try {
+                        const res = await fetch("/api/schedule-visit", {
+                          method: "POST",
+                          headers: { "Content-Type": "application/json" },
+                          body: JSON.stringify({
+                            name,
+                            phone,
+                            message,
+                            propertyId: prop.id,
+                            propertyTitle: prop.title,
+                            pageUrl:
+                              typeof window !== "undefined"
+                                ? window.location.href
+                                : undefined,
+                          }),
+                        });
+                        const data = await res.json();
+                        if (!res.ok || !data.ok) {
+                          throw new Error(
+                            data.error || "Something went wrong",
+                          );
+                        }
+                        setSent(true);
+                      } catch (err) {
+                        setSubmitError(
+                          err instanceof Error
+                            ? err.message
+                            : "Could not send your request. Please try again.",
+                        );
+                      } finally {
+                        setSubmitting(false);
+                      }
                     }}
                     style={{
                       display: "flex",
@@ -1502,6 +1549,7 @@ export default function PropertyDetail({
                   >
                     <input
                       ref={nameInputRef}
+                      name="name"
                       required
                       placeholder="Your name"
                       style={{
@@ -1513,6 +1561,7 @@ export default function PropertyDetail({
                       }}
                     />
                     <input
+                      name="phone"
                       required
                       placeholder="Phone number"
                       style={{
@@ -1524,6 +1573,7 @@ export default function PropertyDetail({
                       }}
                     />
                     <textarea
+                      name="message"
                       rows={2}
                       defaultValue={`I'm interested in "${prop.title.slice(0, 34)}…"`}
                       style={{
@@ -1536,40 +1586,44 @@ export default function PropertyDetail({
                         fontFamily: "inherit",
                       }}
                     />
+                    {submitError && (
+                      <span
+                        style={{ fontSize: fontSize.xs, color: "#E5484D" }}
+                      >
+                        {submitError}
+                      </span>
+                    )}
                     <Button
                       variant="primary"
                       size="lg"
                       full
                       icon={<Icon name="check" size={18} />}
                       type="submit"
+                      disabled={submitting}
                     >
-                      Schedule a visit
+                      {submitting ? "Sending…" : "Schedule a visit"}
                     </Button>
                   </form>
                 )}
 
-                <div style={{ display: "flex", gap: spacing.sm }}>
-                  <span style={{ flex: 1 }}>
-                    <Button
-                      variant="outline"
-                      size="md"
-                      full
-                      icon={<Icon name="phone" size={16} />}
-                    >
-                      Call
-                    </Button>
-                  </span>
-                  <span style={{ flex: 1 }}>
-                    <Button
-                      variant="outline"
-                      size="md"
-                      full
-                      icon={<Icon name="chat" size={16} />}
-                    >
-                      Chat
-                    </Button>
-                  </span>
-                </div>
+                <Button
+                  variant="outline"
+                  size="md"
+                  full
+                  icon={<Icon name="whatsapp" size={16} color="#25D366" />}
+                  onClick={() => {
+                    const message = `Hi, I'm interested in "${prop.title}" - ${
+                      typeof window !== "undefined" ? window.location.href : ""
+                    }`;
+                    window.open(
+                      `https://wa.me/917012899166?text=${encodeURIComponent(message)}`,
+                      "_blank",
+                      "noopener,noreferrer",
+                    );
+                  }}
+                >
+                  WhatsApp
+                </Button>
                 <p
                   style={{
                     display: "flex",

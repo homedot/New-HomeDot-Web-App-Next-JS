@@ -1,6 +1,7 @@
 import type { Property } from "@/components/PropertyCard";
 
-export const unsplash = (id: string, w = 900) => `https://images.unsplash.com/photo-${id}?auto=format&fit=crop&w=${w}&q=80`;
+export const unsplash = (id: string, w = 900) =>
+  `https://images.unsplash.com/photo-${id}?auto=format&fit=crop&w=${w}&q=80`;
 
 export type MarketplaceProperty = Property & {
   purpose: "Buy" | "Rent";
@@ -29,7 +30,8 @@ export const properties: MarketplaceProperty[] = [
     status: "For Sale",
     purpose: "Buy",
     category: "Flat & Apartment",
-    title: "3 BHK Apartments at Awakened Living — Modern Design with a Peaceful Lifestyle",
+    title:
+      "3 BHK Apartments at Awakened Living — Modern Design with a Peaceful Lifestyle",
     location: "Vallathol Jn, Thrikkakara P.O",
     city: "Kochi",
     beds: 3,
@@ -45,7 +47,14 @@ export const properties: MarketplaceProperty[] = [
       unsplash("1560448204-e02f11c3d0e2", 1200),
     ],
     desc: "Thoughtfully designed 3 BHK residences with abundant natural light, premium fittings and a calm, green setting — minutes from the metro and city conveniences.",
-    amenities: ["Covered Parking", "24x7 Security", "Power Backup", "Clubhouse", "Landscaped Garden", "Gym"],
+    amenities: [
+      "Covered Parking",
+      "24x7 Security",
+      "Power Backup",
+      "Clubhouse",
+      "Landscaped Garden",
+      "Gym",
+    ],
   },
   {
     id: "h2",
@@ -68,7 +77,13 @@ export const properties: MarketplaceProperty[] = [
       unsplash("1556911220-bff31c812dba", 1200),
     ],
     desc: "Spacious 4 BHK homes in a secure gated community, just minutes from CUSAT Metro Station, with excellent connectivity and resort-style amenities.",
-    amenities: ["Metro Connectivity", "Gated Community", "Swimming Pool", "Covered Parking", "Gym"],
+    amenities: [
+      "Metro Connectivity",
+      "Gated Community",
+      "Swimming Pool",
+      "Covered Parking",
+      "Gym",
+    ],
   },
   {
     id: "h3",
@@ -232,7 +247,13 @@ export const properties: MarketplaceProperty[] = [
 export const purposes: ("Buy" | "Rent")[] = ["Buy", "Rent"];
 export const bedOptions = ["1", "2", "3", "4", "5+"];
 export const bathOptions = ["1", "2", "3", "4"];
-export const priceOptions = ["Under ₹50 L", "₹50 L – ₹1 Cr", "₹1 Cr – ₹2 Cr", "₹2 Cr – ₹5 Cr", "₹5 Cr+"];
+export const priceOptions = [
+  "Under ₹50 L",
+  "₹50 L – ₹1 Cr",
+  "₹1 Cr – ₹2 Cr",
+  "₹2 Cr – ₹5 Cr",
+  "₹5 Cr+",
+];
 export const amenityOptions = [
   "Covered Parking",
   "24x7 Security",
@@ -262,8 +283,8 @@ export const budgetRanges: Record<string, [number, number]> = {
 };
 
 export const agent = {
-  name: "Arjun Pillai",
-  role: "HomeDot Verified Agent",
+  name: "Mahesh Mohanan",
+  role: "HomeDot Verified Consultant",
   rating: 4.9,
   deals: 64,
   avatar: unsplash("1560250097-0b93528c311a", 200),
