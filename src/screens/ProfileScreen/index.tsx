@@ -7,7 +7,9 @@ import { spacing, radius, fontSize, shadow, maxWidth } from "@/utils/size";
 import Icon, { type IconName } from "@/components/Icon";
 import Button from "@/components/Button";
 import StoreButtons from "@/components/StoreButtons";
-import LocationMapPicker, { type LocationValue } from "@/components/LocationMapPicker";
+import LocationMapPicker, {
+  type LocationValue,
+} from "@/components/LocationMapPicker";
 import SiteNav from "@/components/SiteNav";
 import SiteFooter from "@/components/SiteFooter";
 import AmbientBackground from "@/components/AmbientBackground";
@@ -15,6 +17,7 @@ import ScrollProgress from "@/components/ScrollProgress";
 import Cursor from "@/components/Cursor";
 import Reveal from "@/components/Reveal";
 import LoginModal, { type LoginModalHandle } from "@/components/LoginModal";
+import AvatarLightbox from "@/components/AvatarLightbox";
 import ContactUpdateModal from "./ContactUpdateModal";
 import BecomeProfessionalModal from "./BecomeProfessionalModal";
 import InviteFriendPanel from "./InviteFriendPanel";
@@ -24,10 +27,19 @@ import SwitchProfessionalService from "@/services/SwitchProfessionalService";
 import { useProfileStore } from "@/store/useProfileStore";
 import { useAuthStore } from "@/store/useAuthStore";
 import { useRoleSwitchStore } from "@/store/useRoleSwitchStore";
-import { getAuthToken, getActiveRole, setActiveRole, type AccountRole } from "@/utils/authStorage";
+import {
+  getAuthToken,
+  getActiveRole,
+  setActiveRole,
+  type AccountRole,
+} from "@/utils/authStorage";
 import { loadGoogleMapsScript } from "@/utils/loadGoogleMapsScript";
 
-const wrap: CSSProperties = { maxWidth, margin: "0 auto", padding: `0 ${spacing.xl}px` };
+const wrap: CSSProperties = {
+  maxWidth,
+  margin: "0 auto",
+  padding: `0 ${spacing.xl}px`,
+};
 
 type MainTab = "profile" | "invite" | "help";
 
@@ -53,13 +65,21 @@ export default function ProfileScreen() {
 
   const [tab, setTab] = useState<MainTab>("profile");
   const [uploadingAvatar, setUploadingAvatar] = useState(false);
+  const [avatarExpanded, setAvatarExpanded] = useState(false);
+  const [removingAvatar, setRemovingAvatar] = useState(false);
   const [editing, setEditing] = useState(false);
   const [name, setName] = useState("");
   const [location, setLocation] = useState<LocationValue | null>(null);
   const [saving, setSaving] = useState(false);
   const [saveError, setSaveError] = useState<string | null>(null);
+  const [toast, setToast] = useState<{
+    text: string;
+    tone: "success" | "error";
+  } | null>(null);
   const [loggingOut, setLoggingOut] = useState(false);
-  const [contactModal, setContactModal] = useState<"phone" | "email" | null>(null);
+  const [contactModal, setContactModal] = useState<"phone" | "email" | null>(
+    null,
+  );
   const [showBecomeProfessional, setShowBecomeProfessional] = useState(false);
   const [activeRole, setActiveRoleState] = useState<AccountRole>("user");
   const [switchingRole, setSwitchingRole] = useState(false);
@@ -76,6 +96,12 @@ export default function ProfileScreen() {
     }
   }, []);
 
+  useEffect(() => {
+    if (!toast) return;
+    const t = setTimeout(() => setToast(null), 3000);
+    return () => clearTimeout(t);
+  }, [toast]);
+
   const hasProfessionalRole = (profile?.userType?.length ?? 0) >= 2;
 
   // Toggles the active role for an account that already has both — mirrors
@@ -84,15 +110,23 @@ export default function ProfileScreen() {
   const switchRole = async () => {
     setSwitchingRole(true);
     setRoleError(null);
-    const next: AccountRole = activeRole === "professional" ? "user" : "professional";
+    const next: AccountRole =
+      activeRole === "professional" ? "user" : "professional";
     await useRoleSwitchStore.getState().runSwitch(next, async () => {
       const res = await SwitchProfessionalService.switchRole();
       if (!res.success || res.data?.status === false) {
-        setRoleError(res.data?.message || res.message || "Couldn't switch modes. Please try again.");
+        setRoleError(
+          res.data?.message ||
+            res.message ||
+            "Couldn't switch modes. Please try again.",
+        );
         return false;
       }
       const pair = res.data?.data?.[0];
-      if (pair) useAuthStore.getState().setTokens({ token: pair.token, refreshToken: pair.reToken });
+      if (pair)
+        useAuthStore
+          .getState()
+          .setTokens({ token: pair.token, refreshToken: pair.reToken });
       setActiveRole(next);
       setActiveRoleState(next);
       if (next === "professional") router.push("/professional/dashboard");
@@ -108,7 +142,10 @@ export default function ProfileScreen() {
     setName(profile?.name || "");
     setLocation(
       profile?.location
-        ? { address: profile.location, ...resolveLatLng(profile.locationKey?.coordinates ?? [0, 0]) }
+        ? {
+            address: profile.location,
+            ...resolveLatLng(profile.locationKey?.coordinates ?? [0, 0]),
+          }
         : null,
     );
   };
@@ -145,7 +182,13 @@ export default function ProfileScreen() {
     });
     setSaving(false);
     if (!res.success) {
-      setSaveError(res.message || "Couldn't save your changes. Please try again.");
+      // Show both: the inline message (stays up while the form is still
+      // open, in case the toast's 3s auto-dismiss is missed) and a toast
+      // (impossible to miss even if the user isn't looking at the form).
+      const message =
+        res.message || "Couldn't save your changes. Please try again.";
+      setSaveError(message);
+      setToast({ text: message, tone: "error" });
       return;
     }
     if (profile) {
@@ -156,6 +199,7 @@ export default function ProfileScreen() {
       });
     }
     setEditing(false);
+    setToast({ text: "Profile updated successfully.", tone: "success" });
   };
 
   const onAvatarSelected = async (e: React.ChangeEvent<HTMLInputElement>) => {
@@ -166,11 +210,42 @@ export default function ProfileScreen() {
     const res = await ProfileService.updateProfileImage(file);
     setUploadingAvatar(false);
     if (res.success && res.data?.data?.profileImage && profile) {
-      useProfileStore.getState().setProfile({ ...profile, profileImage: res.data.data.profileImage });
+      useProfileStore
+        .getState()
+        .setProfile({ ...profile, profileImage: res.data.data.profileImage });
     } else if (res.success) {
       // Response didn't echo the new URL back — re-fetch to pick it up.
       useProfileStore.getState().clear();
       useProfileStore.getState().fetch();
+    } else {
+      setToast({
+        text: res.message || "Couldn't update your photo. Please try again.",
+        tone: "error",
+      });
+      return;
+    }
+    setToast({
+      text: "Profile picture updated successfully.",
+      tone: "success",
+    });
+  };
+
+  const onRemoveAvatar = async () => {
+    setRemovingAvatar(true);
+    const res = await ProfileService.removeProfileImage();
+    setRemovingAvatar(false);
+    if (res.success) {
+      if (profile)
+        useProfileStore
+          .getState()
+          .setProfile({ ...profile, profileImage: undefined });
+      setAvatarExpanded(false);
+      setToast({ text: "Profile picture removed.", tone: "success" });
+    } else {
+      setToast({
+        text: res.message || "Couldn't remove your photo. Please try again.",
+        tone: "error",
+      });
     }
   };
 
@@ -186,18 +261,37 @@ export default function ProfileScreen() {
   // [0, 0] means the location was never actually geocoded (a placeholder,
   // not a real spot on Earth) — showing a map centered there would just be
   // a confusing patch of Atlantic ocean, so skip the map section entirely.
-  const mapLatLng = profile?.locationKey?.coordinates ? resolveLatLng(profile.locationKey.coordinates) : null;
-  const hasRealMapLocation = !!mapLatLng && (mapLatLng.lat !== 0 || mapLatLng.lng !== 0);
+  const mapLatLng = profile?.locationKey?.coordinates
+    ? resolveLatLng(profile.locationKey.coordinates)
+    : null;
+  const hasRealMapLocation =
+    !!mapLatLng && (mapLatLng.lat !== 0 || mapLatLng.lng !== 0);
 
   const showLoading = signedIn && !loaded;
 
   return (
-    <div style={{ background: colors.bg, color: colors.ink, position: "relative", zIndex: 0 }}>
+    <div
+      style={{
+        background: colors.bg,
+        color: colors.ink,
+        position: "relative",
+        zIndex: 0,
+      }}
+    >
       <AmbientBackground />
       <ScrollProgress />
       <Cursor />
       <SiteNav />
       <LoginModal ref={loginModalRef} hideTrigger />
+      {avatarExpanded && profile?.profileImage && (
+        <AvatarLightbox
+          src={profile.profileImage}
+          alt={profile.name || "Profile photo"}
+          onClose={() => setAvatarExpanded(false)}
+          onRemove={onRemoveAvatar}
+          removing={removingAvatar}
+        />
+      )}
       {contactModal && (
         <ContactUpdateModal
           mode={contactModal}
@@ -205,9 +299,13 @@ export default function ProfileScreen() {
           onClose={() => setContactModal(null)}
           onSuccess={(value, cc) => {
             if (profile) {
-              useProfileStore.getState().setProfile(
-                contactModal === "phone" ? { ...profile, mobile: value, countryCode: cc } : { ...profile, email: value },
-              );
+              useProfileStore
+                .getState()
+                .setProfile(
+                  contactModal === "phone"
+                    ? { ...profile, mobile: value, countryCode: cc }
+                    : { ...profile, email: value },
+                );
             }
             setContactModal(null);
           }}
@@ -218,18 +316,26 @@ export default function ProfileScreen() {
           onClose={() => setShowBecomeProfessional(false)}
           onSuccess={(tokens) => {
             setShowBecomeProfessional(false);
-            useRoleSwitchStore.getState().runSwitch("professional", async () => {
-              if (tokens) useAuthStore.getState().setTokens({ token: tokens.token, refreshToken: tokens.reToken });
-              setActiveRole("professional");
-              useProfileStore.getState().clear();
-              router.push("/professional/dashboard");
-              return true;
-            });
+            useRoleSwitchStore
+              .getState()
+              .runSwitch("professional", async () => {
+                if (tokens)
+                  useAuthStore.getState().setTokens({
+                    token: tokens.token,
+                    refreshToken: tokens.reToken,
+                  });
+                setActiveRole("professional");
+                useProfileStore.getState().clear();
+                router.push("/professional/dashboard");
+                return true;
+              });
           }}
         />
       )}
 
-      <section style={{ ...wrap, paddingTop: spacing.xl, paddingBottom: spacing.huge }}>
+      <section
+        style={{ ...wrap, paddingTop: spacing.xl, paddingBottom: spacing.huge }}
+      >
         {signedIn === false && (
           <div
             style={{
@@ -254,11 +360,26 @@ export default function ProfileScreen() {
             >
               <Icon name="user" size={28} />
             </span>
-            <h3 style={{ fontSize: fontSize.lg, marginBottom: 8 }}>Sign in to see your profile</h3>
-            <p style={{ color: colors.muted, marginBottom: spacing.lg, maxWidth: 420, marginInline: "auto" }}>
-              Your name, contact details and saved location live here once you&apos;re signed in.
+            <h3 style={{ fontSize: fontSize.lg, marginBottom: 8 }}>
+              Sign in to see your profile
+            </h3>
+            <p
+              style={{
+                color: colors.muted,
+                marginBottom: spacing.lg,
+                maxWidth: 420,
+                marginInline: "auto",
+              }}
+            >
+              Your name, contact details and saved location live here once
+              you&apos;re signed in.
             </p>
-            <Button variant="primary" size="lg" icon={<Icon name="check" size={18} />} onClick={() => loginModalRef.current?.open()}>
+            <Button
+              variant="primary"
+              size="lg"
+              icon={<Icon name="check" size={18} />}
+              onClick={() => loginModalRef.current?.open()}
+            >
               Log in
             </Button>
           </div>
@@ -289,12 +410,17 @@ export default function ProfileScreen() {
             >
               <Icon name="user" size={26} />
             </span>
-            <p style={{ color: colors.muted, fontSize: fontSize.base }}>Loading your profile…</p>
+            <p style={{ color: colors.muted, fontSize: fontSize.base }}>
+              Loading your profile…
+            </p>
           </div>
         )}
 
         {signedIn && loaded && (
-          <div className="grid grid-cols-1 xl:grid-cols-[264px_1fr_280px]" style={{ gap: spacing.xl, alignItems: "start" }}>
+          <div
+            className="grid grid-cols-1 xl:grid-cols-[264px_1fr_280px]"
+            style={{ gap: spacing.xl, alignItems: "start" }}
+          >
             {/* sidebar */}
             <Reveal
               className="relative xl:sticky xl:top-24"
@@ -340,9 +466,29 @@ export default function ProfileScreen() {
                 <Icon name="arrowLeft" size={17} />
               </button>
 
-              <div style={{ position: "relative", display: "flex", flexDirection: "column", alignItems: "center", textAlign: "center", gap: 4 }}>
+              <div
+                style={{
+                  position: "relative",
+                  display: "flex",
+                  flexDirection: "column",
+                  alignItems: "center",
+                  textAlign: "center",
+                  gap: 4,
+                }}
+              >
                 <div style={{ position: "relative", marginBottom: 10 }}>
-                  <span
+                  <button
+                    type="button"
+                    className="avatar-photo-btn"
+                    aria-label={
+                      profile?.profileImage
+                        ? "View profile photo"
+                        : "Profile photo"
+                    }
+                    onClick={() =>
+                      profile?.profileImage && setAvatarExpanded(true)
+                    }
+                    disabled={!profile?.profileImage}
                     style={{
                       display: "block",
                       width: 96,
@@ -351,17 +497,51 @@ export default function ProfileScreen() {
                       overflow: "hidden",
                       border: "3px solid rgba(255,255,255,0.9)",
                       background: "rgba(255,255,255,0.14)",
+                      padding: 0,
+                      position: "relative",
+                      cursor: profile?.profileImage ? "zoom-in" : "default",
                     }}
                   >
                     {profile?.profileImage ? (
-                      // eslint-disable-next-line @next/next/no-img-element
-                      <img src={profile.profileImage} alt="" style={{ width: "100%", height: "100%", objectFit: "cover" }} />
+                      <>
+                        {/* eslint-disable-next-line @next/next/no-img-element */}
+                        <img
+                          src={profile.profileImage}
+                          alt=""
+                          style={{
+                            width: "100%",
+                            height: "100%",
+                            objectFit: "cover",
+                            display: "block",
+                          }}
+                        />
+                        <span
+                          className="avatar-photo-hint"
+                          style={{
+                            position: "absolute",
+                            inset: 0,
+                            background: "rgba(16,28,48,0.35)",
+                            display: "grid",
+                            placeItems: "center",
+                          }}
+                        >
+                          <Icon name="search" size={18} color={colors.white} />
+                        </span>
+                      </>
                     ) : (
-                      <span style={{ width: "100%", height: "100%", display: "grid", placeItems: "center", color: colors.white }}>
+                      <span
+                        style={{
+                          width: "100%",
+                          height: "100%",
+                          display: "grid",
+                          placeItems: "center",
+                          color: colors.white,
+                        }}
+                      >
                         <Icon name="user" size={40} />
                       </span>
                     )}
-                  </span>
+                  </button>
                   <span
                     style={{
                       position: "absolute",
@@ -391,13 +571,34 @@ export default function ProfileScreen() {
                   >
                     <Icon name="camera" size={14} />
                   </button>
-                  <input ref={avatarInputRef} type="file" accept="image/*" onChange={onAvatarSelected} style={{ display: "none" }} />
+                  <input
+                    ref={avatarInputRef}
+                    type="file"
+                    accept="image/*"
+                    onChange={onAvatarSelected}
+                    style={{ display: "none" }}
+                  />
                 </div>
-                <h3 style={{ color: colors.white, fontSize: fontSize.lg, fontWeight: 700 }}>
-                  {uploadingAvatar ? "Uploading…" : profile?.name || "Your account"}
+                <h3
+                  style={{
+                    color: colors.white,
+                    fontSize: fontSize.lg,
+                    fontWeight: 700,
+                  }}
+                >
+                  {uploadingAvatar
+                    ? "Uploading…"
+                    : profile?.name || "Your account"}
                 </h3>
                 {profile?.location && (
-                  <span style={{ fontSize: fontSize.xs, color: "rgba(255,255,255,0.65)" }}>{profile.location}</span>
+                  <span
+                    style={{
+                      fontSize: fontSize.xs,
+                      color: "rgba(255,255,255,0.65)",
+                    }}
+                  >
+                    {profile.location}
+                  </span>
                 )}
               </div>
 
@@ -411,10 +612,30 @@ export default function ProfileScreen() {
                   gap: 2,
                 }}
               >
-                <SidebarNavItem icon="user" label="Profile" active={tab === "profile"} onClick={() => goToTab("profile")} />
-                <SidebarNavItem icon="briefcase" label="My Project" active={false} onClick={() => router.push("/projects")} />
-                <SidebarNavItem icon="house" label="My Property" active={false} onClick={() => router.push("/property/my")} />
-                <SidebarNavItem icon="mail" label="Enquiries" active={false} onClick={() => router.push("/enquiries")} />
+                <SidebarNavItem
+                  icon="user"
+                  label="Profile"
+                  active={tab === "profile"}
+                  onClick={() => goToTab("profile")}
+                />
+                <SidebarNavItem
+                  icon="briefcase"
+                  label="My Project"
+                  active={false}
+                  onClick={() => router.push("/projects")}
+                />
+                <SidebarNavItem
+                  icon="house"
+                  label="My Property"
+                  active={false}
+                  onClick={() => router.push("/property/my")}
+                />
+                <SidebarNavItem
+                  icon="mail"
+                  label="Enquiries"
+                  active={false}
+                  onClick={() => router.push("/enquiries")}
+                />
               </div>
             </Reveal>
 
@@ -442,10 +663,24 @@ export default function ProfileScreen() {
                     }}
                   >
                     <div>
-                      <h1 style={{ fontFamily: "var(--font-display)", fontSize: "clamp(21px, 2.4vw, 26px)", fontWeight: 600 }}>
+                      <h1
+                        style={{
+                          fontFamily: "var(--font-display)",
+                          fontSize: "clamp(21px, 2.4vw, 26px)",
+                          fontWeight: 600,
+                        }}
+                      >
                         Profile Information
                       </h1>
-                      <p style={{ color: colors.muted, fontSize: fontSize.sm, marginTop: 6 }}>Manage your personal details and address.</p>
+                      <p
+                        style={{
+                          color: colors.muted,
+                          fontSize: fontSize.sm,
+                          marginTop: 6,
+                        }}
+                      >
+                        Manage your personal details and address.
+                      </p>
                     </div>
                     {!editing && (
                       <button
@@ -470,48 +705,158 @@ export default function ProfileScreen() {
 
                   {!editing ? (
                     <>
-                      <div className="grid grid-cols-1 sm:grid-cols-2" style={{ gap: spacing.md }}>
-                        <InfoField icon="user" label="Name" value={profile?.name || "—"} />
-                        <InfoField icon="mail" label="Email" value={profile?.email || "—"} onChangeClick={() => setContactModal("email")} />
-                        <InfoField icon="phone" label="Contact" value={profile?.mobile || "—"} onChangeClick={() => setContactModal("phone")} />
-                        <InfoField icon="location" label="Location" value={profile?.location || "—"} />
+                      <div
+                        className="grid grid-cols-1 sm:grid-cols-2"
+                        style={{ gap: spacing.md }}
+                      >
+                        <InfoField
+                          icon="user"
+                          label="Name"
+                          value={profile?.name || "—"}
+                        />
+                        <InfoField
+                          icon="mail"
+                          label="Email"
+                          value={profile?.email || "—"}
+                          onChangeClick={() => setContactModal("email")}
+                        />
+                        <InfoField
+                          icon="phone"
+                          label="Contact"
+                          value={profile?.mobile || "—"}
+                          onChangeClick={() => setContactModal("phone")}
+                        />
+                        <InfoField
+                          icon="location"
+                          label="Location"
+                          value={profile?.location || "—"}
+                        />
                       </div>
                       {profile?.location && hasRealMapLocation && mapLatLng && (
-                        <div style={{ marginTop: spacing.lg, display: "flex", flexDirection: "column", gap: spacing.sm }}>
-                          <span style={{ display: "inline-flex", alignItems: "center", gap: 7, fontSize: fontSize.sm, fontWeight: 600, color: colors.ink2 }}>
+                        <div
+                          style={{
+                            marginTop: spacing.lg,
+                            display: "flex",
+                            flexDirection: "column",
+                            gap: spacing.sm,
+                          }}
+                        >
+                          <span
+                            style={{
+                              display: "inline-flex",
+                              alignItems: "center",
+                              gap: 7,
+                              fontSize: fontSize.sm,
+                              fontWeight: 600,
+                              color: colors.ink2,
+                            }}
+                          >
                             <Icon name="location" size={16} /> Location on map
                           </span>
-                          <LocationMapView {...mapLatLng} address={profile.location} />
+                          <LocationMapView
+                            {...mapLatLng}
+                            address={profile.location}
+                          />
                         </div>
                       )}
                     </>
                   ) : (
-                    <div style={{ display: "flex", flexDirection: "column", gap: spacing.lg }}>
+                    <div
+                      style={{
+                        display: "flex",
+                        flexDirection: "column",
+                        gap: spacing.lg,
+                      }}
+                    >
                       {/* Email/phone go through their own OTP-verified update flow
                           (see ContactUpdateModal), not the name/location save below —
                           shown here too so they're not hidden while editing. */}
-                      <div className="grid grid-cols-1 sm:grid-cols-2" style={{ gap: spacing.md }}>
-                        <InfoField icon="mail" label="Email" value={profile?.email || "—"} onChangeClick={() => setContactModal("email")} />
-                        <InfoField icon="phone" label="Contact" value={profile?.mobile || "—"} onChangeClick={() => setContactModal("phone")} />
+                      <div
+                        className="grid grid-cols-1 sm:grid-cols-2"
+                        style={{ gap: spacing.md }}
+                      >
+                        <InfoField
+                          icon="mail"
+                          label="Email"
+                          value={profile?.email || "—"}
+                          onChangeClick={() => setContactModal("email")}
+                        />
+                        <InfoField
+                          icon="phone"
+                          label="Contact"
+                          value={profile?.mobile || "—"}
+                          onChangeClick={() => setContactModal("phone")}
+                        />
                       </div>
-                      <label style={{ display: "flex", flexDirection: "column", gap: 6 }}>
-                        <span style={{ fontSize: fontSize.xs, fontWeight: 700, color: colors.muted, textTransform: "uppercase", letterSpacing: 0.5 }}>
+                      <label
+                        style={{
+                          display: "flex",
+                          flexDirection: "column",
+                          gap: 6,
+                        }}
+                      >
+                        <span
+                          style={{
+                            fontSize: fontSize.xs,
+                            fontWeight: 700,
+                            color: colors.muted,
+                            textTransform: "uppercase",
+                            letterSpacing: 0.5,
+                          }}
+                        >
                           Name
                         </span>
-                        <input value={name} onChange={(e) => setName(e.target.value)} style={fieldStyle} />
+                        <input
+                          value={name}
+                          onChange={(e) => setName(e.target.value)}
+                          style={fieldStyle}
+                        />
                       </label>
-                      <div style={{ display: "flex", flexDirection: "column", gap: 6 }}>
-                        <span style={{ fontSize: fontSize.xs, fontWeight: 700, color: colors.muted, textTransform: "uppercase", letterSpacing: 0.5 }}>
+                      <div
+                        style={{
+                          display: "flex",
+                          flexDirection: "column",
+                          gap: 6,
+                        }}
+                      >
+                        <span
+                          style={{
+                            fontSize: fontSize.xs,
+                            fontWeight: 700,
+                            color: colors.muted,
+                            textTransform: "uppercase",
+                            letterSpacing: 0.5,
+                          }}
+                        >
                           Location
                         </span>
-                        <LocationMapPicker value={location} onChange={setLocation} height={200} />
+                        <LocationMapPicker
+                          value={location}
+                          onChange={setLocation}
+                          height={200}
+                        />
                       </div>
-                      {saveError && <p style={{ color: "#C0392B", fontSize: fontSize.sm }}>{saveError}</p>}
+                      {saveError && (
+                        <p style={{ color: "#C0392B", fontSize: fontSize.sm }}>
+                          {saveError}
+                        </p>
+                      )}
                       <div style={{ display: "flex", gap: spacing.sm }}>
-                        <Button variant="primary" size="md" onClick={saveEdit} icon={saving ? undefined : <Icon name="check" size={16} />}>
+                        <Button
+                          variant="primary"
+                          size="md"
+                          onClick={saveEdit}
+                          icon={
+                            saving ? undefined : <Icon name="check" size={16} />
+                          }
+                        >
                           {saving ? "Saving…" : "Save changes"}
                         </Button>
-                        <Button variant="outline" size="md" onClick={cancelEdit}>
+                        <Button
+                          variant="outline"
+                          size="md"
+                          onClick={cancelEdit}
+                        >
                           Cancel
                         </Button>
                       </div>
@@ -526,7 +871,14 @@ export default function ProfileScreen() {
             </Reveal>
 
             {/* quick links rail */}
-            <Reveal className="relative xl:sticky xl:top-24" style={{ display: "flex", flexDirection: "column", gap: spacing.md }}>
+            <Reveal
+              className="relative xl:sticky xl:top-24"
+              style={{
+                display: "flex",
+                flexDirection: "column",
+                gap: spacing.md,
+              }}
+            >
               <div
                 style={{
                   background: colors.card,
@@ -539,9 +891,24 @@ export default function ProfileScreen() {
                   gap: 2,
                 }}
               >
-                <RailItem icon="heart" label="Favorites" active={false} onClick={() => router.push("/favorites")} />
-                <RailItem icon="user" label="Invite a Friend" active={tab === "invite"} onClick={() => goToTab("invite")} />
-                <RailItem icon="shield" label="Help" active={tab === "help"} onClick={() => goToTab("help")} />
+                <RailItem
+                  icon="heart"
+                  label="Favorites"
+                  active={false}
+                  onClick={() => router.push("/favorites")}
+                />
+                <RailItem
+                  icon="user"
+                  label="Invite a Friend"
+                  active={tab === "invite"}
+                  onClick={() => goToTab("invite")}
+                />
+                <RailItem
+                  icon="shield"
+                  label="Help"
+                  active={tab === "help"}
+                  onClick={() => goToTab("help")}
+                />
                 <RailItem
                   icon="logout"
                   label={loggingOut ? "Logging out…" : "Log out"}
@@ -566,7 +933,14 @@ export default function ProfileScreen() {
                   }}
                 >
                   <span className="pdash-sheen" aria-hidden="true" />
-                  <div style={{ display: "flex", alignItems: "center", gap: 10, position: "relative" }}>
+                  <div
+                    style={{
+                      display: "flex",
+                      alignItems: "center",
+                      gap: 10,
+                      position: "relative",
+                    }}
+                  >
                     <span style={{ position: "relative", flexShrink: 0 }}>
                       <span
                         className="pr-pro-badge-icon"
@@ -586,8 +960,23 @@ export default function ProfileScreen() {
                       </span>
                     </span>
                     <div style={{ flex: 1 }}>
-                      <b style={{ fontSize: fontSize.sm, display: "block", color: colors.white }}>You&apos;re also a professional</b>
-                      <span style={{ fontSize: fontSize.xs, color: "rgba(255,255,255,0.75)" }}>Switch to manage enquiries and projects.</span>
+                      <b
+                        style={{
+                          fontSize: fontSize.sm,
+                          display: "block",
+                          color: colors.white,
+                        }}
+                      >
+                        You&apos;re also a professional
+                      </b>
+                      <span
+                        style={{
+                          fontSize: fontSize.xs,
+                          color: "rgba(255,255,255,0.75)",
+                        }}
+                      >
+                        Switch to manage enquiries and projects.
+                      </span>
                     </div>
                     <span
                       style={{
@@ -606,7 +995,18 @@ export default function ProfileScreen() {
                       <span className="pdash-pulse-dot" /> Live
                     </span>
                   </div>
-                  {roleError && <p style={{ color: "#FFD3CC", fontSize: fontSize.xs, margin: 0, position: "relative" }}>{roleError}</p>}
+                  {roleError && (
+                    <p
+                      style={{
+                        color: "#FFD3CC",
+                        fontSize: fontSize.xs,
+                        margin: 0,
+                        position: "relative",
+                      }}
+                    >
+                      {roleError}
+                    </p>
+                  )}
                   <button
                     onClick={switchRole}
                     disabled={switchingRole}
@@ -657,8 +1057,22 @@ export default function ProfileScreen() {
                   >
                     <Icon name="hardhat" size={18} />
                   </span>
-                  <b style={{ fontSize: fontSize.sm + 1, display: "block", marginBottom: 5 }}>Become a Professional</b>
-                  <p style={{ fontSize: fontSize.xs, color: "rgba(255,255,255,0.72)", lineHeight: 1.45 }}>
+                  <b
+                    style={{
+                      fontSize: fontSize.sm + 1,
+                      display: "block",
+                      marginBottom: 5,
+                    }}
+                  >
+                    Become a Professional
+                  </b>
+                  <p
+                    style={{
+                      fontSize: fontSize.xs,
+                      color: "rgba(255,255,255,0.72)",
+                      lineHeight: 1.45,
+                    }}
+                  >
                     List your trade and start getting enquiries.
                   </p>
                 </button>
@@ -687,8 +1101,23 @@ export default function ProfileScreen() {
                 >
                   <Icon name="sparkle" size={18} />
                 </span>
-                <b style={{ fontSize: fontSize.sm + 1, display: "block", marginBottom: 5 }}>Get the HomeDot app</b>
-                <p style={{ fontSize: fontSize.xs, color: "rgba(255,255,255,0.72)", lineHeight: 1.45, marginBottom: 14 }}>
+                <b
+                  style={{
+                    fontSize: fontSize.sm + 1,
+                    display: "block",
+                    marginBottom: 5,
+                  }}
+                >
+                  Get the HomeDot app
+                </b>
+                <p
+                  style={{
+                    fontSize: fontSize.xs,
+                    color: "rgba(255,255,255,0.72)",
+                    lineHeight: 1.45,
+                    marginBottom: 14,
+                  }}
+                >
                   Track projects &amp; chat on the go.
                 </p>
                 <div style={{ display: "flex", justifyContent: "center" }}>
@@ -701,6 +1130,49 @@ export default function ProfileScreen() {
       </section>
 
       <SiteFooter />
+
+      {toast && (
+        <div
+          className="pr-toast"
+          style={{
+            position: "fixed",
+            bottom: 24,
+            left: "50%",
+            transform: "translateX(-50%)",
+            zIndex: 1100,
+            display: "inline-flex",
+            alignItems: "center",
+            gap: 8,
+            background: toast.tone === "success" ? "#0B3B2E" : colors.ink,
+            color: colors.white,
+            padding: "12px 20px",
+            borderRadius: radius.full,
+            fontSize: fontSize.sm,
+            fontWeight: 600,
+            boxShadow: "0 20px 40px -14px rgba(0,0,0,0.35)",
+          }}
+        >
+          <span
+            className="toast-badge-pop"
+            style={{
+              width: 20,
+              height: 20,
+              borderRadius: "50%",
+              background: toast.tone === "success" ? "#22C55E" : "#F87171",
+              display: "grid",
+              placeItems: "center",
+              flexShrink: 0,
+            }}
+          >
+            <Icon
+              name={toast.tone === "success" ? "check" : "close"}
+              size={11}
+              color="#0B1F17"
+            />
+          </span>
+          {toast.text}
+        </div>
+      )}
     </div>
   );
 }
@@ -740,7 +1212,11 @@ function RailItem({
           width: 34,
           height: 34,
           borderRadius: 9,
-          background: danger ? "rgba(229,72,77,0.1)" : active ? colors.card : colors.bg,
+          background: danger
+            ? "rgba(229,72,77,0.1)"
+            : active
+              ? colors.card
+              : colors.bg,
           color: danger ? "#E5484D" : active ? colors.primary : colors.ink2,
           display: "grid",
           placeItems: "center",
@@ -749,10 +1225,22 @@ function RailItem({
       >
         <Icon name={icon} size={17} />
       </span>
-      <span style={{ flex: 1, fontSize: fontSize.sm, fontWeight: 500, color: danger ? "#E5484D" : active ? colors.primary : colors.ink }}>
+      <span
+        style={{
+          flex: 1,
+          fontSize: fontSize.sm,
+          fontWeight: 500,
+          color: danger ? "#E5484D" : active ? colors.primary : colors.ink,
+        }}
+      >
         {label}
       </span>
-      <Icon name="chevronDown" size={14} className="pr-railchev" color={colors.muted} />
+      <Icon
+        name="chevronDown"
+        size={14}
+        className="pr-railchev"
+        color={colors.muted}
+      />
     </button>
   );
 }
@@ -792,7 +1280,15 @@ function SidebarNavItem({
   );
 }
 
-function LocationMapView({ lat, lng, address }: { lat: number; lng: number; address: string }) {
+function LocationMapView({
+  lat,
+  lng,
+  address,
+}: {
+  lat: number;
+  lng: number;
+  address: string;
+}) {
   const mapDivRef = useRef<HTMLDivElement | null>(null);
 
   useEffect(() => {
@@ -816,8 +1312,19 @@ function LocationMapView({ lat, lng, address }: { lat: number; lng: number; addr
   }, [lat, lng]);
 
   return (
-    <div style={{ position: "relative", borderRadius: radius.md, overflow: "hidden", border: `1px solid ${colors.line}`, height: 220 }}>
-      <div ref={mapDivRef} style={{ width: "100%", height: "100%", background: colors.bg }} />
+    <div
+      style={{
+        position: "relative",
+        borderRadius: radius.md,
+        overflow: "hidden",
+        border: `1px solid ${colors.line}`,
+        height: 220,
+      }}
+    >
+      <div
+        ref={mapDivRef}
+        style={{ width: "100%", height: "100%", background: colors.bg }}
+      />
       <div
         style={{
           position: "absolute",
@@ -837,7 +1344,15 @@ function LocationMapView({ lat, lng, address }: { lat: number; lng: number; addr
         }}
       >
         <Icon name="location" size={15} color={colors.primary} />
-        <span style={{ overflow: "hidden", textOverflow: "ellipsis", whiteSpace: "nowrap" }}>{address}</span>
+        <span
+          style={{
+            overflow: "hidden",
+            textOverflow: "ellipsis",
+            whiteSpace: "nowrap",
+          }}
+        >
+          {address}
+        </span>
       </div>
     </div>
   );
@@ -866,17 +1381,48 @@ function InfoField({
         gap: 8,
       }}
     >
-      <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center" }}>
-        <span style={{ display: "inline-flex", alignItems: "center", gap: 7, fontSize: fontSize.xs, fontWeight: 600, color: colors.muted }}>
+      <div
+        style={{
+          display: "flex",
+          justifyContent: "space-between",
+          alignItems: "center",
+        }}
+      >
+        <span
+          style={{
+            display: "inline-flex",
+            alignItems: "center",
+            gap: 7,
+            fontSize: fontSize.xs,
+            fontWeight: 600,
+            color: colors.muted,
+          }}
+        >
           <Icon name={icon} size={15} /> {label}
         </span>
         {onChangeClick && (
-          <button onClick={onChangeClick} style={{ fontSize: fontSize.xs, fontWeight: 700, color: colors.primary }}>
+          <button
+            onClick={onChangeClick}
+            style={{
+              fontSize: fontSize.xs,
+              fontWeight: 700,
+              color: colors.primary,
+            }}
+          >
             Change
           </button>
         )}
       </div>
-      <span style={{ fontSize: fontSize.md, fontWeight: 600, color: colors.ink, wordBreak: "break-word" }}>{value}</span>
+      <span
+        style={{
+          fontSize: fontSize.md,
+          fontWeight: 600,
+          color: colors.ink,
+          wordBreak: "break-word",
+        }}
+      >
+        {value}
+      </span>
     </div>
   );
 }

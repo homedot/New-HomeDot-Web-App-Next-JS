@@ -15,6 +15,7 @@ import ScrollProgress from "@/components/ScrollProgress";
 import Cursor from "@/components/Cursor";
 import Reveal from "@/components/Reveal";
 import LoginModal, { type LoginModalHandle } from "@/components/LoginModal";
+import StoryBand from "@/components/StoryBand";
 import { getAuthToken } from "@/utils/authStorage";
 import {
   loadGoogleMapsScript,
@@ -31,7 +32,7 @@ import ProfessionalsScreenService, {
   type ProfessionalsFilterPayload,
 } from "@/services/ProfessionalsScreenService";
 import ProfessionalDetail from "./ProfessionalDetail";
-import { ratingBuckets, experienceBuckets, budgetBuckets, type ProfessionalRecord } from "./data";
+import { ratingBuckets, experienceBuckets, budgetBuckets, unsplash, type ProfessionalRecord } from "./data";
 
 const wrap: CSSProperties = {
   maxWidth,
@@ -69,6 +70,7 @@ export default function ProfessionalsScreen() {
   const [locatingMe, setLocatingMe] = useState(false);
   const [suggestions, setSuggestions] = useState<GoogleMapsPlacePrediction[]>([]);
   const [showSuggestions, setShowSuggestions] = useState(false);
+  const [locationError, setLocationError] = useState(false);
   const locationInputRef = useRef<HTMLInputElement | null>(null);
   const locationFieldRef = useRef<HTMLDivElement | null>(null);
   const googleMapsRef = useRef<GoogleMapsNamespace | null>(null);
@@ -158,9 +160,10 @@ export default function ProfessionalsScreen() {
   // reason MarketplaceScreen avoids it).
   const onLocationInputChange = (value: string) => {
     setLocationText(value);
+    setLocationError(false);
     if (suggestTimer.current) clearTimeout(suggestTimer.current);
     const q = value.trim();
-    if (q.length < 3) {
+    if (q.length < 1) {
       setSuggestions([]);
       setShowSuggestions(false);
       return;
@@ -174,9 +177,15 @@ export default function ProfessionalsScreen() {
           if (status === "OK" && predictions?.length) {
             setSuggestions(predictions);
             setShowSuggestions(true);
+            setLocationError(false);
           } else {
             setSuggestions([]);
             setShowSuggestions(false);
+            // ZERO_RESULTS (as opposed to a transient API error) means Google
+            // recognizes the query as unmatchable — safe to flag immediately
+            // instead of waiting for Enter, so gibberish input is caught
+            // while the user is still typing.
+            setLocationError(status === "ZERO_RESULTS");
           }
         },
       );
@@ -193,12 +202,15 @@ export default function ProfessionalsScreen() {
     if (!google) return;
     new google.maps.Geocoder().geocode({ placeId: prediction.place_id }, (results, status) => {
       if (status === "OK" && results?.[0]) {
+        setLocationError(false);
         setLocationText(results[0].formatted_address);
         setAppliedLocation({
           address: results[0].formatted_address,
           lat: results[0].geometry.location.lat(),
           long: results[0].geometry.location.lng(),
         });
+      } else {
+        setLocationError(true);
       }
     });
   };
@@ -240,6 +252,7 @@ export default function ProfessionalsScreen() {
     setAppliedLocation(null);
     setSuggestions([]);
     setShowSuggestions(false);
+    setLocationError(false);
   };
 
   // Enter/Search picks the top suggestion if the dropdown is open;
@@ -260,12 +273,15 @@ export default function ProfessionalsScreen() {
     if (!google) return;
     new google.maps.Geocoder().geocode({ address: q }, (results, status) => {
       if (status === "OK" && results?.[0]) {
+        setLocationError(false);
         setLocationText(results[0].formatted_address);
         setAppliedLocation({
           address: results[0].formatted_address,
           lat: results[0].geometry.location.lat(),
           long: results[0].geometry.location.lng(),
         });
+      } else {
+        setLocationError(true);
       }
     });
   };
@@ -573,13 +589,16 @@ export default function ProfessionalsScreen() {
                     alignItems: "center",
                     gap: 9,
                     height: 50,
-                    border: `1.5px solid ${colors.line}`,
+                    border: `1.5px solid ${locationError ? "#F5A0A0" : colors.line}`,
                     borderRadius: 12,
                     padding: "0 14px",
                     color: colors.muted,
+                    background: locationError ? "#FFF6F6" : "transparent",
+                    boxShadow: locationError ? "0 0 0 4px rgba(220,38,38,0.07)" : "none",
+                    transition: "border-color 0.2s ease, background 0.2s ease, box-shadow 0.2s ease",
                   }}
                 >
-                  <Icon name="location" size={18} />
+                  <Icon name="location" size={18} color={locationError ? "#DC2626" : undefined} />
                   <input
                     ref={locationInputRef}
                     value={locationText}
@@ -626,6 +645,52 @@ export default function ProfessionalsScreen() {
                   )}
                 </label>
 
+                {locationError && !showSuggestions && (
+                  <div
+                    role="alert"
+                    style={{
+                      position: "absolute",
+                      top: "calc(100% + 8px)",
+                      left: 0,
+                      minWidth: 260,
+                      display: "flex",
+                      alignItems: "flex-start",
+                      gap: 10,
+                      padding: "12px 14px",
+                      background: "linear-gradient(180deg, #FFF8F8, #FFFFFF)",
+                      border: "1px solid #FBD5D5",
+                      borderRadius: radius.md,
+                      boxShadow: "0 10px 24px rgba(220,38,38,0.12), 0 1px 2px rgba(220,38,38,0.06)",
+                      zIndex: 20,
+                      animation: "warnBannerIn 0.22s cubic-bezier(0.16, 1, 0.3, 1) both",
+                    }}
+                  >
+                    <div
+                      style={{
+                        display: "flex",
+                        alignItems: "center",
+                        justifyContent: "center",
+                        width: 26,
+                        height: 26,
+                        borderRadius: "50%",
+                        background: "#FEE2E2",
+                        flexShrink: 0,
+                        marginTop: 1,
+                      }}
+                    >
+                      <Icon name="alertTriangle" size={14} color="#DC2626" />
+                    </div>
+                    <div>
+                      <p style={{ margin: 0, fontSize: fontSize.sm, fontWeight: 600, color: "#B91C1C" }}>
+                        Location not found
+                      </p>
+                      <p style={{ margin: "2px 0 0", fontSize: fontSize.xs, color: "#C0392B", lineHeight: 1.4 }}>
+                        We couldn&apos;t find that place. Try a city, locality, or landmark near you.
+                      </p>
+                    </div>
+                  </div>
+                )}
+
                 {showSuggestions && suggestions.length > 0 && (
                   <div
                     style={{
@@ -668,9 +733,6 @@ export default function ProfessionalsScreen() {
                   </div>
                 )}
               </div>
-              <Button variant="primary" size="md" icon={<Icon name="search" size={17} />} onClick={applyTypedLocation}>
-                Search
-              </Button>
             </div>
 
             {/* category pills */}
@@ -978,10 +1040,37 @@ export default function ProfessionalsScreen() {
               </main>
             </div>
           </section>
+
+          <StoryBand
+            image={unsplash("1618221195710-dd6b41faaea6", 1800)}
+            eyebrow="Keep exploring"
+            heading={
+              <>
+                Every professional has a story.
+                <br />
+                Scroll to find yours.
+              </>
+            }
+            description="From first hello to final handover, HomeDot connects you with people who've done the work before — and can prove it."
+            promiseHeading="Vetted experts. Verified work. Zero guesswork."
+            promiseDescription="Every professional is manually checked for credentials and past work before they appear on HomeDot. You see genuine reviews from real projects — never paid placements."
+            checklist={["ID & license verified", "Past work reviewed by our team", "Ratings from real clients only"]}
+            stats={[
+              { value: "180+", label: "Verified professionals ready to hire" },
+              { value: "98%", label: "Pass ID & license checks" },
+              { value: "24 hrs", label: "Average first response time" },
+            ]}
+            ctaLabel="Browse the marketplace"
+            onCta={() => router.push("/marketplace")}
+          />
         </>
       )}
 
-      <SiteFooter />
+      {/* flush only when the StoryBand branch above actually rendered —
+          the detail branch ends on light content, where the footer's
+          default top margin is invisible against the same page
+          background rather than a stray seam. */}
+      <SiteFooter flush={!detail} />
     </div>
   );
 }
@@ -1033,7 +1122,7 @@ function FilterGroup({ title, children, last }: { title: string; children: React
 function RadioRow({ label, checked, onChange }: { label: string; checked: boolean; onChange: () => void }) {
   return (
     <label style={{ display: "flex", alignItems: "center", gap: 10, fontSize: fontSize.base - 1, color: colors.ink2, cursor: "pointer" }}>
-      <input type="radio" checked={checked} onChange={onChange} style={{ position: "absolute", opacity: 0, width: 0, height: 0 }} />
+      <input type="checkbox" checked={checked} onChange={onChange} style={{ position: "absolute", opacity: 0, width: 0, height: 0 }} />
       <span
         style={{
           width: 19,

@@ -15,6 +15,12 @@ export const API_ENDPOINTS = {
     // ("v1/auth/profile-update") — PUT { name, location, latitude,
     // longitude, google_address_string }.
     PROFILE_UPDATE: "auth/profile-update",
+    // Requires a stored auth token. PUT with no body — clears profileImage
+    // on the signed-in account. Shared by both roles (unlike
+    // USER.PROFILE_IMAGE_UPDATE / PROFESSIONAL.PROFILE_IMAGE_UPDATE, which
+    // are split per role for uploads), since there's only one photo to
+    // remove regardless of which side triggers it.
+    PROFILE_IMAGE_REMOVE: "auth/profile-image-remove",
     // Requires a stored auth token. Mirrors BACKEND_AUTH_URL.LOGOUT
     // ("v1/auth/logout") — POST with no body.
     LOGOUT: "auth/logout",
@@ -86,6 +92,9 @@ export const API_ENDPOINTS = {
     // Guest-accessible — no auth required. Full home payload (services,
     // stories/blog posts, ads); we only use `stories` for now.
     HOME: "data/home",
+    // Guest-accessible — no auth required. POST { name, email, message } —
+    // the public "Get in touch" contact form on the landing page.
+    SUBMIT_CONTACT: "data/submit-contact",
   },
   REVIEW: {
     // Guest-accessible — no auth required.

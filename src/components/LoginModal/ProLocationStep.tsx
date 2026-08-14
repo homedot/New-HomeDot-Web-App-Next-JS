@@ -17,8 +17,9 @@ export default function ProLocationStep({
   onBack: () => void;
   onContinue: (location: LocationValue) => void;
 }) {
-  const [location, setLocation] = useState<LocationValue | null>(initialLocation);
-
+  const [location, setLocation] = useState<LocationValue | null>(
+    initialLocation,
+  );
   return (
     <div className="login-step">
       <button

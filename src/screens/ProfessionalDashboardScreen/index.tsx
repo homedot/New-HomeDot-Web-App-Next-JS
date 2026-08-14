@@ -14,6 +14,7 @@ import ScrollProgress from "@/components/ScrollProgress";
 import Cursor from "@/components/Cursor";
 import Reveal from "@/components/Reveal";
 import LoginModal, { type LoginModalHandle } from "@/components/LoginModal";
+import AvatarLightbox from "@/components/AvatarLightbox";
 import EmptyState from "@/components/EmptyState";
 import SkeletonGrid from "@/components/SkeletonGrid";
 import LoadMoreButton from "@/components/LoadMoreButton";
@@ -26,8 +27,15 @@ import ProDashboardSkeleton from "@/components/ProDashboardSkeleton";
 import ProfessionalEnquiryCard from "@/components/ProfessionalEnquiry/Card";
 import RespondModal from "@/components/ProfessionalEnquiry/RespondModal";
 import InitiateProjectModal from "@/components/ProfessionalEnquiry/InitiateProjectModal";
-import { useProfessionalEnquiries, type EnquiryKind } from "@/components/ProfessionalEnquiry/useProfessionalEnquiries";
-import { getAuthToken, getActiveRole, setActiveRole } from "@/utils/authStorage";
+import {
+  useProfessionalEnquiries,
+  type EnquiryKind,
+} from "@/components/ProfessionalEnquiry/useProfessionalEnquiries";
+import {
+  getAuthToken,
+  getActiveRole,
+  setActiveRole,
+} from "@/utils/authStorage";
 import { useAuthStore } from "@/store/useAuthStore";
 import { useProfileStore } from "@/store/useProfileStore";
 import { useProfessionalHomeStore } from "@/store/useProfessionalHomeStore";
@@ -46,7 +54,11 @@ import ProfessionalProjectCard from "./ProfessionalProjectCard";
 // constant was tuned for. Passed to ProDashboardHero too so its title column
 // still lines up with the container edges below it.
 const DASHBOARD_MAX_WIDTH = maxWidth + 120;
-const wrap: CSSProperties = { maxWidth: DASHBOARD_MAX_WIDTH, margin: "0 auto", padding: `0 ${spacing.xl}px` };
+const wrap: CSSProperties = {
+  maxWidth: DASHBOARD_MAX_WIDTH,
+  margin: "0 auto",
+  padding: `0 ${spacing.xl}px`,
+};
 
 type ProjectTab = "ongoing" | "completed" | "cancelled";
 type Tab = EnquiryKind | ProjectTab;
@@ -86,12 +98,15 @@ export default function ProfessionalDashboardScreen() {
   // once the shared store has fetched once this session (e.g. the professional
   // came from /professional/profile, which just saved an edit into it), this
   // is instantly false, so navigating here shows fresh data with no flash.
-  const loadingHome = useProfessionalHomeStore((s) => s.loading || (!s.loaded && !s.home));
+  const loadingHome = useProfessionalHomeStore(
+    (s) => s.loading || (!s.loaded && !s.home),
+  );
 
   const [signedIn, setSignedIn] = useState<boolean | null>(null);
   const [switchingRole, setSwitchingRole] = useState(false);
   const [roleError, setRoleError] = useState<string | null>(null);
   const [loggingOut, setLoggingOut] = useState(false);
+  const [avatarExpanded, setAvatarExpanded] = useState(false);
 
   const [tab, setTab] = useState<Tab>("job");
 
@@ -110,8 +125,14 @@ export default function ProfessionalDashboardScreen() {
     return () => window.removeEventListener("resize", measure);
   }, [tab, loadingHome]);
 
-  const [projects, setProjects] = useState<Record<ProjectTab, ProfessionalProjectRecord[]>>({ ongoing: [], completed: [], cancelled: [] });
-  const [projectPages, setProjectPages] = useState<Record<ProjectTab, number>>({ ongoing: 1, completed: 1, cancelled: 1 });
+  const [projects, setProjects] = useState<
+    Record<ProjectTab, ProfessionalProjectRecord[]>
+  >({ ongoing: [], completed: [], cancelled: [] });
+  const [projectPages, setProjectPages] = useState<Record<ProjectTab, number>>({
+    ongoing: 1,
+    completed: 1,
+    cancelled: 1,
+  });
   const [loadingProjects, setLoadingProjects] = useState(true);
   const [loadingMoreProject, setLoadingMoreProject] = useState(false);
 
@@ -121,7 +142,11 @@ export default function ProfessionalDashboardScreen() {
     setLoadingProjects(false);
     const groups = res.data?.data?.[0];
     if (!res.success || !res.data?.status || !groups) return;
-    setProjects({ ongoing: groups.ongoing ?? [], completed: groups.completed ?? [], cancelled: groups.cancelled ?? [] });
+    setProjects({
+      ongoing: groups.ongoing ?? [],
+      completed: groups.completed ?? [],
+      cancelled: groups.cancelled ?? [],
+    });
     setProjectPages({ ongoing: 1, completed: 1, cancelled: 1 });
   };
 
@@ -146,13 +171,20 @@ export default function ProfessionalDashboardScreen() {
     await useRoleSwitchStore.getState().runSwitch("user", async () => {
       const res = await SwitchProfessionalService.switchRole();
       if (!res.success || res.data?.status === false) {
-        setRoleError(res.data?.message || res.message || "Couldn't switch modes. Please try again.");
+        setRoleError(
+          res.data?.message ||
+            res.message ||
+            "Couldn't switch modes. Please try again.",
+        );
         return false;
       }
       const pair = res.data?.data?.[0];
-      if (pair) useAuthStore.getState().setTokens({ token: pair.token, refreshToken: pair.reToken });
+      if (pair)
+        useAuthStore
+          .getState()
+          .setTokens({ token: pair.token, refreshToken: pair.reToken });
       setActiveRole("user");
-      router.push("/profile");
+      router.push("/");
       return true;
     });
     setSwitchingRole(false);
@@ -184,10 +216,13 @@ export default function ProfessionalDashboardScreen() {
   const info = home?.professionalInfo?.[0];
   const enquiryTotal = enq.enquiryCounts.job + enq.enquiryCounts.direct;
   const isEnquiryTab = tab === "job" || tab === "direct";
-  const previewEnquiries = isEnquiryTab ? enq.enquiries[tab as EnquiryKind].slice(0, 3) : [];
+  const previewEnquiries = isEnquiryTab
+    ? enq.enquiries[tab as EnquiryKind].slice(0, 3)
+    : [];
   const activeProjects = !isEnquiryTab ? projects[tab as ProjectTab] : [];
   const initiatingEnquiry = enq.initiatingId
-    ? enq.enquiries.job.find((e) => e._id === enq.initiatingId) || enq.enquiries.direct.find((e) => e._id === enq.initiatingId)
+    ? enq.enquiries.job.find((e) => e._id === enq.initiatingId) ||
+      enq.enquiries.direct.find((e) => e._id === enq.initiatingId)
     : null;
 
   const enquiryOrProjectContent = (
@@ -199,11 +234,19 @@ export default function ProfessionalDashboardScreen() {
           <EmptyState
             icon={tab === "job" ? "mail" : "chat"}
             title={tab === "job" ? "No Job Enquiries" : "No Direct Enquiries"}
-            subtitle={tab === "job" ? "Job enquiries from clients will show up here." : "Enquiries sent to you directly will show up here."}
+            subtitle={
+              tab === "job"
+                ? "Job enquiries from clients will show up here."
+                : "Enquiries sent to you directly will show up here."
+            }
           />
         ) : (
           <>
-            <Reveal stagger className="grid grid-cols-1 xl:grid-cols-2" style={{ gap: spacing.lg }}>
+            <Reveal
+              stagger
+              className="grid grid-cols-1 xl:grid-cols-2"
+              style={{ gap: spacing.lg }}
+            >
               {previewEnquiries.map((e) => (
                 <ProfessionalEnquiryCard
                   key={e._id}
@@ -216,10 +259,19 @@ export default function ProfessionalDashboardScreen() {
                 />
               ))}
             </Reveal>
-            {enq.enquiryCounts[tab as EnquiryKind] > previewEnquiries.length && (
-              <div style={{ display: "flex", justifyContent: "center", marginTop: spacing.xxl }}>
+            {enq.enquiryCounts[tab as EnquiryKind] >
+              previewEnquiries.length && (
+              <div
+                style={{
+                  display: "flex",
+                  justifyContent: "center",
+                  marginTop: spacing.xxl,
+                }}
+              >
                 <button
-                  onClick={() => router.push(`/professional/enquiries?tab=${tab}`)}
+                  onClick={() =>
+                    router.push(`/professional/enquiries?tab=${tab}`)
+                  }
                   style={{
                     display: "inline-flex",
                     alignItems: "center",
@@ -232,7 +284,8 @@ export default function ProfessionalDashboardScreen() {
                     padding: "12px 22px",
                   }}
                 >
-                  View all {enq.enquiryCounts[tab as EnquiryKind]} {tab === "job" ? "Job Enquiries" : "Direct Enquiries"}
+                  View all {enq.enquiryCounts[tab as EnquiryKind]}{" "}
+                  {tab === "job" ? "Job Enquiries" : "Direct Enquiries"}
                   <Icon name="arrow" size={14} color={colors.white} />
                 </button>
               </div>
@@ -242,22 +295,41 @@ export default function ProfessionalDashboardScreen() {
       ) : loadingProjects ? (
         <SkeletonGrid />
       ) : activeProjects.length === 0 ? (
-        <EmptyState icon="briefcase" title={`No ${tab} projects`} subtitle="Projects will appear here once a client engages you." />
+        <EmptyState
+          icon="briefcase"
+          title={`No ${tab} projects`}
+          subtitle="Projects will appear here once a client engages you."
+        />
       ) : (
         <>
-          <Reveal stagger className="grid grid-cols-1 sm:grid-cols-2 2xl:grid-cols-3" style={{ gap: spacing.lg }}>
+          <Reveal
+            stagger
+            className="grid grid-cols-1 sm:grid-cols-2 2xl:grid-cols-3"
+            style={{ gap: spacing.lg }}
+          >
             {activeProjects.map((p) => (
               <ProfessionalProjectCard key={p._id} project={p} />
             ))}
           </Reveal>
-          <LoadMoreButton onClick={() => loadMoreProjects(tab as ProjectTab)} loading={loadingMoreProject} label="Show more projects" />
+          <LoadMoreButton
+            onClick={() => loadMoreProjects(tab as ProjectTab)}
+            loading={loadingMoreProject}
+            label="Show more projects"
+          />
         </>
       )}
     </>
   );
 
   return (
-    <div style={{ background: colors.bg, color: colors.ink, position: "relative", zIndex: 0 }}>
+    <div
+      style={{
+        background: colors.bg,
+        color: colors.ink,
+        position: "relative",
+        zIndex: 0,
+      }}
+    >
       <AmbientBackground />
       <DashboardMargins />
       <ScrollProgress />
@@ -270,10 +342,28 @@ export default function ProfessionalDashboardScreen() {
           Brand/switch-role/logout live inside the sidebar and profile rail
           below instead of a top bar — see reference screen-pro-dashboard.jsx. */}
       <LoginModal ref={loginModalRef} hideTrigger />
+      {/* Rendered at the screen root, not inside ProfileRailCard's Reveal —
+          the dashboard's "single unified container" Reveal (below) sets both
+          a `transform` (via .reveal, even translateY(0) once in view) and
+          `overflow: hidden`. A transformed ancestor becomes the containing
+          block for position:fixed descendants, and overflow:hidden then
+          clips this overlay to that container's box instead of the full
+          viewport — see AvatarLightbox usage in ProfileScreen for the
+          same fix applied there. */}
+      {avatarExpanded && home?.profileImage && (
+        <AvatarLightbox src={home.profileImage} alt={home.name || "Profile photo"} onClose={() => setAvatarExpanded(false)} />
+      )}
 
       {signedIn && home && (
         <ProDashboardHero maxWidth={DASHBOARD_MAX_WIDTH}>
-          <div style={{ display: "flex", alignItems: "center", gap: 8, flexWrap: "wrap" }}>
+          <div
+            style={{
+              display: "flex",
+              alignItems: "center",
+              gap: 8,
+              flexWrap: "wrap",
+            }}
+          >
             <span
               style={{
                 display: "inline-block",
@@ -289,37 +379,88 @@ export default function ProfessionalDashboardScreen() {
             >
               Professional dashboard
             </span>
-            <span style={{ display: "inline-flex", alignItems: "center", gap: 6, fontSize: 11, fontWeight: 600, color: "rgba(255,255,255,0.6)" }}>
+            <span
+              style={{
+                display: "inline-flex",
+                alignItems: "center",
+                gap: 6,
+                fontSize: 11,
+                fontWeight: 600,
+                color: "rgba(255,255,255,0.6)",
+              }}
+            >
               <span className="pdash-pulse-dot" />
               Live
             </span>
           </div>
-          <div style={{ display: "flex", alignItems: "center", gap: 10, flexWrap: "wrap" }}>
-            <h1 style={{ fontFamily: "var(--font-display)", fontSize: "clamp(28px, 4.2vw, 44px)", fontWeight: 600, color: colors.white, letterSpacing: "-0.02em" }}>
+          <div
+            style={{
+              display: "flex",
+              alignItems: "center",
+              gap: 10,
+              flexWrap: "wrap",
+            }}
+          >
+            <h1
+              style={{
+                fontFamily: "var(--font-display)",
+                fontSize: "clamp(28px, 4.2vw, 44px)",
+                fontWeight: 600,
+                color: colors.white,
+                letterSpacing: "-0.02em",
+              }}
+            >
               {greeting()}, {home.name.split(" ")[0]} 👋
             </h1>
             {info?.verified ? (
-              <Badge icon="verified" text={info.featured ? "Featured" : "Verified"} glow />
+              <Badge
+                icon="verified"
+                text={info.featured ? "Featured" : "Verified"}
+                glow
+              />
             ) : (
               <Badge icon="clock" text="Pending verification" />
             )}
           </div>
-          <p style={{ color: "rgba(255,255,255,0.78)", fontSize: fontSize.md, maxWidth: 480 }}>
+          <p
+            style={{
+              color: "rgba(255,255,255,0.78)",
+              fontSize: fontSize.md,
+              maxWidth: 480,
+            }}
+          >
             {info?.professionalCategoryName}
             {info?.subCategoryName ? ` · ${info.subCategoryName}` : ""}
           </p>
-          {roleError && <span style={{ display: "block", color: "#FCA5A5", fontSize: fontSize.xs }}>{roleError}</span>}
+          {roleError && (
+            <span
+              style={{
+                display: "block",
+                color: "#FCA5A5",
+                fontSize: fontSize.xs,
+              }}
+            >
+              {roleError}
+            </span>
+          )}
         </ProDashboardHero>
       )}
 
-      <section style={{ ...wrap, paddingTop: spacing.xl, paddingBottom: spacing.huge }}>
+      <section
+        style={{ ...wrap, paddingTop: spacing.xl, paddingBottom: spacing.huge }}
+      >
         {signedIn === false ? (
           <EmptyState
             icon="hardhat"
             title="Sign in to see your professional dashboard"
             subtitle="Your enquiries, projects and professional profile show up here once you're signed in."
             action={
-              <Button variant="primary" size="lg" icon={<Icon name="check" size={18} />} onClick={() => loginModalRef.current?.open()}>
+              <Button
+                variant="primary"
+                size="lg"
+                icon={<Icon name="check" size={18} />}
+                onClick={() => loginModalRef.current?.open()}
+              >
                 Log in
               </Button>
             }
@@ -374,22 +515,68 @@ export default function ProfessionalDashboardScreen() {
               <div className="grid grid-cols-1 xl:grid-cols-[280px_1fr]">
                 <div style={{ background: colors.bg }}>
                   <div className="xl:sticky xl:top-24">
-                    <ProfileRailCard home={home} profile={profile} onSwitch={switchToUser} switching={switchingRole} roleError={roleError} />
-                    <ProDashboardSidebar bare onLogout={logout} loggingOut={loggingOut} />
+                    <ProfileRailCard
+                      home={home}
+                      profile={profile}
+                      onSwitch={switchToUser}
+                      switching={switchingRole}
+                      roleError={roleError}
+                      onAvatarClick={() => setAvatarExpanded(true)}
+                    />
+                    <ProDashboardSidebar
+                      bare
+                      onLogout={logout}
+                      loggingOut={loggingOut}
+                    />
                   </div>
                 </div>
 
                 <div style={{ minWidth: 0 }}>
-                  <div style={{ padding: "20px clamp(16px, 2.6vw, 28px)", borderBottom: `1px solid ${colors.line}` }}>
-                    <div className="grid grid-cols-2 lg:grid-cols-4" style={{ gap: spacing.md }}>
-                      <StatTile icon="mail" label="Enquiries" value={enquiryTotal} tint={colors.accent} />
-                      <StatTile icon="clock" label="Ongoing" value={projects.ongoing.length} tint={colors.price} />
-                      <StatTile icon="briefcase" label="Total Work" value={home.totalProjects ?? 0} tint={colors.primary} />
-                      <StatTile icon="star" label="Avg. Rating" value={Number(info?.rating ?? 0)} decimals={1} tint={colors.goldDeep} />
+                  <div
+                    style={{
+                      padding: "20px clamp(16px, 2.6vw, 28px)",
+                      borderBottom: `1px solid ${colors.line}`,
+                    }}
+                  >
+                    <div
+                      className="grid grid-cols-2 lg:grid-cols-4"
+                      style={{ gap: spacing.md }}
+                    >
+                      <StatTile
+                        icon="mail"
+                        label="Enquiries"
+                        value={enquiryTotal}
+                        tint={colors.accent}
+                      />
+                      <StatTile
+                        icon="clock"
+                        label="Ongoing"
+                        value={projects.ongoing.length}
+                        tint={colors.price}
+                      />
+                      <StatTile
+                        icon="briefcase"
+                        label="Total Work"
+                        value={home.totalProjects ?? 0}
+                        tint={colors.primary}
+                      />
+                      <StatTile
+                        icon="star"
+                        label="Avg. Rating"
+                        value={Number(info?.rating ?? 0)}
+                        decimals={1}
+                        tint={colors.goldDeep}
+                      />
                     </div>
                   </div>
 
-                  <div className="grid grid-cols-1 lg:grid-cols-2" style={{ borderBottom: `1px solid ${colors.line}`, alignItems: "stretch" }}>
+                  <div
+                    className="grid grid-cols-1 lg:grid-cols-2"
+                    style={{
+                      borderBottom: `1px solid ${colors.line}`,
+                      alignItems: "stretch",
+                    }}
+                  >
                     <ProDashboardAnalytics
                       ongoing={projects.ongoing.length}
                       completed={projects.completed.length}
@@ -398,7 +585,13 @@ export default function ProfessionalDashboardScreen() {
                       directCount={enq.enquiryCounts.direct}
                       rating={Number(info?.rating ?? 0)}
                     />
-                    <ProDashboardActivityChart projects={[...projects.ongoing, ...projects.completed, ...projects.cancelled]} />
+                    <ProDashboardActivityChart
+                      projects={[
+                        ...projects.ongoing,
+                        ...projects.completed,
+                        ...projects.cancelled,
+                      ]}
+                    />
                   </div>
 
                   <div style={{ padding: "clamp(18px, 2.4vw, 26px)" }}>
@@ -438,7 +631,11 @@ export default function ProfessionalDashboardScreen() {
                           active={tab === t.key}
                           icon={t.icon}
                           label={t.label}
-                          count={t.key === "job" || t.key === "direct" ? enq.enquiryCounts[t.key] : projects[t.key as ProjectTab].length}
+                          count={
+                            t.key === "job" || t.key === "direct"
+                              ? enq.enquiryCounts[t.key]
+                              : projects[t.key as ProjectTab].length
+                          }
                           onClick={() => setTab(t.key)}
                         />
                       ))}
@@ -454,19 +651,28 @@ export default function ProfessionalDashboardScreen() {
       </section>
 
       {enq.respondingId && (
-        <RespondModal onClose={() => enq.setRespondingId(null)} onSubmit={enq.submitRespond} />
+        <RespondModal
+          onClose={() => enq.setRespondingId(null)}
+          onSubmit={enq.submitRespond}
+        />
       )}
 
       {enq.decliningId && (
         <ConfirmModal
           icon="close"
-          title={enq.decliningKind === "direct" ? "Reject this enquiry?" : "Ignore this enquiry?"}
+          title={
+            enq.decliningKind === "direct"
+              ? "Reject this enquiry?"
+              : "Ignore this enquiry?"
+          }
           message={
             enq.decliningKind === "direct"
               ? "The customer will be notified that you're not available for this job."
               : "This enquiry will be removed from your list without notifying the customer."
           }
-          confirmLabel={enq.decliningKind === "direct" ? "Yes, reject it" : "Yes, ignore it"}
+          confirmLabel={
+            enq.decliningKind === "direct" ? "Yes, reject it" : "Yes, ignore it"
+          }
           loading={enq.declining}
           onClose={enq.closeDecline}
           onConfirm={enq.confirmDecline}
@@ -513,14 +719,59 @@ export default function ProfessionalDashboardScreen() {
  * gold accent — mostly-monochrome-plus-one-metallic-accent being the classic
  * "premium" palette move, rather than many saturated brand colors at once. */
 function DashboardMargins() {
-  const marks: { icon: IconName; left?: string; right?: string; top: string; size: number; cls: string; color: string }[] = [
-    { icon: "villa", left: "3%", top: "20%", size: 210, cls: "pdash-illustration", color: `rgba(${hexToRgb(colors.primary)}, 0.06)` },
-    { icon: "compass", left: "6%", top: "74%", size: 100, cls: "pdash-illustration-sub", color: `rgba(${hexToRgb(colors.goldDeep)}, 0.13)` },
-    { icon: "house", right: "3%", top: "24%", size: 190, cls: "pdash-illustration-sub2", color: `rgba(${hexToRgb(colors.primary)}, 0.06)` },
-    { icon: "ruler", right: "7%", top: "76%", size: 92, cls: "pdash-illustration", color: `rgba(${hexToRgb(colors.goldDeep)}, 0.13)` },
+  const marks: {
+    icon: IconName;
+    left?: string;
+    right?: string;
+    top: string;
+    size: number;
+    cls: string;
+    color: string;
+  }[] = [
+    {
+      icon: "villa",
+      left: "3%",
+      top: "20%",
+      size: 210,
+      cls: "pdash-illustration",
+      color: `rgba(${hexToRgb(colors.primary)}, 0.06)`,
+    },
+    {
+      icon: "compass",
+      left: "6%",
+      top: "74%",
+      size: 100,
+      cls: "pdash-illustration-sub",
+      color: `rgba(${hexToRgb(colors.goldDeep)}, 0.13)`,
+    },
+    {
+      icon: "house",
+      right: "3%",
+      top: "24%",
+      size: 190,
+      cls: "pdash-illustration-sub2",
+      color: `rgba(${hexToRgb(colors.primary)}, 0.06)`,
+    },
+    {
+      icon: "ruler",
+      right: "7%",
+      top: "76%",
+      size: 92,
+      cls: "pdash-illustration",
+      color: `rgba(${hexToRgb(colors.goldDeep)}, 0.13)`,
+    },
   ];
   return (
-    <div aria-hidden="true" style={{ position: "fixed", inset: 0, zIndex: -1, overflow: "hidden", pointerEvents: "none" }}>
+    <div
+      aria-hidden="true"
+      style={{
+        position: "fixed",
+        inset: 0,
+        zIndex: -1,
+        overflow: "hidden",
+        pointerEvents: "none",
+      }}
+    >
       <span
         style={{
           position: "absolute",
@@ -572,7 +823,16 @@ function DashboardMargins() {
       />
 
       {marks.map((m, i) => (
-        <span key={i} className={m.cls} style={{ position: "absolute", left: m.left, right: m.right, top: m.top }}>
+        <span
+          key={i}
+          className={m.cls}
+          style={{
+            position: "absolute",
+            left: m.left,
+            right: m.right,
+            top: m.top,
+          }}
+        >
           <Icon name={m.icon} size={m.size} strokeWidth={0.6} color={m.color} />
         </span>
       ))}
@@ -580,7 +840,15 @@ function DashboardMargins() {
   );
 }
 
-function Badge({ icon, text, glow }: { icon: IconName; text: string; glow?: boolean }) {
+function Badge({
+  icon,
+  text,
+  glow,
+}: {
+  icon: IconName;
+  text: string;
+  glow?: boolean;
+}) {
   return (
     <span
       className={glow ? "animate-glow-pulse" : undefined}
@@ -601,7 +869,19 @@ function Badge({ icon, text, glow }: { icon: IconName; text: string; glow?: bool
   );
 }
 
-function StatTile({ icon, label, value, decimals = 0, tint }: { icon: IconName; label: string; value: number; decimals?: number; tint: string }) {
+function StatTile({
+  icon,
+  label,
+  value,
+  decimals = 0,
+  tint,
+}: {
+  icon: IconName;
+  label: string;
+  value: number;
+  decimals?: number;
+  tint: string;
+}) {
   const animated = useCountUp(value);
   return (
     <div
@@ -616,14 +896,45 @@ function StatTile({ icon, label, value, decimals = 0, tint }: { icon: IconName; 
         gap: 14,
       }}
     >
-      <span style={{ width: 50, height: 50, borderRadius: 14, background: `rgba(${hexToRgb(tint)}, 0.14)`, display: "grid", placeItems: "center", flexShrink: 0 }}>
+      <span
+        style={{
+          width: 50,
+          height: 50,
+          borderRadius: 14,
+          background: `rgba(${hexToRgb(tint)}, 0.14)`,
+          display: "grid",
+          placeItems: "center",
+          flexShrink: 0,
+        }}
+      >
         <Icon name={icon} size={22} color={tint} />
       </span>
       <div>
-        <p style={{ color: colors.ink, fontSize: "clamp(20px, 2.4vw, 26px)", fontWeight: 700, margin: 0, lineHeight: 1.1, fontVariantNumeric: "tabular-nums" }}>
+        <p
+          style={{
+            color: colors.ink,
+            fontSize: "clamp(20px, 2.4vw, 26px)",
+            fontWeight: 700,
+            margin: 0,
+            lineHeight: 1.1,
+            fontVariantNumeric: "tabular-nums",
+          }}
+        >
           {animated.toFixed(decimals)}
         </p>
-        <p style={{ color: colors.muted, fontSize: 11, fontWeight: 600, margin: 0, marginTop: 3, textTransform: "uppercase", letterSpacing: 0.4 }}>{label}</p>
+        <p
+          style={{
+            color: colors.muted,
+            fontSize: 11,
+            fontWeight: 600,
+            margin: 0,
+            marginTop: 3,
+            textTransform: "uppercase",
+            letterSpacing: 0.4,
+          }}
+        >
+          {label}
+        </p>
       </div>
     </div>
   );
@@ -645,20 +956,38 @@ function ProfileRailCard({
   onSwitch,
   switching,
   roleError,
+  onAvatarClick,
 }: {
   home: ProfessionalHomeRecord;
   profile: { location?: string; email?: string } | null;
   onSwitch: () => void;
   switching: boolean;
   roleError: string | null;
+  onAvatarClick: () => void;
 }) {
   const info = home.professionalInfo?.[0];
-  const title = [info?.professionalCategoryName, info?.subCategoryName].filter(Boolean).join(" · ");
+  const title = [info?.professionalCategoryName, info?.subCategoryName]
+    .filter(Boolean)
+    .join(" · ");
 
   return (
-    <Reveal style={{ padding: "22px 20px", borderBottom: `1px solid ${colors.line}`, display: "flex", flexDirection: "column", alignItems: "center", textAlign: "center" }}>
+    <Reveal
+      style={{
+        padding: "22px 20px",
+        borderBottom: `1px solid ${colors.line}`,
+        display: "flex",
+        flexDirection: "column",
+        alignItems: "center",
+        textAlign: "center",
+      }}
+    >
       <span style={{ position: "relative", flexShrink: 0 }}>
-        <span
+        <button
+          type="button"
+          className="avatar-photo-btn"
+          aria-label={home.profileImage ? "View profile photo" : "Profile photo"}
+          onClick={() => home.profileImage && onAvatarClick()}
+          disabled={!home.profileImage}
           style={{
             width: 76,
             height: 76,
@@ -669,26 +998,58 @@ function ProfileRailCard({
             background: colors.primarySoft,
             display: "grid",
             placeItems: "center",
+            padding: 0,
+            position: "relative",
+            cursor: home.profileImage ? "zoom-in" : "default",
           }}
         >
           {home.profileImage ? (
-            // eslint-disable-next-line @next/next/no-img-element
-            <img src={home.profileImage} alt="" style={{ width: "100%", height: "100%", objectFit: "cover" }} />
+            <>
+              {/* eslint-disable-next-line @next/next/no-img-element */}
+              <img
+                src={home.profileImage}
+                alt=""
+                style={{ width: "100%", height: "100%", objectFit: "cover", display: "block" }}
+              />
+              <span
+                className="avatar-photo-hint"
+                style={{ position: "absolute", inset: 0, background: "rgba(16,28,48,0.35)", display: "grid", placeItems: "center" }}
+              >
+                <Icon name="search" size={16} color={colors.white} />
+              </span>
+            </>
           ) : (
             <Icon name="user" size={30} color={colors.primary} />
           )}
-        </span>
+        </button>
         <span
           className="pdash-pulse-dot"
-          style={{ position: "absolute", right: 2, bottom: 2, width: 12, height: 12, border: `2px solid ${colors.card}` }}
+          style={{
+            position: "absolute",
+            right: 2,
+            bottom: 2,
+            width: 12,
+            height: 12,
+            border: `2px solid ${colors.card}`,
+          }}
         />
       </span>
 
-      <div style={{ display: "flex", alignItems: "center", gap: 6, marginTop: 10 }}>
+      <div
+        style={{ display: "flex", alignItems: "center", gap: 6, marginTop: 10 }}
+      >
         <h2 style={{ fontSize: fontSize.md, fontWeight: 700 }}>{home.name}</h2>
-        {info?.verified && <Icon name="verified" size={16} filled color={colors.primary} />}
+        {info?.verified && (
+          <Icon name="verified" size={16} filled color={colors.primary} />
+        )}
       </div>
-      {title && <span style={{ fontSize: fontSize.xs, color: colors.muted, marginTop: 2 }}>{title}</span>}
+      {title && (
+        <span
+          style={{ fontSize: fontSize.xs, color: colors.muted, marginTop: 2 }}
+        >
+          {title}
+        </span>
+      )}
       {!info?.verified && (
         <span
           style={{
@@ -704,18 +1065,42 @@ function ProfileRailCard({
             borderRadius: radius.full,
           }}
         >
-          <Icon name="clock" size={11} color={colors.goldDeep} /> Verification pending
+          <Icon name="clock" size={11} color={colors.goldDeep} /> Verification
+          pending
         </span>
       )}
       {info?.rating != null && (
-        <span style={{ display: "inline-flex", alignItems: "center", gap: 4, fontSize: fontSize.xs, fontWeight: 700, color: colors.ink2, marginTop: 6 }}>
-          <Icon name="star" size={13} filled color={colors.gold} /> {info.rating}
+        <span
+          style={{
+            display: "inline-flex",
+            alignItems: "center",
+            gap: 4,
+            fontSize: fontSize.xs,
+            fontWeight: 700,
+            color: colors.ink2,
+            marginTop: 6,
+          }}
+        >
+          <Icon name="star" size={13} filled color={colors.gold} />{" "}
+          {info.rating}
         </span>
       )}
 
       {info?.skills && info.skills.length > 0 && (
-        <div style={{ width: "100%", marginTop: spacing.lg, textAlign: "left" }}>
-          <span style={{ display: "block", fontSize: 10, fontWeight: 700, color: colors.muted, textTransform: "uppercase", letterSpacing: 0.6, marginBottom: 8 }}>
+        <div
+          style={{ width: "100%", marginTop: spacing.lg, textAlign: "left" }}
+        >
+          <span
+            style={{
+              display: "block",
+              fontSize: 10,
+              fontWeight: 700,
+              color: colors.muted,
+              textTransform: "uppercase",
+              letterSpacing: 0.6,
+              marginBottom: 8,
+            }}
+          >
             Skills
           </span>
           <div style={{ display: "flex", flexWrap: "wrap", gap: 6 }}>
@@ -739,15 +1124,39 @@ function ProfileRailCard({
         </div>
       )}
 
-      <div style={{ width: "100%", display: "flex", flexDirection: "column", gap: 8, marginTop: spacing.lg, textAlign: "left" }}>
+      <div
+        style={{
+          width: "100%",
+          display: "flex",
+          flexDirection: "column",
+          gap: 8,
+          marginTop: spacing.lg,
+          textAlign: "left",
+        }}
+      >
         {info?.experience != null && (
-          <RailMetaRow icon="calendar" text={`${info.experience} years of experience`} />
+          <RailMetaRow
+            icon="calendar"
+            text={`${info.experience} years of experience`}
+          />
         )}
-        {profile?.location && <RailMetaRow icon="location" text={profile.location} />}
+        {profile?.location && (
+          <RailMetaRow icon="location" text={profile.location} />
+        )}
         {profile?.email && <RailMetaRow icon="mail" text={profile.email} />}
       </div>
 
-      {roleError && <p style={{ color: "#C0392B", fontSize: fontSize.xs, marginTop: spacing.md }}>{roleError}</p>}
+      {roleError && (
+        <p
+          style={{
+            color: "#C0392B",
+            fontSize: fontSize.xs,
+            marginTop: spacing.md,
+          }}
+        >
+          {roleError}
+        </p>
+      )}
 
       <button
         onClick={onSwitch}
@@ -781,11 +1190,21 @@ function ProfileRailCard({
 
 function RailMetaRow({ icon, text }: { icon: IconName; text: string }) {
   return (
-    <div style={{ display: "flex", alignItems: "flex-start", gap: 8, fontSize: fontSize.xs, color: colors.ink2 }}>
+    <div
+      style={{
+        display: "flex",
+        alignItems: "flex-start",
+        gap: 8,
+        fontSize: fontSize.xs,
+        color: colors.ink2,
+      }}
+    >
       <span style={{ marginTop: 1, flexShrink: 0 }}>
         <Icon name={icon} size={14} color={colors.muted} />
       </span>
-      <span style={{ overflow: "hidden", textOverflow: "ellipsis" }}>{text}</span>
+      <span style={{ overflow: "hidden", textOverflow: "ellipsis" }}>
+        {text}
+      </span>
     </div>
   );
 }

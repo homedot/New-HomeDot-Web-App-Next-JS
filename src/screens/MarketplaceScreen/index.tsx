@@ -22,6 +22,7 @@ import ScrollProgress from "@/components/ScrollProgress";
 import Cursor from "@/components/Cursor";
 import Reveal from "@/components/Reveal";
 import LoginModal, { type LoginModalHandle } from "@/components/LoginModal";
+import StoryBand from "@/components/StoryBand";
 import PropertyDetail from "./PropertyDetail";
 import MarketplaceScreenService, {
   toMarketplaceProperty,
@@ -34,6 +35,7 @@ import {
   loadGoogleMapsScript,
   type GoogleMapsNamespace,
   type GoogleMapsAddressComponent,
+  type GoogleMapsPlacePrediction,
 } from "@/utils/loadGoogleMapsScript";
 import {
   bedOptions,
@@ -41,6 +43,7 @@ import {
   priceOptions,
   budgetRanges,
   parsePrice,
+  unsplash,
   type MarketplaceProperty,
 } from "./data";
 
@@ -91,9 +94,13 @@ export default function MarketplaceScreen() {
     city: string | null;
   } | null>(null);
   const [locatingMe, setLocatingMe] = useState(false);
+  const [locationError, setLocationError] = useState(false);
+  const [suggestions, setSuggestions] = useState<GoogleMapsPlacePrediction[]>([]);
+  const [showSuggestions, setShowSuggestions] = useState(false);
   const locationInputRef = useRef<HTMLInputElement | null>(null);
+  const locationFieldRef = useRef<HTMLDivElement | null>(null);
   const googleMapsRef = useRef<GoogleMapsNamespace | null>(null);
-  const locationAutocompleteInitialized = useRef(false);
+  const suggestTimer = useRef<ReturnType<typeof setTimeout> | null>(null);
   const [beds, setBeds] = useState("");
   const [baths, setBaths] = useState("");
   const [budget, setBudget] = useState("");
@@ -127,12 +134,67 @@ export default function MarketplaceScreen() {
   // data that then gets swapped for the real thing.
   const [initialLoad, setInitialLoad] = useState(true);
 
+  const propertyTypeIdsRef = useRef<string[]>([]);
+
   useEffect(() => {
     MarketplaceScreenService.getPropertyTypes().then((res) => {
-      if (res.success && res.data?.status)
+      if (res.success && res.data?.status) {
         setPropertyTypeOptions(res.data.data);
+        propertyTypeIdsRef.current = res.data.data.map((t) => t._id);
+      }
     });
   }, []);
+
+  // The property-types endpoint above returns one fixed, purpose-agnostic
+  // count per type (confirmed against the live API — identical response
+  // regardless of any purpose/type query param), so it never reflected Buy
+  // vs Rent and looked "stuck" when switching tabs. Re-derive each type's
+  // count from the same properties-filter endpoint the listing grid itself
+  // uses, scoped to that type + the active purpose, which *does* differ
+  // between Buy and Rent.
+  useEffect(() => {
+    if (propertyTypeIdsRef.current.length === 0) return;
+    let cancelled = false;
+    const neutralFilters: PropertiesFilterPayload = {
+      min: null,
+      max: null,
+      address: null,
+      featured: false,
+      bedrooms: null,
+      bathrooms: null,
+      cities: null,
+      propertyType: null,
+    };
+    Promise.all(
+      propertyTypeIdsRef.current.map((id) =>
+        MarketplaceScreenService.getPropertiesFilter(
+          1,
+          { ...neutralFilters, propertyType: id },
+          purpose,
+        ).then(
+          (res) =>
+            [
+              id,
+              res.success && res.data?.status
+                ? (res.data.data[0]?.totalCount?.total_rows ?? 0)
+                : null,
+            ] as const,
+        ),
+      ),
+    ).then((results) => {
+      if (cancelled) return;
+      const counts = new Map(results);
+      setPropertyTypeOptions((prev) =>
+        prev.map((t) => {
+          const count = counts.get(t._id);
+          return count == null ? t : { ...t, propertyCount: count };
+        }),
+      );
+    });
+    return () => {
+      cancelled = true;
+    };
+  }, [purpose, propertyTypeOptions.length]);
 
   // Seeds the saved/favorited set from the backend on load, for signed-in
   // users, so the heart state persists across sessions instead of resetting
@@ -154,33 +216,17 @@ export default function MarketplaceScreen() {
     });
   }, []);
 
-  // Binds Google Places Autocomplete to the hero location input, matching
+  // Loads the Maps JS SDK for the hero location input, matching
   // homedot-mobile-app's location search (search box + "use my current
-  // location"). The JS Places widget is used instead of the REST Autocomplete
-  // API the mobile app calls directly, since that REST endpoint has no CORS
-  // headers and can't be called from a browser.
+  // location"). Predictions are fetched via AutocompleteService and
+  // rendered in our own dropdown below the input (same as
+  // ProfessionalsScreen) rather than Google's native "pac-container"
+  // widget, which can't be restyled to match the rest of this screen.
   useEffect(() => {
     let cancelled = false;
     loadGoogleMapsScript()
       .then((google) => {
-        if (cancelled) return;
-        googleMapsRef.current = google;
-        if (locationAutocompleteInitialized.current || !locationInputRef.current) return;
-        locationAutocompleteInitialized.current = true;
-
-        const autocomplete = new google.maps.places.Autocomplete(locationInputRef.current, {
-          componentRestrictions: { country: "in" },
-          fields: ["formatted_address", "address_components"],
-        });
-        autocomplete.addListener("place_changed", () => {
-          const place = autocomplete.getPlace();
-          if (!place.formatted_address) return;
-          setLocationText(place.formatted_address);
-          setAppliedLocation({
-            address: place.formatted_address,
-            city: cityFromAddressComponents(place.address_components),
-          });
-        });
+        if (!cancelled) googleMapsRef.current = google;
       })
       .catch(() => {
         // Silently degrade to a plain text field — listings still load
@@ -191,8 +237,71 @@ export default function MarketplaceScreen() {
     };
   }, []);
 
+  useEffect(() => {
+    if (!showSuggestions) return;
+    const onDocClick = (e: MouseEvent) => {
+      if (!locationFieldRef.current?.contains(e.target as Node)) setShowSuggestions(false);
+    };
+    document.addEventListener("mousedown", onDocClick);
+    return () => document.removeEventListener("mousedown", onDocClick);
+  }, [showSuggestions]);
+
+  // Fetches predictions as the user types (debounced) and renders them in
+  // our own dropdown below the input — mirrors ProfessionalsScreen's
+  // AutocompleteService-backed location search.
+  const onLocationInputChange = (value: string) => {
+    setLocationText(value);
+    setAppliedLocation(null);
+    setLocationError(false);
+    if (suggestTimer.current) clearTimeout(suggestTimer.current);
+    const q = value.trim();
+    if (q.length < 1) {
+      setSuggestions([]);
+      setShowSuggestions(false);
+      return;
+    }
+    suggestTimer.current = setTimeout(() => {
+      const google = googleMapsRef.current;
+      if (!google) return;
+      new google.maps.places.AutocompleteService().getPlacePredictions(
+        { input: q, componentRestrictions: { country: "in" } },
+        (predictions, status) => {
+          if (status === "OK" && predictions?.length) {
+            setSuggestions(predictions);
+            setShowSuggestions(true);
+            setLocationError(false);
+          } else {
+            setSuggestions([]);
+            setShowSuggestions(false);
+            setLocationError(status === "ZERO_RESULTS");
+          }
+        },
+      );
+    }, 300);
+  };
+
+  const selectSuggestion = (prediction: GoogleMapsPlacePrediction) => {
+    setShowSuggestions(false);
+    setSuggestions([]);
+    const google = googleMapsRef.current;
+    if (!google) return;
+    new google.maps.Geocoder().geocode({ placeId: prediction.place_id }, (results, status) => {
+      if (status === "OK" && results?.[0]) {
+        setLocationError(false);
+        setLocationText(results[0].formatted_address);
+        setAppliedLocation({
+          address: results[0].formatted_address,
+          city: cityFromAddressComponents(results[0].address_components),
+        });
+      } else {
+        setLocationError(true);
+      }
+    });
+  };
+
   const locateCurrentPosition = () => {
     if (typeof navigator === "undefined" || !navigator.geolocation) return;
+    setShowSuggestions(false);
     setLocatingMe(true);
     navigator.geolocation.getCurrentPosition(
       ({ coords }) => {
@@ -222,14 +331,19 @@ export default function MarketplaceScreen() {
   const clearLocation = () => {
     setLocationText("");
     setAppliedLocation(null);
+    setSuggestions([]);
+    setShowSuggestions(false);
+    setLocationError(false);
   };
 
-  // The Places widget only applies a location when a dropdown suggestion is
-  // actually clicked/selected — typing a full address and hitting "Search"
-  // (or Enter) without picking a suggestion leaves `appliedLocation` unset,
-  // so the location filter silently never reaches the API. This geocodes
-  // whatever's currently typed as a fallback so "Search" always works.
+  // Enter/Search picks the top suggestion if the dropdown is open;
+  // otherwise geocodes whatever's typed as a fallback so search still
+  // works if the user never triggered (or dismissed) the dropdown.
   const applyTypedLocation = () => {
+    if (showSuggestions && suggestions[0]) {
+      selectSuggestion(suggestions[0]);
+      return;
+    }
     const query = locationText.trim();
     if (!query) {
       clearLocation();
@@ -240,11 +354,14 @@ export default function MarketplaceScreen() {
     if (!google) return;
     new google.maps.Geocoder().geocode({ address: query }, (results, status) => {
       if (status === "OK" && results?.[0]) {
+        setLocationError(false);
         setLocationText(results[0].formatted_address);
         setAppliedLocation({
           address: results[0].formatted_address,
           city: cityFromAddressComponents(results[0].address_components),
         });
+      } else {
+        setLocationError(true);
       }
     });
   };
@@ -649,68 +766,163 @@ export default function MarketplaceScreen() {
                   </button>
                 ))}
               </div>
-              <label
-                style={{
-                  display: "flex",
-                  alignItems: "center",
-                  gap: 9,
-                  height: 50,
-                  border: `1.5px solid ${colors.line}`,
-                  borderRadius: 12,
-                  padding: "0 14px",
-                  color: colors.muted,
-                  flex: "1.4 1 200px",
-                  minWidth: 200,
-                }}
-              >
-                <Icon name="location" size={18} />
-                <input
-                  ref={locationInputRef}
-                  value={locationText}
-                  onChange={(e) => setLocationText(e.target.value)}
-                  onKeyDown={(e) => {
-                    if (e.key !== "Enter") return;
-                    e.preventDefault();
-                    // Deferred so a Places suggestion the widget itself
-                    // resolves on Enter (place_changed) applies first.
-                    setTimeout(applyTypedLocation, 0);
-                  }}
-                  placeholder="Search city, locality or project"
+              <div ref={locationFieldRef} style={{ position: "relative", flex: "1.4 1 200px", minWidth: 200 }}>
+                <label
                   style={{
-                    border: "none",
-                    outline: "none",
-                    background: "none",
-                    width: "100%",
-                    fontSize: fontSize.base - 0.5,
-                    color: colors.ink,
+                    display: "flex",
+                    alignItems: "center",
+                    gap: 9,
+                    height: 50,
+                    border: `1.5px solid ${locationError ? "#F5A0A0" : colors.line}`,
+                    borderRadius: 12,
+                    padding: "0 14px",
+                    color: colors.muted,
+                    background: locationError ? "#FFF6F6" : "transparent",
+                    boxShadow: locationError ? "0 0 0 4px rgba(220,38,38,0.07)" : "none",
+                    transition: "border-color 0.2s ease, background 0.2s ease, box-shadow 0.2s ease",
                   }}
-                />
-                {appliedLocation ? (
-                  <button
-                    type="button"
-                    onClick={clearLocation}
-                    aria-label="Clear location"
-                    style={{ display: "flex", flexShrink: 0, color: colors.muted }}
-                  >
-                    <Icon name="close" size={14} />
-                  </button>
-                ) : (
-                  <button
-                    type="button"
-                    onClick={locateCurrentPosition}
-                    disabled={locatingMe}
-                    aria-label="Use my current location"
+                >
+                  <Icon name="location" size={18} color={locationError ? "#DC2626" : undefined} />
+                  <input
+                    ref={locationInputRef}
+                    value={locationText}
+                    onChange={(e) => onLocationInputChange(e.target.value)}
+                    onFocus={() => suggestions.length > 0 && setShowSuggestions(true)}
+                    onKeyDown={(e) => {
+                      if (e.key === "Enter") {
+                        e.preventDefault();
+                        applyTypedLocation();
+                      } else if (e.key === "Escape") {
+                        setShowSuggestions(false);
+                      }
+                    }}
+                    placeholder="Search city, locality or project"
+                    autoComplete="off"
                     style={{
+                      border: "none",
+                      outline: "none",
+                      background: "none",
+                      width: "100%",
+                      fontSize: fontSize.base - 0.5,
+                      color: colors.ink,
+                    }}
+                  />
+                  {appliedLocation ? (
+                    <button
+                      type="button"
+                      onClick={clearLocation}
+                      aria-label="Clear location"
+                      style={{ display: "flex", flexShrink: 0, color: colors.muted }}
+                    >
+                      <Icon name="close" size={14} />
+                    </button>
+                  ) : (
+                    <button
+                      type="button"
+                      onClick={locateCurrentPosition}
+                      disabled={locatingMe}
+                      aria-label="Use my current location"
+                      style={{
+                        display: "flex",
+                        flexShrink: 0,
+                        color: colors.primary,
+                        opacity: locatingMe ? 0.5 : 1,
+                      }}
+                    >
+                      <Icon name="compass" size={17} />
+                    </button>
+                  )}
+                </label>
+
+                {locationError && !showSuggestions && (
+                  <div
+                    role="alert"
+                    style={{
+                      position: "absolute",
+                      top: "calc(100% + 8px)",
+                      left: 0,
+                      right: 0,
+                      minWidth: 260,
                       display: "flex",
-                      flexShrink: 0,
-                      color: colors.primary,
-                      opacity: locatingMe ? 0.5 : 1,
+                      alignItems: "flex-start",
+                      gap: 10,
+                      padding: "12px 14px",
+                      background: "linear-gradient(180deg, #FFF8F8, #FFFFFF)",
+                      border: "1px solid #FBD5D5",
+                      borderRadius: radius.md,
+                      boxShadow: "0 10px 24px rgba(220,38,38,0.12), 0 1px 2px rgba(220,38,38,0.06)",
+                      zIndex: 20,
+                      animation: "warnBannerIn 0.22s cubic-bezier(0.16, 1, 0.3, 1) both",
                     }}
                   >
-                    <Icon name="compass" size={17} />
-                  </button>
+                    <div
+                      style={{
+                        display: "flex",
+                        alignItems: "center",
+                        justifyContent: "center",
+                        width: 26,
+                        height: 26,
+                        borderRadius: "50%",
+                        background: "#FEE2E2",
+                        flexShrink: 0,
+                        marginTop: 1,
+                      }}
+                    >
+                      <Icon name="alertTriangle" size={14} color="#DC2626" />
+                    </div>
+                    <div>
+                      <p style={{ margin: 0, fontSize: fontSize.sm, fontWeight: 600, color: "#B91C1C" }}>
+                        Location not found
+                      </p>
+                      <p style={{ margin: "2px 0 0", fontSize: fontSize.xs, color: "#C0392B", lineHeight: 1.4 }}>
+                        We couldn&apos;t find that place. Try a city, locality, or landmark near you.
+                      </p>
+                    </div>
+                  </div>
                 )}
-              </label>
+
+                {showSuggestions && suggestions.length > 0 && (
+                  <div
+                    style={{
+                      position: "absolute",
+                      top: "calc(100% + 6px)",
+                      left: 0,
+                      right: 0,
+                      minWidth: 280,
+                      background: colors.card,
+                      border: `1px solid ${colors.line}`,
+                      borderRadius: radius.md,
+                      boxShadow: shadow.lg,
+                      zIndex: 20,
+                      overflow: "hidden",
+                      maxHeight: 280,
+                      overflowY: "auto",
+                    }}
+                  >
+                    {suggestions.map((s, i) => (
+                      <button
+                        key={s.place_id}
+                        type="button"
+                        onClick={() => selectSuggestion(s)}
+                        style={{
+                          display: "flex",
+                          alignItems: "center",
+                          gap: 10,
+                          width: "100%",
+                          padding: "11px 14px",
+                          textAlign: "left",
+                          fontSize: fontSize.sm + 0.5,
+                          color: colors.ink2,
+                          borderBottom: i < suggestions.length - 1 ? `1px solid ${colors.line}` : "none",
+                        }}
+                      >
+                        <Icon name="location" size={16} color={colors.accent} />
+                        <span style={{ overflow: "hidden", textOverflow: "ellipsis", whiteSpace: "nowrap" }}>{s.description}</span>
+                      </button>
+                    ))}
+                  </div>
+                )}
+              </div>
               <label
                 style={{
                   display: "flex",
@@ -1136,10 +1348,37 @@ export default function MarketplaceScreen() {
               </main>
             </div>
           </section>
+
+          <StoryBand
+            image={unsplash("1512917774080-9991f1c4c750", 1800)}
+            eyebrow="Keep exploring"
+            heading={
+              <>
+                Every property has a story.
+                <br />
+                Scroll to find yours.
+              </>
+            }
+            description="From the first photo to move-in day, HomeDot helps you find a place that truly feels like home."
+            promiseHeading="Verified listings. Real photos. Zero guesswork."
+            promiseDescription="Every listing is checked against ownership documents before it goes live. What you see in the photos is exactly what you'll find at the door."
+            checklist={["Ownership documents verified", "Photos matched to the property", "Genuine reviews from real visits"]}
+            stats={[
+              { value: "1,200+", label: "Verified listings across Kerala" },
+              { value: "100%", label: "Listings checked before going live" },
+              { value: "24 hrs", label: "Average time to first response" },
+            ]}
+            ctaLabel="Find a professional next"
+            onCta={() => router.push("/professionals")}
+          />
         </>
       )}
 
-      <SiteFooter />
+      {/* flush only when the StoryBand branch above actually rendered —
+          the detail/loading branches end on light content, where the
+          footer's default top margin is invisible against the same
+          page background rather than a stray seam. */}
+      <SiteFooter flush={!detail && !initialSlugLoading} />
     </div>
   );
 }
@@ -1203,7 +1442,7 @@ function RadioRow({
       }}
     >
       <input
-        type="radio"
+        type="checkbox"
         checked={checked}
         onChange={onChange}
         style={{ position: "absolute", opacity: 0, width: 0, height: 0 }}

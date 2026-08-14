@@ -7,7 +7,7 @@ export interface GoogleMapsMarker {
   getPosition: () => { lat: () => number; lng: () => number } | null;
   addListener: (event: string, handler: () => void) => void;
 }
-
+console.log("GOOGLE_MAPS_API_KEY________", GOOGLE_MAPS_API_KEY);
 export interface GoogleMapsAddressComponent {
   long_name: string;
   short_name: string;
@@ -59,8 +59,14 @@ export interface GoogleMapsNamespace {
       // "pac-container" popup (which can't be restyled to match the app).
       AutocompleteService: new () => {
         getPlacePredictions: (
-          request: { input: string; componentRestrictions?: { country: string } },
-          callback: (predictions: GoogleMapsPlacePrediction[] | null, status: string) => void,
+          request: {
+            input: string;
+            componentRestrictions?: { country: string };
+          },
+          callback: (
+            predictions: GoogleMapsPlacePrediction[] | null,
+            status: string,
+          ) => void,
         ) => void;
       };
     };
@@ -82,7 +88,9 @@ let scriptPromise: Promise<GoogleMapsNamespace> | null = null;
 
 export function loadGoogleMapsScript(): Promise<GoogleMapsNamespace> {
   if (typeof window === "undefined") {
-    return Promise.reject(new Error("Google Maps can only load in the browser"));
+    return Promise.reject(
+      new Error("Google Maps can only load in the browser"),
+    );
   }
   if (window.google?.maps) {
     return Promise.resolve(window.google);
@@ -93,9 +101,13 @@ export function loadGoogleMapsScript(): Promise<GoogleMapsNamespace> {
     const existing = document.getElementById("google-maps-script");
     if (existing) {
       existing.addEventListener("load", () =>
-        window.google?.maps ? resolve(window.google) : reject(new Error("Google Maps failed to load")),
+        window.google?.maps
+          ? resolve(window.google)
+          : reject(new Error("Google Maps failed to load")),
       );
-      existing.addEventListener("error", () => reject(new Error("Google Maps failed to load")));
+      existing.addEventListener("error", () =>
+        reject(new Error("Google Maps failed to load")),
+      );
       return;
     }
 
@@ -104,7 +116,9 @@ export function loadGoogleMapsScript(): Promise<GoogleMapsNamespace> {
     script.src = `https://maps.googleapis.com/maps/api/js?key=${GOOGLE_MAPS_API_KEY}&libraries=places`;
     script.async = true;
     script.onload = () =>
-      window.google?.maps ? resolve(window.google) : reject(new Error("Google Maps failed to load"));
+      window.google?.maps
+        ? resolve(window.google)
+        : reject(new Error("Google Maps failed to load"));
     script.onerror = () => reject(new Error("Google Maps failed to load"));
     document.head.appendChild(script);
   });

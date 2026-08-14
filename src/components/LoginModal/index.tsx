@@ -93,6 +93,7 @@ const LoginModal = forwardRef<LoginModalHandle, LoginModalProps>(
     const [checkError, setCheckError] = useState<string | null>(null);
     const [verifying, setVerifying] = useState(false);
     const [otpError, setOtpError] = useState<string | null>(null);
+    const [toast, setToast] = useState<string | null>(null);
     const [isNewUser, setIsNewUser] = useState(true);
     const [proLocation, setProLocation] = useState<LocationValue | null>(null);
     const otpRefs = useRef<(HTMLInputElement | null)[]>([]);
@@ -123,6 +124,12 @@ const LoginModal = forwardRef<LoginModalHandle, LoginModalProps>(
       const id = setInterval(() => setSecs((s) => (s > 0 ? s - 1 : 0)), 1000);
       return () => clearInterval(id);
     }, [step]);
+
+    useEffect(() => {
+      if (!toast) return;
+      const t = setTimeout(() => setToast(null), 3000);
+      return () => clearTimeout(t);
+    }, [toast]);
 
     const reset = useCallback(() => {
       setStep("method");
@@ -222,6 +229,7 @@ const LoginModal = forwardRef<LoginModalHandle, LoginModalProps>(
       );
       setSecs(120);
       setStep("otp");
+      setToast("OTP sent successfully");
       setTimeout(() => otpRefs.current[0]?.focus(), 380);
     };
 
@@ -290,7 +298,9 @@ const LoginModal = forwardRef<LoginModalHandle, LoginModalProps>(
         return;
       }
       const role: AccountRole =
-        record?.userType && record.userType !== "normal-user" ? "professional" : "user";
+        record?.userType && record.userType !== "normal-user"
+          ? "professional"
+          : "user";
       finishSuccess(role);
     };
 
@@ -315,7 +325,10 @@ const LoginModal = forwardRef<LoginModalHandle, LoginModalProps>(
         );
         return;
       }
+      setOtp(["", "", "", "", "", ""]);
+      otpRefs.current[0]?.focus();
       setSecs(120);
+      setToast("OTP sent successfully");
     };
 
     // Mirrors homedot-mobile-app's verifyOtp branch (LoginOrRegisterUsingNumberScreen.js):
@@ -336,7 +349,9 @@ const LoginModal = forwardRef<LoginModalHandle, LoginModalProps>(
       }, 1500);
     };
 
-    const submitUserForm = async (values: UserFormValues): Promise<string | null> => {
+    const submitUserForm = async (
+      values: UserFormValues,
+    ): Promise<string | null> => {
       const res = await AuthService.userSignUp({
         name: values.name,
         email: values.email,
@@ -347,15 +362,23 @@ const LoginModal = forwardRef<LoginModalHandle, LoginModalProps>(
         longitude: values.location.lng,
       });
       if (!res.success || !res.data?.status || res.data.data.length === 0) {
-        return res.data?.message || res.message || "Something went wrong. Please try again.";
+        return (
+          res.data?.message ||
+          res.message ||
+          "Something went wrong. Please try again."
+        );
       }
       const record = res.data.data[0];
-      useAuthStore.getState().setTokens({ token: record.token, refreshToken: record.reToken });
+      useAuthStore
+        .getState()
+        .setTokens({ token: record.token, refreshToken: record.reToken });
       finishSuccess("user");
       return null;
     };
 
-    const submitProForm = async (values: ProFormValues): Promise<string | null> => {
+    const submitProForm = async (
+      values: ProFormValues,
+    ): Promise<string | null> => {
       const res = await AuthService.professionalSignUp({
         name: values.name,
         email: values.email,
@@ -372,10 +395,16 @@ const LoginModal = forwardRef<LoginModalHandle, LoginModalProps>(
         description: values.description,
       });
       if (!res.success || !res.data?.status || res.data.data.length === 0) {
-        return res.data?.message || res.message || "Something went wrong. Please try again.";
+        return (
+          res.data?.message ||
+          res.message ||
+          "Something went wrong. Please try again."
+        );
       }
       const record = res.data.data[0];
-      useAuthStore.getState().setTokens({ token: record.token, refreshToken: record.reToken });
+      useAuthStore
+        .getState()
+        .setTokens({ token: record.token, refreshToken: record.reToken });
       finishSuccess("professional");
       return null;
     };
@@ -603,6 +632,45 @@ const LoginModal = forwardRef<LoginModalHandle, LoginModalProps>(
             </div>
           </div>
         )}
+
+        {toast && (
+          <div
+            style={{
+              position: "fixed",
+              bottom: 24,
+              left: "50%",
+              transform: "translateX(-50%)",
+              zIndex: 1100,
+              display: "flex",
+              alignItems: "center",
+              gap: 10,
+              background: colors.ink,
+              color: colors.white,
+              padding: "10px 20px 10px 12px",
+              borderRadius: radius.full,
+              fontSize: fontSize.sm,
+              fontWeight: 600,
+              boxShadow: shadow.lg,
+              animation: "pdToastIn 0.25s cubic-bezier(0.2, 0.8, 0.3, 1.2) both",
+            }}
+          >
+            <span
+              style={{
+                width: 22,
+                height: 22,
+                borderRadius: "50%",
+                background: "rgba(52,211,153,0.2)",
+                color: "#34D399",
+                display: "grid",
+                placeItems: "center",
+                flexShrink: 0,
+              }}
+            >
+              <Icon name="check" size={13} strokeWidth={3} />
+            </span>
+            {toast}
+          </div>
+        )}
       </>
     );
   },
@@ -637,7 +705,7 @@ function BrandPanel() {
       <span
         style={{
           position: "relative",
-          fontFamily: "var(--font-display)",
+          fontFamily: "var(--font-logo)",
           fontWeight: 700,
           fontSize: fontSize.xl,
           letterSpacing: "-0.03em",
@@ -646,19 +714,8 @@ function BrandPanel() {
           gap: 2,
         }}
       >
-        <span
-          style={{
-            width: 9,
-            height: 9,
-            borderRadius: "50%",
-            background: colors.accent,
-            marginRight: 8,
-            boxShadow: "0 0 0 4px rgba(41,151,255,0.22)",
-          }}
-        />
-        Home<span>Dot</span>
+        HOME.
       </span>
-
       <div style={{ position: "relative" }}>
         <h2
           style={{

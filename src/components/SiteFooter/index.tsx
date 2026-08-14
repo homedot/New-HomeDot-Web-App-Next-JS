@@ -48,13 +48,18 @@ const linkStyle: CSSProperties = {
   display: "block",
 };
 
-export default function SiteFooter() {
+export default function SiteFooter({ flush = false }: { flush?: boolean } = {}) {
   return (
     <footer
       style={{
         background: colors.ink,
         color: colors.white,
-        marginTop: spacing.xl,
+        // The default gap reads as intentional breathing room over the
+        // page's light background — but it shows as a stray light-colored
+        // seam when the section right above (e.g. StoryBand) is already
+        // dark, so callers with a dark section immediately before the
+        // footer pass `flush` to remove it.
+        marginTop: flush ? 0 : spacing.xl,
       }}
     >
       <div

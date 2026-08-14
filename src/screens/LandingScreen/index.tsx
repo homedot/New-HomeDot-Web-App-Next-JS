@@ -4,7 +4,9 @@ import {
   useEffect,
   useRef,
   useState,
+  type ChangeEvent,
   type CSSProperties,
+  type FormEvent,
   type ReactNode,
   type RefObject,
 } from "react";
@@ -19,8 +21,6 @@ import ProCard, { type Professional } from "@/components/ProCard";
 import PhoneFrame, { PhoneChip } from "@/components/PhoneFrame";
 import StoreButtons from "@/components/StoreButtons";
 import Cursor from "@/components/Cursor";
-import AmbientBackground from "@/components/AmbientBackground";
-import HeroScene from "@/components/HeroScene";
 import HeroPhotoBackdrop from "@/components/HeroPhotoBackdrop";
 import Reveal from "@/components/Reveal";
 import ScrollProgress from "@/components/ScrollProgress";
@@ -62,7 +62,47 @@ const wrap: CSSProperties = {
 // Same support number/email as ProfileScreen's HelpPanel and the nav's
 // ContactModal (mirrors homedot-mobile-app's HelpScreen).
 const CONTACT_PHONE = "7012303017";
-const CONTACT_EMAIL = "mail@homedotapp.com";
+const CONTACT_ADDRESS =
+  "14/77 Recca Valley Road, Mavelipuram, Kakkanad, Kochi, Kerala 682030";
+const CONTACT_HOURS = [
+  "Monday - Friday: 9:00 AM - 6:00 PM",
+  "Saturday: 10:00 AM - 4:00 PM",
+];
+
+const contactInputStyle: CSSProperties = {
+  width: "100%",
+  height: 50,
+  border: `1.5px solid ${colors.line}`,
+  borderRadius: radius.md,
+  padding: "0 16px",
+  fontSize: fontSize.md - 1,
+  color: colors.ink,
+  background: colors.white,
+  outline: "none",
+};
+
+const contactSubmitStyle: CSSProperties = {
+  display: "inline-flex",
+  alignItems: "center",
+  justifyContent: "center",
+  gap: 8,
+  height: 52,
+  borderRadius: radius.full,
+  background: colors.primary,
+  color: colors.white,
+  fontWeight: 600,
+  fontSize: fontSize.md - 1,
+  marginTop: spacing.sm,
+};
+
+const contactSocialIconStyle: CSSProperties = {
+  width: 40,
+  height: 40,
+  borderRadius: "50%",
+  background: "rgba(255,255,255,0.14)",
+  display: "grid",
+  placeItems: "center",
+};
 
 export default function LandingScreen() {
   const loginModalRef = useRef<LoginModalHandle>(null);
@@ -82,13 +122,13 @@ export default function LandingScreen() {
         zIndex: 0,
       }}
     >
-      <AmbientBackground />
       <ScrollProgress />
       <Cursor />
       <SiteNav />
       <LoginModal ref={loginModalRef} hideTrigger />
       <Hero />
       <MarqueeStrip />
+      <FeatureShowcase />
       <FeaturedProperties />
       <Categories />
       <PropertyCategories />
@@ -119,10 +159,9 @@ function Hero() {
         style={{
           position: "absolute",
           inset: 0,
-          background: `linear-gradient(180deg, rgba(10,20,34,0.55) 0%, rgba(10,20,34,0.72) 100%), radial-gradient(120% 90% at 85% 10%, ${colors.primaryDeep} 0%, transparent 55%), radial-gradient(80% 70% at 10% 100%, rgba(41,151,255,0.3) 0%, transparent 50%)`,
+          background: `linear-gradient(180deg, rgba(10,20,34,0.42) 0%, rgba(10,20,34,0.64) 100%), radial-gradient(120% 90% at 85% 10%, ${colors.primaryDeep} 0%, transparent 55%), radial-gradient(80% 70% at 10% 100%, rgba(41,151,255,0.3) 0%, transparent 50%)`,
         }}
       />
-      <HeroScene />
       <div
         className="grid grid-cols-1 lg:grid-cols-[1fr_340px]"
         style={{
@@ -373,6 +412,283 @@ function MarqueeStrip() {
     </div>
   );
 }
+
+const FEATURES: {
+  id: string;
+  icon: IconName;
+  tabLabel: string;
+  title: string;
+  description: string;
+  image: string;
+  cta: string;
+  href: string;
+}[] = [
+  {
+    id: "browse",
+    icon: "house",
+    tabLabel: "Browse properties",
+    title: "Find your next home",
+    description:
+      "240+ verified homes, villas and plots across Kerala — filtered by budget, location and type.",
+    image:
+      "https://images.unsplash.com/photo-1522708323590-d24dbb6b0267?auto=format&fit=crop&w=1600&q=80",
+    cta: "Explore listings",
+    href: "/marketplace",
+  },
+  {
+    id: "hire",
+    icon: "hardhat",
+    tabLabel: "Hire professionals",
+    title: "Work with verified experts",
+    description:
+      "180+ architects, interior designers and contractors — manually checked, with real portfolios.",
+    image:
+      "https://images.unsplash.com/photo-1487958449943-2429e8be8625?auto=format&fit=crop&w=1600&q=80",
+    cta: "Meet the pros",
+    href: "/professionals",
+  },
+  {
+    id: "design",
+    icon: "ruler",
+    tabLabel: "Design & build",
+    title: "Plan it, then build it",
+    description:
+      "Get matched with the right specialists for every stage — from blueprint to handover.",
+    image:
+      "https://images.unsplash.com/photo-1503387762-592deb58ef4e?auto=format&fit=crop&w=1600&q=80",
+    cta: "See categories",
+    href: "/professionals",
+  },
+  {
+    id: "insights",
+    icon: "book",
+    tabLabel: "Read insights",
+    title: "Learn before you leap",
+    description:
+      "Guides, checklists and stories from real homeowners and professionals on HomeDot.",
+    image:
+      "https://images.unsplash.com/photo-1618221195710-dd6b41faaea6?auto=format&fit=crop&w=1600&q=80",
+    cta: "Browse the blog",
+    href: "/blog",
+  },
+  {
+    id: "app",
+    icon: "sparkle",
+    tabLabel: "Get the app",
+    title: "Your whole journey, in your pocket",
+    description:
+      "Search, chat and book — track every project from one beautiful app.",
+    image:
+      "https://images.unsplash.com/photo-1600585154340-be6161a56a0c?auto=format&fit=crop&w=1600&q=80",
+    cta: "Get the app",
+    href: "#get-app",
+  },
+];
+
+const FEATURE_ROTATE_MS = 5000;
+
+/** Tabbed, auto-rotating photo showcase — one tab per core HomeDot feature.
+ * Sits right under the Hero as a menu of "what's inside", crossfading a large
+ * photo behind each tab's title/description so the page invites exploration
+ * beyond just the Hero (mirrors HeroPhotoBackdrop's crossfade convention, but
+ * driven by tab state instead of a fixed CSS keyframe loop). Auto-advances on
+ * a timer that resets whenever the visitor picks a tab themselves, and stops
+ * entirely under prefers-reduced-motion. */
+function FeatureShowcase() {
+  const [active, setActive] = useState(0);
+  const timerRef = useRef<ReturnType<typeof setInterval> | null>(null);
+
+  const startTimer = () => {
+    if (timerRef.current) clearInterval(timerRef.current);
+    if (window.matchMedia("(prefers-reduced-motion: reduce)").matches) return;
+    timerRef.current = setInterval(() => {
+      setActive((i) => (i + 1) % FEATURES.length);
+    }, FEATURE_ROTATE_MS);
+  };
+
+  useEffect(() => {
+    startTimer();
+    return () => {
+      if (timerRef.current) clearInterval(timerRef.current);
+    };
+  }, []);
+
+  const selectTab = (i: number) => {
+    setActive(i);
+    startTimer();
+  };
+
+  const current = FEATURES[active];
+
+  return (
+    <section style={{ ...wrap, padding: `${spacing.xxl}px ${spacing.xl}px` }}>
+      <ScrollScrub className="scrub-rise">
+        <SectionHead
+          center
+          eyebrow="Explore HomeDot"
+          title="One platform, every step of your home journey"
+          subtitle="From your first search to move-in day — see what's inside."
+        />
+      </ScrollScrub>
+
+      <Reveal>
+        <div
+          className="flex flex-wrap justify-center"
+          style={{ gap: spacing.sm, marginBottom: spacing.xl }}
+        >
+          {FEATURES.map((f, i) => (
+            <button
+              key={f.id}
+              onClick={() => selectTab(i)}
+              style={{
+                display: "inline-flex",
+                alignItems: "center",
+                gap: 8,
+                padding: "10px 18px",
+                borderRadius: radius.full,
+                fontSize: fontSize.sm,
+                fontWeight: 600,
+                whiteSpace: "nowrap",
+                background: i === active ? colors.primary : colors.card,
+                color: i === active ? colors.white : colors.ink2,
+                boxShadow: i === active ? "none" : `inset 0 0 0 1.5px ${colors.line}`,
+                transition: "background .2s ease, color .2s ease",
+              }}
+            >
+              <Icon
+                name={f.icon}
+                size={15}
+                color={i === active ? colors.white : colors.muted}
+              />
+              {f.tabLabel}
+            </button>
+          ))}
+        </div>
+
+        <div
+          style={{
+            position: "relative",
+            overflow: "hidden",
+            borderRadius: radius.lg,
+            aspectRatio: "16/8",
+            boxShadow: shadow.lg,
+          }}
+        >
+          {FEATURES.map((f, i) => (
+            // eslint-disable-next-line @next/next/no-img-element
+            <img
+              key={f.id}
+              src={f.image}
+              alt=""
+              style={{
+                position: "absolute",
+                inset: 0,
+                width: "100%",
+                height: "100%",
+                objectFit: "cover",
+                opacity: i === active ? 1 : 0,
+                transform: i === active ? "scale(1.06)" : "scale(1)",
+                transition:
+                  "opacity 900ms ease, transform 6000ms cubic-bezier(0.16, 1, 0.3, 1)",
+              }}
+            />
+          ))}
+          <div
+            style={{
+              position: "absolute",
+              inset: 0,
+              background:
+                "linear-gradient(180deg, rgba(10,20,34,0.05) 30%, rgba(10,20,34,0.82) 100%)",
+            }}
+          />
+          <div
+            style={{
+              position: "absolute",
+              left: 0,
+              right: 0,
+              bottom: 0,
+              padding: "clamp(22px, 4vw, 44px)",
+              display: "flex",
+              alignItems: "flex-end",
+              justifyContent: "space-between",
+              gap: spacing.xl,
+              flexWrap: "wrap",
+            }}
+          >
+            <div style={{ maxWidth: 520 }}>
+              <span
+                style={{
+                  width: 42,
+                  height: 42,
+                  borderRadius: 12,
+                  background: "rgba(255,255,255,0.16)",
+                  display: "grid",
+                  placeItems: "center",
+                  marginBottom: spacing.md,
+                }}
+              >
+                <Icon name={current.icon} size={20} color={colors.white} />
+              </span>
+              <h3
+                style={{
+                  color: colors.white,
+                  fontFamily: "var(--font-display)",
+                  fontSize: "clamp(21px, 2.6vw, 30px)",
+                  fontWeight: 600,
+                  marginBottom: spacing.sm,
+                }}
+              >
+                {current.title}
+              </h3>
+              <p
+                style={{
+                  color: "rgba(255,255,255,0.82)",
+                  fontSize: fontSize.md - 1,
+                  lineHeight: 1.55,
+                }}
+              >
+                {current.description}
+              </p>
+            </div>
+            {current.href.startsWith("#") ? (
+              <a
+                href={current.href}
+                onClick={(e) => {
+                  e.preventDefault();
+                  document
+                    .getElementById(current.href.slice(1))
+                    ?.scrollIntoView({ behavior: "smooth" });
+                }}
+                style={featureCtaStyle}
+              >
+                {current.cta} <Icon name="arrow" size={16} color={colors.primary} />
+              </a>
+            ) : (
+              <Link href={current.href} style={featureCtaStyle}>
+                {current.cta} <Icon name="arrow" size={16} color={colors.primary} />
+              </Link>
+            )}
+          </div>
+        </div>
+      </Reveal>
+    </section>
+  );
+}
+
+const featureCtaStyle: CSSProperties = {
+  display: "inline-flex",
+  alignItems: "center",
+  gap: 8,
+  flexShrink: 0,
+  background: colors.white,
+  color: colors.primary,
+  fontWeight: 600,
+  fontSize: fontSize.sm + 0.5,
+  padding: "12px 20px",
+  borderRadius: radius.full,
+  textDecoration: "none",
+  whiteSpace: "nowrap",
+};
 
 function HeroSegment({
   icon,
@@ -1318,7 +1634,7 @@ function StoryShowcase() {
                 value: "98%",
                 label: "Professionals pass ID & license checks",
               },
-              { value: "< 24 hrs", label: "Average first response time" },
+              { value: "24 hrs", label: "Average first response time" },
             ].map((stat, i, arr) => (
               <div
                 key={stat.value}
@@ -1357,7 +1673,10 @@ function StoryShowcase() {
           </div>
         </Reveal>
 
-        {/* Chapter 3 — app promo, the "wow" closer */}
+        {/* Chapter 3 — app promo, the "wow" closer. Wrapped in an id so
+            FeatureShowcase's "Get the app" tab can smooth-scroll straight
+            here instead of duplicating the store badges up top. */}
+        <div id="get-app" />
         <Reveal
           className="grid grid-cols-1 lg:grid-cols-2"
           style={{
@@ -1915,148 +2234,307 @@ function Testimonials() {
   );
 }
 
+type ContactField = "name" | "email" | "message";
+type ContactFormValues = Record<ContactField, string>;
+
+const EMPTY_CONTACT_FORM: ContactFormValues = { name: "", email: "", message: "" };
+
 function ContactSection() {
+  const [form, setForm] = useState<ContactFormValues>(EMPTY_CONTACT_FORM);
+  const [errors, setErrors] = useState<Partial<Record<ContactField, string>>>({});
+  const [submitting, setSubmitting] = useState(false);
+  const [result, setResult] = useState<{ ok: boolean; text: string } | null>(null);
+
+  const updateField =
+    (field: ContactField) =>
+    (e: ChangeEvent<HTMLInputElement | HTMLTextAreaElement>) => {
+      setForm((f) => ({ ...f, [field]: e.target.value }));
+    };
+
+  const validate = (): boolean => {
+    const next: Partial<Record<ContactField, string>> = {};
+    if (!form.name.trim()) next.name = "Please enter your name.";
+    if (!/\S+@\S+\.\S+/.test(form.email.trim()))
+      next.email = "Enter a valid email address.";
+    if (!form.message.trim()) next.message = "Please write a message.";
+    setErrors(next);
+    return Object.keys(next).length === 0;
+  };
+
+  const handleSubmit = async (e: FormEvent) => {
+    e.preventDefault();
+    if (submitting) return;
+    setResult(null);
+    if (!validate()) return;
+
+    setSubmitting(true);
+    const res = await LandingScreenService.submitContact({
+      name: form.name.trim(),
+      email: form.email.trim(),
+      message: form.message.trim(),
+    });
+    setSubmitting(false);
+
+    if (res.success) {
+      setResult({
+        ok: true,
+        text: "Thanks — we've received your message and will get back to you soon.",
+      });
+      setForm(EMPTY_CONTACT_FORM);
+      setErrors({});
+    } else {
+      setResult({
+        ok: false,
+        text: res.message || "Something went wrong. Please try again.",
+      });
+    }
+  };
+
   return (
     <section
       style={{ ...wrap, padding: `0 ${spacing.xl}px ${spacing.huge}px` }}
     >
+      <ScrollScrub className="scrub-rise">
+        <SectionHead
+          center
+          eyebrow="Contact us"
+          title="Get in touch"
+          subtitle="Ready to transform your space? Let's discuss your project and bring your vision to life."
+        />
+      </ScrollScrub>
       <Reveal
-        className="grid grid-cols-1 lg:grid-cols-[1.1fr_1fr]"
+        className="grid grid-cols-1 lg:grid-cols-2"
         style={{
-          position: "relative",
-          overflow: "hidden",
-          background: `linear-gradient(135deg, ${colors.primaryDeep}, ${colors.primary})`,
           borderRadius: radius.lg,
-          padding: "clamp(28px, 4vw, 52px)",
-          gap: spacing.xxl,
-          alignItems: "center",
+          overflow: "hidden",
+          boxShadow: shadow.lg,
         }}
       >
-        <div>
-          <span
+        <form
+          onSubmit={handleSubmit}
+          style={{
+            background: colors.card,
+            padding: "clamp(28px, 4vw, 48px)",
+            display: "flex",
+            flexDirection: "column",
+            gap: spacing.lg,
+          }}
+        >
+          <h3
             style={{
-              display: "inline-flex",
-              alignItems: "center",
-              gap: 7,
-              fontSize: fontSize.sm,
-              fontWeight: 600,
-              color: colors.white,
-              background: "rgba(255,255,255,0.16)",
-              padding: "6px 13px",
-              borderRadius: radius.full,
-            }}
-          >
-            <Icon name="chat" size={15} /> Get in touch
-          </span>
-          <h2
-            style={{
-              color: colors.white,
               fontFamily: "var(--font-display)",
-              fontSize: "clamp(24px, 3vw, 34px)",
+              fontSize: fontSize.xl,
               fontWeight: 600,
-              margin: `${spacing.lg}px 0 ${spacing.md}px`,
             }}
           >
-            We&apos;re here to help, every step of the way.
-          </h2>
-          <p
-            style={{
-              color: "rgba(255,255,255,0.78)",
-              fontSize: fontSize.md,
-              lineHeight: 1.6,
-              maxWidth: 460,
-            }}
+            Let&apos;s talk with us!
+          </h3>
+
+          <ContactFieldRow label="Full name" error={errors.name}>
+            <input
+              type="text"
+              placeholder="John Doe"
+              value={form.name}
+              onChange={updateField("name")}
+              style={contactInputStyle}
+            />
+          </ContactFieldRow>
+
+          <ContactFieldRow label="Email address" error={errors.email}>
+            <input
+              type="email"
+              inputMode="email"
+              placeholder="john@example.com"
+              value={form.email}
+              onChange={updateField("email")}
+              style={contactInputStyle}
+            />
+          </ContactFieldRow>
+
+          <ContactFieldRow label="Your message" error={errors.message}>
+            <textarea
+              placeholder="Write your message"
+              value={form.message}
+              onChange={updateField("message")}
+              rows={5}
+              style={{
+                ...contactInputStyle,
+                height: "auto",
+                padding: "14px 16px",
+                resize: "vertical",
+              }}
+            />
+          </ContactFieldRow>
+
+          {result && (
+            <p
+              style={{
+                fontSize: fontSize.sm,
+                fontWeight: 600,
+                color: result.ok ? "#1F8A5B" : "#C0392B",
+              }}
+            >
+              {result.text}
+            </p>
+          )}
+
+          <button
+            type="submit"
+            disabled={submitting}
+            style={{ ...contactSubmitStyle, opacity: submitting ? 0.6 : 1 }}
           >
-            Questions about a listing, a professional, or your account? Call or
-            email our support team — we typically respond within 24 hours on
-            business days.
-          </p>
-        </div>
+            {submitting ? "Sending…" : "Send message"}
+            {!submitting && <Icon name="arrow" size={18} color={colors.white} />}
+          </button>
+        </form>
 
         <div
-          className="grid grid-cols-1 sm:grid-cols-2"
-          style={{ gap: spacing.md, position: "relative", zIndex: 1 }}
+          style={{
+            background: `linear-gradient(135deg, ${colors.primaryDeep}, ${colors.primary})`,
+            color: colors.white,
+            padding: "clamp(28px, 4vw, 48px)",
+            display: "flex",
+            flexDirection: "column",
+            justifyContent: "space-between",
+            gap: spacing.xxl,
+          }}
         >
-          <ContactCard
-            icon="phone"
-            label="Call us"
-            value={`+91 ${CONTACT_PHONE.slice(0, 5)} ${CONTACT_PHONE.slice(5)}`}
-            href={`tel:${CONTACT_PHONE}`}
-          />
-          <ContactCard
-            icon="mail"
-            label="Email us"
-            value={CONTACT_EMAIL}
-            href={`mailto:${CONTACT_EMAIL}`}
-          />
+          <div>
+            <h3
+              style={{
+                fontFamily: "var(--font-display)",
+                fontSize: fontSize.xl,
+                fontWeight: 600,
+                marginBottom: spacing.xl,
+              }}
+            >
+              Connect with us
+            </h3>
+            <div
+              style={{ display: "flex", flexDirection: "column", gap: spacing.xl }}
+            >
+              <ConnectRow
+                icon="location"
+                label="Visit our office"
+                lines={[CONTACT_ADDRESS]}
+              />
+              <ConnectRow
+                icon="phone"
+                label="Call us"
+                lines={[`+91 - ${CONTACT_PHONE}`]}
+                href={`tel:${CONTACT_PHONE}`}
+              />
+              <ConnectRow icon="clock" label="Office hours" lines={CONTACT_HOURS} />
+            </div>
+          </div>
+          <div style={{ display: "flex", gap: spacing.md }}>
+            {(["facebook", "twitter", "instagram", "linkedin"] as const).map(
+              (icon) => (
+                <span key={icon} style={contactSocialIconStyle}>
+                  <Icon name={icon} size={18} color={colors.white} />
+                </span>
+              ),
+            )}
+          </div>
         </div>
       </Reveal>
     </section>
   );
 }
 
-function ContactCard({
+function ContactFieldRow({
+  label,
+  error,
+  children,
+}: {
+  label: string;
+  error?: string;
+  children: ReactNode;
+}) {
+  return (
+    <label style={{ display: "flex", flexDirection: "column", gap: 6 }}>
+      <span
+        style={{
+          fontSize: fontSize.xs,
+          fontWeight: 700,
+          letterSpacing: "0.06em",
+          textTransform: "uppercase",
+          color: colors.muted,
+        }}
+      >
+        {label}
+      </span>
+      {children}
+      {error && (
+        <span style={{ fontSize: fontSize.xs, color: "#C0392B" }}>{error}</span>
+      )}
+    </label>
+  );
+}
+
+function ConnectRow({
   icon,
   label,
-  value,
+  lines,
   href,
 }: {
   icon: IconName;
   label: string;
-  value: string;
-  href: string;
+  lines: string[];
+  href?: string;
 }) {
-  return (
-    <a
-      href={href}
-      className="card-hover"
-      style={{
-        display: "flex",
-        flexDirection: "column",
-        gap: spacing.md,
-        background: "rgba(255,255,255,0.07)",
-        border: "1px solid rgba(255,255,255,0.14)",
-        borderRadius: radius.md,
-        padding: "20px 18px",
-        color: colors.white,
-        textDecoration: "none",
-      }}
-    >
+  const rowStyle: CSSProperties = {
+    display: "flex",
+    alignItems: "flex-start",
+    gap: spacing.md,
+  };
+  const content = (
+    <>
       <span
         style={{
           width: 44,
           height: 44,
           borderRadius: 13,
-          background: colors.accent,
+          background: "rgba(255,255,255,0.14)",
           display: "grid",
           placeItems: "center",
           flexShrink: 0,
         }}
       >
-        <Icon name={icon} size={20} strokeWidth={2} color={colors.white} />
+        <Icon name={icon} size={19} color={colors.white} />
       </span>
       <span>
         <b
           style={{
             display: "block",
-            fontFamily: "var(--font-display)",
             fontSize: fontSize.md - 1,
-            fontWeight: 600,
+            fontWeight: 700,
+            marginBottom: 3,
           }}
         >
           {label}
         </b>
-        <em
-          style={{
-            fontStyle: "normal",
-            fontSize: fontSize.sm,
-            color: "rgba(255,255,255,0.72)",
-            wordBreak: "break-word",
-          }}
-        >
-          {value}
-        </em>
+        {lines.map((line) => (
+          <em
+            key={line}
+            style={{
+              fontStyle: "normal",
+              display: "block",
+              fontSize: fontSize.sm,
+              color: "rgba(255,255,255,0.75)",
+            }}
+          >
+            {line}
+          </em>
+        ))}
       </span>
+    </>
+  );
+  return href ? (
+    <a href={href} style={{ ...rowStyle, color: "inherit", textDecoration: "none" }}>
+      {content}
     </a>
+  ) : (
+    <div style={rowStyle}>{content}</div>
   );
 }

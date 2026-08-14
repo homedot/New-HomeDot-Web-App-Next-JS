@@ -12,6 +12,7 @@ import ScrollProgress from "@/components/ScrollProgress";
 import Cursor from "@/components/Cursor";
 import Reveal from "@/components/Reveal";
 import LoginModal, { type LoginModalHandle } from "@/components/LoginModal";
+import AvatarLightbox from "@/components/AvatarLightbox";
 import EmptyState from "@/components/EmptyState";
 import ProDashboardSidebar from "@/components/ProDashboardSidebar";
 import ProDashboardSkeleton from "@/components/ProDashboardSkeleton";
@@ -70,6 +71,8 @@ export default function ProfessionalProfileScreen() {
   const [location, setLocation] = useState<LocationValue | null>(null);
 
   const [uploadingAvatar, setUploadingAvatar] = useState(false);
+  const [avatarExpanded, setAvatarExpanded] = useState(false);
+  const [removingAvatar, setRemovingAvatar] = useState(false);
   const avatarInputRef = useRef<HTMLInputElement>(null);
   const [managingSkills, setManagingSkills] = useState(false);
   const [savingSkills, setSavingSkills] = useState(false);
@@ -177,7 +180,7 @@ export default function ProfessionalProfileScreen() {
       return;
     }
     setEditing(false);
-    setToast({ text: "Profile updated.", tone: "success" });
+    setToast({ text: "Profile updated successfully.", tone: "success" });
     flashSaved("details");
     refreshHome();
   };
@@ -190,10 +193,26 @@ export default function ProfessionalProfileScreen() {
     const res = await ProfessionalDashboardService.updateProfileImage(file);
     setUploadingAvatar(false);
     if (res.success) {
-      setToast({ text: "Photo updated.", tone: "success" });
+      setToast({ text: "Profile picture updated successfully.", tone: "success" });
       refreshHome();
     } else {
       setToast({ text: res.data?.message || res.message || "Couldn't update your photo.", tone: "error" });
+    }
+  };
+
+  // Shared auth endpoint (ProfileService, not ProfessionalDashboardService)
+  // — there's only one photo on the account regardless of which side
+  // removes it, unlike the upload endpoints above which are split per role.
+  const onRemoveAvatar = async () => {
+    setRemovingAvatar(true);
+    const res = await ProfileService.removeProfileImage();
+    setRemovingAvatar(false);
+    if (res.success) {
+      setToast({ text: "Profile picture removed.", tone: "success" });
+      setAvatarExpanded(false);
+      refreshHome();
+    } else {
+      setToast({ text: res.data?.message || res.message || "Couldn't remove your photo.", tone: "error" });
     }
   };
 
@@ -254,7 +273,7 @@ export default function ProfessionalProfileScreen() {
       const pair = res.data?.data?.[0];
       if (pair) useAuthStore.getState().setTokens({ token: pair.token, refreshToken: pair.reToken });
       setActiveRole("user");
-      router.push("/profile");
+      router.push("/");
       return true;
     });
     setSwitchingRole(false);
@@ -282,6 +301,15 @@ export default function ProfessionalProfileScreen() {
       {/* No SiteNav/SiteFooter — same self-contained professional area as
           ProfessionalDashboardScreen (see its own comment on this). */}
       <LoginModal ref={loginModalRef} hideTrigger />
+      {avatarExpanded && home?.profileImage && (
+        <AvatarLightbox
+          src={home.profileImage}
+          alt={home.name || "Profile photo"}
+          onClose={() => setAvatarExpanded(false)}
+          onRemove={onRemoveAvatar}
+          removing={removingAvatar}
+        />
+      )}
 
       {signedIn && (
         <ProDashboardHero minHeight="clamp(220px, 22vw, 280px)">
@@ -348,7 +376,12 @@ export default function ProfessionalProfileScreen() {
                 <div style={{ padding: "0 clamp(20px, 3vw, 32px) 24px" }}>
                   <div style={{ position: "relative", paddingTop: 56 }}>
                     <span style={{ position: "absolute", top: -48, left: 0 }}>
-                      <span
+                      <button
+                        type="button"
+                        className="avatar-photo-btn"
+                        aria-label={home.profileImage ? "View profile photo" : "Profile photo"}
+                        onClick={() => home.profileImage && setAvatarExpanded(true)}
+                        disabled={!home.profileImage}
                         style={{
                           width: 96,
                           height: 96,
@@ -358,15 +391,26 @@ export default function ProfessionalProfileScreen() {
                           background: colors.primarySoft,
                           display: "grid",
                           placeItems: "center",
+                          padding: 0,
+                          position: "relative",
+                          cursor: home.profileImage ? "zoom-in" : "default",
                         }}
                       >
                         {home.profileImage ? (
-                          // eslint-disable-next-line @next/next/no-img-element
-                          <img src={home.profileImage} alt="" style={{ width: "100%", height: "100%", objectFit: "cover" }} />
+                          <>
+                            {/* eslint-disable-next-line @next/next/no-img-element */}
+                            <img src={home.profileImage} alt="" style={{ width: "100%", height: "100%", objectFit: "cover", display: "block" }} />
+                            <span
+                              className="avatar-photo-hint"
+                              style={{ position: "absolute", inset: 0, background: "rgba(16,28,48,0.35)", display: "grid", placeItems: "center" }}
+                            >
+                              <Icon name="search" size={18} color={colors.white} />
+                            </span>
+                          </>
                         ) : (
                           <Icon name="user" size={38} color={colors.primary} />
                         )}
-                      </span>
+                      </button>
                       <button
                         aria-label="Change profile photo"
                         onClick={() => avatarInputRef.current?.click()}
@@ -665,6 +709,7 @@ export default function ProfessionalProfileScreen() {
           }}
         >
           <span
+            className="toast-badge-pop"
             style={{
               width: 20,
               height: 20,

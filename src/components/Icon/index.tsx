@@ -44,7 +44,13 @@ type IconName =
   | "logout"
   | "edit"
   | "trash"
-  | "settings";
+  | "settings"
+  | "facebook"
+  | "twitter"
+  | "instagram"
+  | "linkedin"
+  | "whatsapp"
+  | "alertTriangle";
 
 const PATHS: Record<IconName, React.ReactNode> = {
   search: (
@@ -281,6 +287,43 @@ const PATHS: Record<IconName, React.ReactNode> = {
     <>
       <circle cx="12" cy="12" r="2.6" />
       <path d="M12 4v2.4M12 17.6V20M20 12h-2.4M6.4 12H4M17.3 6.7l-1.7 1.7M8.4 15.6l-1.7 1.7M17.3 17.3l-1.7-1.7M8.4 8.4 6.7 6.7" />
+    </>
+  ),
+  facebook: (
+    <>
+      <rect x="4" y="4" width="16" height="16" rx="4" />
+      <path d="M13.5 20v-6.5H16l.4-3h-2.9V8.3c0-.9.3-1.5 1.6-1.5H16V4.2A14 14 0 0 0 14 4c-2.2 0-3.7 1.3-3.7 3.8v2.7H8v3h2.3V20" />
+    </>
+  ),
+  twitter: (
+    <path d="M21 6.4c-.7.3-1.4.5-2.2.6a3.9 3.9 0 0 0 1.7-2.1 7.7 7.7 0 0 1-2.4.9 3.8 3.8 0 0 0-6.5 3.5A10.9 10.9 0 0 1 3.9 5.1a3.8 3.8 0 0 0 1.2 5.1c-.6 0-1.2-.2-1.7-.4v.1c0 1.9 1.3 3.4 3.1 3.8a3.9 3.9 0 0 1-1.7.1 3.8 3.8 0 0 0 3.6 2.7A7.7 7.7 0 0 1 3 18a10.9 10.9 0 0 0 5.9 1.7c7.1 0 11-5.9 11-11v-.5c.8-.5 1.4-1.2 1.9-2Z" />
+  ),
+  instagram: (
+    <>
+      <rect x="3.5" y="3.5" width="17" height="17" rx="5" />
+      <circle cx="12" cy="12" r="4.2" />
+      <circle cx="17.1" cy="6.9" r="0.9" fill="currentColor" stroke="none" />
+    </>
+  ),
+  linkedin: (
+    <>
+      <rect x="3.5" y="3.5" width="17" height="17" rx="3" />
+      <circle cx="8" cy="8.2" r="1" fill="currentColor" stroke="none" />
+      <path d="M8 11v6" />
+      <path d="M12 17v-3.5a2.2 2.2 0 0 1 4.4 0V17M12 11v6" />
+    </>
+  ),
+  whatsapp: (
+    <>
+      <path d="M12 3.5a8.5 8.5 0 0 0-7.3 12.8L3.5 20.5l4.3-1.1A8.5 8.5 0 1 0 12 3.5Z" />
+      <path d="M8.7 8.9c.2-.4.4-.4.6-.4h.5c.2 0 .4 0 .5.3.2.4.6 1.3.7 1.4.1.2.1.3 0 .5-.1.2-.2.3-.3.4-.1.2-.3.3-.1.6.2.4.9 1.3 1.9 1.8.3.2.5.1.7-.1.2-.2.4-.5.6-.7.2-.2.3-.2.5-.1.2.1 1.3.6 1.5.7.2.1.3.1.4.2.1.2.1.9-.2 1.3-.3.5-1.2.9-1.7.9-.4 0-.9 0-2.9-1.2-2-1.1-3.1-3.3-3.2-3.5-.1-.1-.9-1.2-.9-2.4 0-1.1.6-1.7.8-1.9Z" />
+    </>
+  ),
+  alertTriangle: (
+    <>
+      <path d="M12 3.3 2.4 20h19.2L12 3.3Z" />
+      <path d="M12 9.7v4.6" strokeLinecap="round" />
+      <circle cx="12" cy="17.3" r="0.9" fill="currentColor" stroke="none" />
     </>
   ),
 };

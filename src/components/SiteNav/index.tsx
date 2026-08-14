@@ -1,6 +1,12 @@
 "use client";
 
-import { useEffect, useRef, useState, type CSSProperties } from "react";
+import {
+  useEffect,
+  useRef,
+  useState,
+  type CSSProperties,
+  type MouseEvent,
+} from "react";
 import Link from "next/link";
 import { usePathname, useRouter } from "next/navigation";
 import { colors } from "@/constants/colors";
@@ -70,6 +76,16 @@ export default function SiteNav() {
 
   const favoritesActive = pathname === "/favorites";
 
+  // Clicking the logo or "Home" link while already on the landing page
+  // doesn't trigger a Next.js navigation (same route), so it would
+  // otherwise do nothing. Scroll back to the top instead.
+  const onHomeClick = (e: MouseEvent<HTMLAnchorElement>) => {
+    if (pathname === "/") {
+      e.preventDefault();
+      window.scrollTo({ top: 0, behavior: "smooth" });
+    }
+  };
+
   // Nudges signed-out visitors to log in after they've been on the site for
   // 5 seconds, once per session. Re-checks auth right before opening (not
   // just at effect-setup time) in case they logged in during that window.
@@ -98,7 +114,14 @@ export default function SiteNav() {
           gap: spacing.xxl,
         }}
       >
-        <Link href="/" className="nav-brand" onClick={() => setMenuOpen(false)}>
+        <Link
+          href="/"
+          className="nav-brand"
+          onClick={(e) => {
+            setMenuOpen(false);
+            onHomeClick(e);
+          }}
+        >
           <Brand />
         </Link>
         <nav className="hidden md:flex" style={{ gap: 2, marginRight: "auto" }}>
@@ -108,7 +131,13 @@ export default function SiteNav() {
             const className = `nav-link${active ? " nav-link-active" : ""}`;
             if (l.href) {
               return (
-                <Link key={l.label} href={l.href} className={className} style={style}>
+                <Link
+                  key={l.label}
+                  href={l.href}
+                  className={className}
+                  style={style}
+                  onClick={l.href === "/" ? onHomeClick : undefined}
+                >
                   {l.label}
                 </Link>
               );
@@ -187,7 +216,10 @@ export default function SiteNav() {
                   href={l.href}
                   className={className}
                   style={style}
-                  onClick={() => setMenuOpen(false)}
+                  onClick={(e) => {
+                    setMenuOpen(false);
+                    if (l.href === "/") onHomeClick(e);
+                  }}
                 >
                   {l.label}
                 </Link>
