@@ -1442,7 +1442,7 @@ function RadioRow({
       }}
     >
       <input
-        type="radio"
+        type="checkbox"
         checked={checked}
         onChange={onChange}
         style={{ position: "absolute", opacity: 0, width: 0, height: 0 }}

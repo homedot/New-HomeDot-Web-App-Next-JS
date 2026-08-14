@@ -1122,7 +1122,7 @@ function FilterGroup({ title, children, last }: { title: string; children: React
 function RadioRow({ label, checked, onChange }: { label: string; checked: boolean; onChange: () => void }) {
   return (
     <label style={{ display: "flex", alignItems: "center", gap: 10, fontSize: fontSize.base - 1, color: colors.ink2, cursor: "pointer" }}>
-      <input type="radio" checked={checked} onChange={onChange} style={{ position: "absolute", opacity: 0, width: 0, height: 0 }} />
+      <input type="checkbox" checked={checked} onChange={onChange} style={{ position: "absolute", opacity: 0, width: 0, height: 0 }} />
       <span
         style={{
           width: 19,
