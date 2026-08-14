@@ -822,6 +822,10 @@ body.has-cursor * {
   from { opacity: 0; transform: translateX(16px); }
 }
 
+@keyframes warnBannerIn {
+  from { opacity: 0; transform: translateY(-6px) scale(0.97); }
+}
+
 @keyframes loginShake {
   0%, 100% { transform: translateX(0); }
   20%, 60% { transform: translateX(-7px); }
@@ -1198,6 +1202,13 @@ body.has-cursor * {
 .pf-field:focus-within {
   border-color: #2997ff;
   box-shadow: 0 0 0 4px rgba(41, 151, 255, 0.12);
+}
+
+.pf-field--error,
+.pf-field--error:focus-within {
+  border-color: #f5a0a0;
+  background: #fff6f6;
+  box-shadow: 0 0 0 4px rgba(220, 38, 38, 0.07);
 }
 
 .pf-textarea {

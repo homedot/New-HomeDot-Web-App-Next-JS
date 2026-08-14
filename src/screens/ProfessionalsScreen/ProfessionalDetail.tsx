@@ -69,6 +69,7 @@ export default function ProfessionalDetail({
   const [requirement, setRequirement] = useState("");
   const [suggestions, setSuggestions] = useState<GoogleMapsPlacePrediction[]>([]);
   const [showSuggestions, setShowSuggestions] = useState(false);
+  const [locationError, setLocationError] = useState(false);
   const [locatingMe, setLocatingMe] = useState(false);
   const [submitting, setSubmitting] = useState(false);
   const [submitError, setSubmitError] = useState<string | null>(null);
@@ -92,6 +93,7 @@ export default function ProfessionalDetail({
     setRequirement("");
     setSuggestions([]);
     setShowSuggestions(false);
+    setLocationError(false);
     setSubmitError(null);
   }
 
@@ -122,9 +124,10 @@ export default function ProfessionalDetail({
   const onLocationInputChange = (value: string) => {
     setLocationText(value);
     setAppliedLocation(null);
+    setLocationError(false);
     if (suggestTimer.current) clearTimeout(suggestTimer.current);
     const q = value.trim();
-    if (q.length < 3) {
+    if (q.length < 1) {
       setSuggestions([]);
       setShowSuggestions(false);
       return;
@@ -138,9 +141,11 @@ export default function ProfessionalDetail({
           if (status === "OK" && predictions?.length) {
             setSuggestions(predictions);
             setShowSuggestions(true);
+            setLocationError(false);
           } else {
             setSuggestions([]);
             setShowSuggestions(false);
+            setLocationError(status === "ZERO_RESULTS");
           }
         },
       );
@@ -154,12 +159,15 @@ export default function ProfessionalDetail({
     if (!google) return;
     new google.maps.Geocoder().geocode({ placeId: prediction.place_id }, (results, status) => {
       if (status === "OK" && results?.[0]) {
+        setLocationError(false);
         setLocationText(results[0].formatted_address);
         setAppliedLocation({
           address: results[0].formatted_address,
           lat: results[0].geometry.location.lat(),
           long: results[0].geometry.location.lng(),
         });
+      } else {
+        setLocationError(true);
       }
     });
   };
@@ -197,6 +205,7 @@ export default function ProfessionalDetail({
     setAppliedLocation(null);
     setSuggestions([]);
     setShowSuggestions(false);
+    setLocationError(false);
   };
 
   const submitEnquiry = async (e: React.FormEvent) => {
@@ -812,7 +821,7 @@ export default function ProfessionalDetail({
 
                     <div ref={locationFieldRef} style={{ position: "relative" }}>
                       <div
-                        className="pf-field"
+                        className={`pf-field${locationError ? " pf-field--error" : ""}`}
                         style={{
                           display: "flex",
                           alignItems: "center",
@@ -821,7 +830,7 @@ export default function ProfessionalDetail({
                           padding: "0 13px",
                         }}
                       >
-                        <Icon name="location" size={16} color={colors.muted} />
+                        <Icon name="location" size={16} color={locationError ? "#DC2626" : colors.muted} />
                         <input
                           ref={locationInputRef}
                           value={locationText}
@@ -855,6 +864,52 @@ export default function ProfessionalDetail({
                           </button>
                         )}
                       </div>
+
+                      {locationError && !showSuggestions && (
+                        <div
+                          role="alert"
+                          style={{
+                            position: "absolute",
+                            top: "calc(100% + 8px)",
+                            left: 0,
+                            right: 0,
+                            display: "flex",
+                            alignItems: "flex-start",
+                            gap: 10,
+                            padding: "12px 14px",
+                            background: "linear-gradient(180deg, #FFF8F8, #FFFFFF)",
+                            border: "1px solid #FBD5D5",
+                            borderRadius: radius.md,
+                            boxShadow: "0 10px 24px rgba(220,38,38,0.12), 0 1px 2px rgba(220,38,38,0.06)",
+                            zIndex: 20,
+                            animation: "warnBannerIn 0.22s cubic-bezier(0.16, 1, 0.3, 1) both",
+                          }}
+                        >
+                          <div
+                            style={{
+                              display: "flex",
+                              alignItems: "center",
+                              justifyContent: "center",
+                              width: 26,
+                              height: 26,
+                              borderRadius: "50%",
+                              background: "#FEE2E2",
+                              flexShrink: 0,
+                              marginTop: 1,
+                            }}
+                          >
+                            <Icon name="alertTriangle" size={14} color="#DC2626" />
+                          </div>
+                          <div>
+                            <p style={{ margin: 0, fontSize: fontSize.sm, fontWeight: 600, color: "#B91C1C" }}>
+                              Location not found
+                            </p>
+                            <p style={{ margin: "2px 0 0", fontSize: fontSize.xs, color: "#C0392B", lineHeight: 1.4 }}>
+                              We couldn&apos;t find that place. Try a city, locality, or landmark near you.
+                            </p>
+                          </div>
+                        </div>
+                      )}
 
                       {showSuggestions && suggestions.length > 0 && (
                         <div
