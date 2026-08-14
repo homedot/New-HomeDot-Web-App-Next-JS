@@ -1605,6 +1605,28 @@ body.has-cursor * {
   animation: prProTwinkle 1.6s ease-in-out infinite;
 }
 
+/* Profile-update / avatar toast — reuses the pdToastIn keyframe already
+   defined above for Marketplace's property detail (same slide-up-and-fade
+   entrance), scoped to this screen's own pr- class prefix. Shared (not
+   pr-/pd- scoped) toast-badge-pop is used by both ProfileScreen and
+   ProfessionalProfileScreen's toasts, matching ProfessionalProfileScreen's
+   existing habit of reusing pd-toast directly rather than re-prefixing —
+   the badge briefly pops so "saved" reads as an active moment, not just a
+   static banner. */
+@keyframes toastCheckPop {
+  0% { transform: scale(0.4); opacity: 0; }
+  60% { transform: scale(1.15); opacity: 1; }
+  100% { transform: scale(1); opacity: 1; }
+}
+
+.pr-toast {
+  animation: pdToastIn 0.18s ease both;
+}
+
+.toast-badge-pop {
+  animation: toastCheckPop 0.35s cubic-bezier(0.2, 0.9, 0.3, 1.4) 0.1s both;
+}
+
 @media (prefers-reduced-motion: reduce) {
   .pr-navitem,
   .pr-railitem,
@@ -1628,6 +1650,10 @@ body.has-cursor * {
   }
   .pr-pro-badge-icon,
   .pr-pro-sparkle {
+    animation: none;
+  }
+  .pr-toast,
+  .toast-badge-pop {
     animation: none;
   }
 }

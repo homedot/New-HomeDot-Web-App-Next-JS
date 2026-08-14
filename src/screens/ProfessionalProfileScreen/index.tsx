@@ -180,7 +180,7 @@ export default function ProfessionalProfileScreen() {
       return;
     }
     setEditing(false);
-    setToast({ text: "Profile updated.", tone: "success" });
+    setToast({ text: "Profile updated successfully.", tone: "success" });
     flashSaved("details");
     refreshHome();
   };
@@ -193,7 +193,7 @@ export default function ProfessionalProfileScreen() {
     const res = await ProfessionalDashboardService.updateProfileImage(file);
     setUploadingAvatar(false);
     if (res.success) {
-      setToast({ text: "Photo updated.", tone: "success" });
+      setToast({ text: "Profile picture updated successfully.", tone: "success" });
       refreshHome();
     } else {
       setToast({ text: res.data?.message || res.message || "Couldn't update your photo.", tone: "error" });
@@ -208,7 +208,7 @@ export default function ProfessionalProfileScreen() {
     const res = await ProfileService.removeProfileImage();
     setRemovingAvatar(false);
     if (res.success) {
-      setToast({ text: "Photo removed.", tone: "success" });
+      setToast({ text: "Profile picture removed.", tone: "success" });
       setAvatarExpanded(false);
       refreshHome();
     } else {
@@ -709,6 +709,7 @@ export default function ProfessionalProfileScreen() {
           }}
         >
           <span
+            className="toast-badge-pop"
             style={{
               width: 20,
               height: 20,
