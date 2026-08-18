@@ -183,10 +183,18 @@ export default function DetailsStep({
           </div>
         </Field>
 
-        <Field label="Location">
+        <Field label="Location" hint="City, state and country fill in automatically">
           <LocationMapPicker
             value={form.location}
-            onChange={(loc) => set("location", loc)}
+            onChange={(loc) =>
+              setForm((f) => ({
+                ...f,
+                location: loc,
+                city: loc.city ?? f.city,
+                state: loc.state ?? f.state,
+                country: loc.country ?? f.country,
+              }))
+            }
           />
         </Field>
 

@@ -8,12 +8,36 @@ import Icon from "@/components/Icon";
 import {
   loadGoogleMapsScript,
   type GoogleMapsNamespace,
+  type GoogleMapsAddressComponent,
 } from "@/utils/loadGoogleMapsScript";
 
 export interface LocationValue {
   address: string;
   lat: number;
   lng: number;
+  // Derived from Google's address_components when available (reverse
+  // geocode or a picked autocomplete suggestion) — absent for the rare
+  // case a geocode returns no components at all.
+  city?: string;
+  state?: string;
+  country?: string;
+}
+
+// City has no single canonical component type across regions — "locality"
+// covers most cities, "administrative_area_level_2" catches places Google
+// files under district/county instead, and "sublocality_level_1" is the
+// fallback for dense metros geocoded at neighborhood granularity.
+function parseAddressComponents(components: GoogleMapsAddressComponent[]) {
+  const find = (type: string) =>
+    components.find((c) => c.types.includes(type))?.long_name;
+  return {
+    city:
+      find("locality") ||
+      find("administrative_area_level_2") ||
+      find("sublocality_level_1"),
+    state: find("administrative_area_level_1"),
+    country: find("country"),
+  };
 }
 
 /** Search box + draggable-marker map for picking a location. Selecting a
@@ -82,20 +106,34 @@ export default function LocationMapPicker({
 
     const geocoder = new google.maps.Geocoder();
 
-    const applyLocation = (lat: number, lng: number, knownAddress?: string) => {
+    const applyLocation = (
+      lat: number,
+      lng: number,
+      knownAddress?: string,
+      knownComponents?: GoogleMapsAddressComponent[],
+    ) => {
       marker.setPosition({ lat, lng });
       if (knownAddress) {
         setAddress(knownAddress);
-        onChange({ address: knownAddress, lat, lng });
+        onChange({
+          address: knownAddress,
+          lat,
+          lng,
+          ...(knownComponents ? parseAddressComponents(knownComponents) : {}),
+        });
         return;
       }
       geocoder.geocode({ location: { lat, lng } }, (results, status) => {
+        const result = status === "OK" ? results?.[0] : undefined;
         const resolved =
-          status === "OK" && results?.[0]?.formatted_address
-            ? results[0].formatted_address
-            : `${lat.toFixed(5)}, ${lng.toFixed(5)}`;
+          result?.formatted_address ?? `${lat.toFixed(5)}, ${lng.toFixed(5)}`;
         setAddress(resolved);
-        onChange({ address: resolved, lat, lng });
+        onChange({
+          address: resolved,
+          lat,
+          lng,
+          ...(result ? parseAddressComponents(result.address_components) : {}),
+        });
       });
     };
 
@@ -131,7 +169,7 @@ export default function LocationMapPicker({
         inputRef.current,
         {
           componentRestrictions: { country: "in" },
-          fields: ["formatted_address", "geometry"],
+          fields: ["formatted_address", "geometry", "address_components"],
         },
       );
       autocomplete.setBounds(bounds);
@@ -150,7 +188,7 @@ export default function LocationMapPicker({
             panTo: (pos: { lat: number; lng: number }) => void;
           }
         ).panTo({ lat, lng });
-        applyLocation(lat, lng, place.formatted_address);
+        applyLocation(lat, lng, place.formatted_address, place.address_components);
       });
     }
   }, [loaded, value, onChange]);
