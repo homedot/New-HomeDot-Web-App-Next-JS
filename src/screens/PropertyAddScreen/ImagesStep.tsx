@@ -18,6 +18,15 @@ interface ImageItem {
   imageId?: string;
 }
 
+// `accept="image/*"` on the file input only filters the native picker
+// dialog — drag-and-drop bypasses it entirely, so without this check a
+// dropped PDF or video would silently queue an "upload" that fails
+// obscurely. Same story for size: nothing today stops someone from
+// dragging in a 200MB RAW photo.
+const MAX_IMAGES = 20;
+const MAX_FILE_SIZE_MB = 10;
+const MAX_FILE_SIZE_BYTES = MAX_FILE_SIZE_MB * 1024 * 1024;
+
 export default function ImagesStep({
   initialImages,
   setImages,
@@ -41,7 +50,14 @@ export default function ImagesStep({
     })),
   );
   const [dragActive, setDragActive] = useState(false);
+  const [error, setError] = useState<string | null>(null);
   const inputRef = useRef<HTMLInputElement | null>(null);
+
+  useEffect(() => {
+    if (!error) return;
+    const t = setTimeout(() => setError(null), 5000);
+    return () => clearTimeout(t);
+  }, [error]);
 
   // Pushes the uploaded subset of `items` up to the parent (which needs it
   // for the payload and the Review step's thumbnails) whenever it changes.
@@ -75,7 +91,31 @@ export default function ImagesStep({
 
   const onFiles = (files: FileList | null) => {
     if (!files || files.length === 0) return;
-    const newItems: ImageItem[] = Array.from(files).map((file) => ({
+
+    const rejections: string[] = [];
+    const valid: File[] = [];
+    for (const file of Array.from(files)) {
+      if (!file.type.startsWith("image/")) {
+        rejections.push(`"${file.name}" isn't an image.`);
+      } else if (file.size > MAX_FILE_SIZE_BYTES) {
+        rejections.push(`"${file.name}" is over ${MAX_FILE_SIZE_MB}MB.`);
+      } else {
+        valid.push(file);
+      }
+    }
+
+    const remainingSlots = Math.max(0, MAX_IMAGES - items.length);
+    const accepted = valid.slice(0, remainingSlots);
+    const overflow = valid.length - accepted.length;
+    if (overflow > 0) {
+      rejections.push(
+        `Only ${MAX_IMAGES} photos are allowed — ${overflow} ${overflow === 1 ? "photo" : "photos"} skipped.`,
+      );
+    }
+    setError(rejections.length > 0 ? rejections.join(" ") : null);
+
+    if (accepted.length === 0) return;
+    const newItems: ImageItem[] = accepted.map((file) => ({
       key: `${file.name}-${file.size}-${Date.now()}-${Math.random()}`,
       file,
       previewUrl: URL.createObjectURL(file),
@@ -96,6 +136,7 @@ export default function ImagesStep({
 
   const uploading = items.some((i) => i.status === "uploading");
   const hasUploaded = items.some((i) => i.status === "done");
+  const atMax = items.length >= MAX_IMAGES;
 
   return (
     <div>
@@ -125,7 +166,7 @@ export default function ImagesStep({
         Add photos
       </h1>
       <p style={{ fontSize: fontSize.base, color: colors.muted, marginBottom: spacing.xl - 2 }}>
-        Listings with real photos get far more enquiries. You can add more later.
+        Add at least one photo to continue. Listings with real photos get far more enquiries.
       </p>
 
       <input
@@ -141,17 +182,22 @@ export default function ImagesStep({
       />
 
       <button
-        onClick={() => inputRef.current?.click()}
+        onClick={() => !atMax && inputRef.current?.click()}
         onDragOver={(e) => {
           e.preventDefault();
-          setDragActive(true);
+          if (!atMax) setDragActive(true);
         }}
         onDragLeave={() => setDragActive(false)}
         onDrop={(e) => {
           e.preventDefault();
           setDragActive(false);
+          if (atMax) {
+            setError(`You've reached the ${MAX_IMAGES}-photo limit. Remove one to add another.`);
+            return;
+          }
           onFiles(e.dataTransfer.files);
         }}
+        disabled={atMax}
         className="pa-dropzone"
         style={{
           width: "100%",
@@ -165,6 +211,8 @@ export default function ImagesStep({
           gap: spacing.sm,
           color: colors.muted,
           background: dragActive ? colors.primarySoft : colors.card,
+          opacity: atMax ? 0.5 : 1,
+          cursor: atMax ? "not-allowed" : "pointer",
         }}
       >
         <span
@@ -183,8 +231,14 @@ export default function ImagesStep({
         <span style={{ fontSize: fontSize.sm, fontWeight: 600, color: colors.ink }}>
           Drag photos here, or click to upload
         </span>
-        <span style={{ fontSize: fontSize.xs }}>JPG or PNG, multiple allowed</span>
+        <span style={{ fontSize: fontSize.xs }}>
+          JPG, PNG or WEBP · up to {MAX_FILE_SIZE_MB}MB each · max {MAX_IMAGES} photos
+        </span>
       </button>
+
+      {error && (
+        <p style={{ fontSize: fontSize.sm, color: "#C0392B", marginTop: spacing.md }}>{error}</p>
+      )}
 
       {items.length > 0 && (
         <div
@@ -267,8 +321,15 @@ export default function ImagesStep({
       )}
 
       <button
-        onClick={() => !uploading && onContinue()}
-        className={`login-cta${!uploading ? " is-ready" : ""}`}
+        onClick={() => {
+          if (uploading) return;
+          if (!hasUploaded) {
+            setError("Please add at least one photo before continuing.");
+            return;
+          }
+          onContinue();
+        }}
+        className={`login-cta${!uploading && hasUploaded ? " is-ready" : ""}`}
         style={{
           display: "inline-flex",
           alignItems: "center",
@@ -282,10 +343,10 @@ export default function ImagesStep({
           color: colors.white,
           fontWeight: 600,
           fontSize: fontSize.md - 1,
-          opacity: uploading ? 0.5 : 1,
+          opacity: uploading || !hasUploaded ? 0.5 : 1,
         }}
       >
-        {uploading ? "Uploading…" : hasUploaded ? "Continue" : "Skip for now"}
+        {uploading ? "Uploading…" : "Continue"}
         {!uploading && <Icon name="arrow" size={18} color={colors.white} />}
       </button>
     </div>
