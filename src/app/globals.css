@@ -1566,6 +1566,26 @@ body.has-cursor * {
   background: linear-gradient(100deg, transparent, rgba(16, 28, 48, 0.12), transparent);
 }
 
+/* Idle attention ring on the CTA itself — the card's ambient glow
+   (.pr-pro-card / prProGlow below) is easy to skim past since it dresses
+   the whole card, not the one thing to click. This pings outward from the
+   button specifically, radar-style, so the actionable control is what
+   catches the eye. Paused on hover so it doesn't fight the hover box-shadow
+   set above. */
+@keyframes prSwitchPing {
+  0% { box-shadow: 0 0 0 0 rgba(255, 255, 255, 0.55); }
+  70% { box-shadow: 0 0 0 12px rgba(255, 255, 255, 0); }
+  100% { box-shadow: 0 0 0 0 rgba(255, 255, 255, 0); }
+}
+
+.pr-switch-btn-light:not(:disabled) {
+  animation: prSwitchPing 2.2s ease-out infinite;
+}
+
+.pr-switch-btn-light:hover:not(:disabled) {
+  animation-play-state: paused;
+}
+
 /* "You're also a professional" card — was a flat white card easy to miss;
    now gradient-filled with a slow breathing glow plus the shared sheen
    sweep and live pulse dot (same combo ProDashboardHero uses for its Live
@@ -1644,6 +1664,9 @@ body.has-cursor * {
   }
   .pr-switch-btn:hover:not(:disabled) {
     transform: none;
+  }
+  .pr-switch-btn-light:not(:disabled) {
+    animation: none;
   }
   .pr-pro-card {
     animation: none;
@@ -1996,6 +2019,24 @@ body.has-cursor * {
   animation: pdashSwitchPulse 1.1s ease-in-out infinite;
 }
 
+/* Idle attention ring — same "radar ping" treatment as ProfileScreen's
+   .pr-switch-btn-light (see globals.css above), mirrored here in the dark
+   primary color instead of white since this button sits filled-dark on a
+   light rail card, the reverse contrast case. */
+@keyframes pdashSwitchPing {
+  0% { box-shadow: 0 0 0 0 rgba(16, 28, 48, 0.4); }
+  70% { box-shadow: 0 0 0 12px rgba(16, 28, 48, 0); }
+  100% { box-shadow: 0 0 0 0 rgba(16, 28, 48, 0); }
+}
+
+.pdash-switch-btn:not(:disabled) {
+  animation: pdashSwitchPing 2.2s ease-out infinite;
+}
+
+.pdash-switch-btn:hover:not(:disabled) {
+  animation-play-state: paused;
+}
+
 @media (prefers-reduced-motion: reduce) {
   .pdash-sheen::before,
   .pdash-pulse-dot::after {
@@ -2016,6 +2057,9 @@ body.has-cursor * {
     animation: none;
   }
   .pdash-switch-btn.pdash-switch-loading {
+    animation: none;
+  }
+  .pdash-switch-btn:not(:disabled) {
     animation: none;
   }
   .pdash-switch-btn:hover:not(:disabled) {
