@@ -27,7 +27,9 @@ export interface LocationValue {
 // covers most cities, "administrative_area_level_2" catches places Google
 // files under district/county instead, and "sublocality_level_1" is the
 // fallback for dense metros geocoded at neighborhood granularity.
-function parseAddressComponents(components: GoogleMapsAddressComponent[]) {
+export function parseAddressComponents(
+  components: GoogleMapsAddressComponent[],
+) {
   const find = (type: string) =>
     components.find((c) => c.types.includes(type))?.long_name;
   return {

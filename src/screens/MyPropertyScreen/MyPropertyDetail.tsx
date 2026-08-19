@@ -8,6 +8,7 @@ import Button from "@/components/Button";
 import Reveal from "@/components/Reveal";
 import { DEFAULT_MAP_CENTER } from "@/constants/MapConstants";
 import { loadGoogleMapsScript } from "@/utils/loadGoogleMapsScript";
+import { parseAddressComponents } from "@/components/LocationMapPicker";
 import MarketplaceScreenService, {
   parseAmenities,
   type PropertyDetailRecord,
@@ -93,6 +94,28 @@ function formatBedrooms(bedrooms?: string): string | null {
   return `${n} BHK`;
 }
 
+// CreatePropertyPayload sends no_of_floors/road_width in snake_case (like
+// most of the create/update body), but PropertyDetailRecord — and the read
+// endpoints — assume camelCase noOfFloors/roadWidth, unverified against a
+// live response. If the backend actually echoes these two back in
+// snake_case, `detail.noOfFloors`/`detail.roadWidth` silently read as
+// undefined (ApiService.get does no runtime validation, so a mismatched key
+// never surfaces as an error) even though the owner entered real values.
+// Read both spellings defensively rather than trusting the declared type.
+function rawNumeric(
+  record: PropertyDetailRecord,
+  ...keys: string[]
+): number | undefined {
+  const r = record as unknown as Record<string, unknown>;
+  for (const key of keys) {
+    const v = r[key];
+    if (typeof v === "number" && !Number.isNaN(v)) return v;
+    if (typeof v === "string" && v.trim() !== "" && !Number.isNaN(Number(v)))
+      return Number(v);
+  }
+  return undefined;
+}
+
 export default function MyPropertyDetail({
   slug,
   purpose,
@@ -143,6 +166,13 @@ export default function MyPropertyDetail({
       setLoading(false);
       const record = res.data?.data?.[0]?.propertyDetails?.[0];
       if (res.success && res.data?.status && record) {
+        // Diagnostic only — PropertyDetailRecord's field names (particularly
+        // noOfFloors/roadWidth/state) are unverified against a live response
+        // (see rawNumeric above), so this makes it easy to check DevTools'
+        // console for the actual raw keys/values this endpoint returns.
+        if (process.env.NODE_ENV !== "production") {
+          console.debug("[MyPropertyDetail] raw property record:", record);
+        }
         setDetail(record);
       } else if (res.success && res.data?.status) {
         setPendingApproval(true);
@@ -297,6 +327,8 @@ export default function MyPropertyDetail({
   const kindIcon = KIND_ICON[kind];
   const images = detail.propertyImages ?? [];
   const amenityTitles = parseAmenities(detail.amenities);
+  const noOfFloors = rawNumeric(detail, "noOfFloors", "no_of_floors");
+  const roadWidth = rawNumeric(detail, "roadWidth", "road_width");
 
   const keyFacts: { icon: IconName; label: string; value: string }[] =
     kind === "plot"
@@ -319,7 +351,7 @@ export default function MyPropertyDetail({
           {
             icon: "compass",
             label: "Road width",
-            value: detail.roadWidth ? `${detail.roadWidth} ft` : "—",
+            value: roadWidth ? `${roadWidth} ft` : "—",
           },
         ]
       : kind === "office"
@@ -341,7 +373,7 @@ export default function MyPropertyDetail({
             {
               icon: "ruler",
               label: "Floors",
-              value: detail.noOfFloors != null ? String(detail.noOfFloors) : "—",
+              value: noOfFloors != null ? String(noOfFloors) : "—",
             },
           ]
         : [
@@ -383,10 +415,8 @@ export default function MyPropertyDetail({
     detailRows.push(["Plot area", `${detail.plotArea.toLocaleString()} sqft`]);
   if (detail.length && detail.breadth)
     detailRows.push(["Dimensions", `${detail.length} × ${detail.breadth} ft`]);
-  if (detail.noOfFloors != null)
-    detailRows.push(["No. of floors", String(detail.noOfFloors)]);
-  if (detail.roadWidth)
-    detailRows.push(["Road width", `${detail.roadWidth} ft`]);
+  if (noOfFloors != null) detailRows.push(["No. of floors", String(noOfFloors)]);
+  if (roadWidth) detailRows.push(["Road width", `${roadWidth} ft`]);
   if (detail.maintenanceCharge)
     detailRows.push([
       "Maintenance charge",
@@ -443,8 +473,8 @@ export default function MyPropertyDetail({
       buildUpArea: detail.buildUpArea != null ? String(detail.buildUpArea) : "",
       carpetArea: detail.carpetArea != null ? String(detail.carpetArea) : "",
       plotArea: detail.plotArea != null ? String(detail.plotArea) : "",
-      noOfFloors: detail.noOfFloors != null ? String(detail.noOfFloors) : "",
-      roadWidth: detail.roadWidth != null ? String(detail.roadWidth) : "",
+      noOfFloors: noOfFloors != null ? String(noOfFloors) : "",
+      roadWidth: roadWidth != null ? String(roadWidth) : "",
       maintenanceCharge:
         detail.maintenanceCharge != null
           ? String(detail.maintenanceCharge)
@@ -463,6 +493,43 @@ export default function MyPropertyDetail({
     });
     setEditImages(images.map((img) => ({ id: img._id, url: img.imageFile })));
     setMode("editDetails");
+
+    // The detail endpoint doesn't return `property_state`, so the form
+    // above seeds it blank — geocode the listing's own address to fill it
+    // in automatically instead of making the owner look it up by hand.
+    // Geocoding by address (not detail.latitude/longitude) deliberately —
+    // those two are documented as unconfirmed on a live response and empty
+    // here in practice, whereas propertyLocation/propertyCity/propertyCountry
+    // are non-optional on PropertyDetailRecord and always present. Guarded
+    // on the field still being blank when the geocode resolves, so it never
+    // clobbers something the owner already typed in the meantime.
+    const address = [
+      detail.propertySubLocation || detail.propertyLocation,
+      detail.propertyCity,
+      detail.propertyCountry,
+    ]
+      .filter(Boolean)
+      .join(", ");
+    if (address) {
+      loadGoogleMapsScript()
+        .then((google) => {
+          new google.maps.Geocoder().geocode(
+            { address },
+            (results, status) => {
+              const state =
+                status === "OK"
+                  ? parseAddressComponents(results?.[0]?.address_components ?? [])
+                      .state
+                  : undefined;
+              if (!state) return;
+              setEditForm((f) => (f.state ? f : { ...f, state }));
+            },
+          );
+        })
+        .catch(() => {
+          // leave state blank — owner can still type it in by hand
+        });
+    }
   };
 
   const setEditFormTracked = (
@@ -609,6 +676,45 @@ export default function MyPropertyDetail({
             >
               Edit listing
             </span>
+            {mode === "editDetails" && process.env.NODE_ENV !== "production" && (
+              // TEMPORARY diagnostic — shows exactly what the API returned
+              // for this listing, so a screenshot of this box tells us the
+              // real field name for road width/floors instead of guessing.
+              // Safe to delete once that's confirmed; never renders in prod.
+              <div
+                style={{
+                  marginBottom: spacing.lg,
+                  padding: spacing.md,
+                  borderRadius: radius.md,
+                  border: "1px dashed #F59E0B",
+                  background: "#FFFBEB",
+                }}
+              >
+                <b
+                  style={{
+                    display: "block",
+                    fontSize: fontSize.xs,
+                    color: "#B45309",
+                    marginBottom: 6,
+                  }}
+                >
+                  DEBUG — raw property record from the API (dev only)
+                </b>
+                <pre
+                  style={{
+                    fontSize: 11,
+                    lineHeight: 1.5,
+                    whiteSpace: "pre-wrap",
+                    wordBreak: "break-word",
+                    color: colors.ink2,
+                    maxHeight: 300,
+                    overflow: "auto",
+                  }}
+                >
+                  {JSON.stringify(detail, null, 2)}
+                </pre>
+              </div>
+            )}
             {mode === "editDetails" && (
               <DetailsStep
                 kind={kind}
