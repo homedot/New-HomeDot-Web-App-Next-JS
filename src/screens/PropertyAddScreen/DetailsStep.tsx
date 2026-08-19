@@ -13,8 +13,9 @@ import {
   KIND_FIELDS,
   SelectField,
   fieldInputStyle,
+  getMissingFields,
   inputWrap,
-  isDetailsComplete,
+  type AllFieldKey,
   type ListingPurpose,
   type PropertyFormState,
   type PropertyKind,
@@ -77,6 +78,18 @@ export default function DetailsStep({
   const [showCustomAmenity, setShowCustomAmenity] = useState(false);
   const [customAmenityInput, setCustomAmenityInput] = useState("");
 
+  // Flips true the first time the user clicks Continue on an incomplete
+  // form — once it does, every still-empty field stays flagged red (and
+  // clears live as the user fills each one in) instead of just failing
+  // silently.
+  const [showErrors, setShowErrors] = useState(false);
+  const missing = getMissingFields(kind, form);
+  const missingSet = new Set(missing);
+  const fieldProps = (key: AllFieldKey) => ({
+    id: `pa-field-${key}`,
+    invalid: showErrors && missingSet.has(key),
+  });
+
   const toggleCatalogAmenity = (item: (typeof AMENITY_CATALOG)[number]) => {
     if (item.title === "Others") {
       setShowCustomAmenity((v) => !v);
@@ -102,9 +115,30 @@ export default function DetailsStep({
   // 1–10 catalog) — rendered as their own removable chips below the catalog.
   const customAmenities = form.amenities.filter((a) => !AMENITY_CATALOG.some((c) => c.id === a.id));
 
-  const valid = isDetailsComplete(kind, form);
+  const valid = missing.length === 0;
   const priceLabel = purpose === "Rent" ? "Rental price" : "Selling price";
   const pricePlaceholder = purpose === "Rent" ? "e.g. 28000" : "e.g. 7600000";
+
+  // On an incomplete form, jump to the first unfilled field instead of just
+  // leaving Continue inert — smooth-scrolls it into view and replays a
+  // shake so it's obvious which section still needs attention, even on a
+  // repeat click with nothing changed.
+  const handleContinue = () => {
+    if (missing.length === 0) {
+      onContinue();
+      return;
+    }
+    setShowErrors(true);
+    const el = document.getElementById(`pa-field-${missing[0]}`);
+    if (!el) return;
+    el.scrollIntoView({ behavior: "smooth", block: "center" });
+    // Retrigger the highlight animation even on a repeat click where the
+    // field was already flagged invalid (React won't add a class that's
+    // already there, so nudge the DOM directly with a reflow in between).
+    el.classList.remove("pa-field-invalid");
+    void el.offsetWidth;
+    el.classList.add("pa-field-invalid");
+  };
 
   return (
     <div>
@@ -138,7 +172,7 @@ export default function DetailsStep({
       </p>
 
       <div style={{ display: "flex", flexDirection: "column", gap: spacing.lg }}>
-        <Field label="Listing title">
+        <Field label="Listing title" {...fieldProps("title")}>
           <div style={inputWrap}>
             <input
               type="text"
@@ -150,7 +184,7 @@ export default function DetailsStep({
           </div>
         </Field>
 
-        <Field label="Description">
+        <Field label="Description" {...fieldProps("description")}>
           <textarea
             placeholder="Describe the property — layout, condition, nearby landmarks…"
             value={form.description}
@@ -168,7 +202,11 @@ export default function DetailsStep({
           />
         </Field>
 
-        <Field label={priceLabel} hint={purpose === "Rent" ? "Monthly rent, in ₹" : undefined}>
+        <Field
+          label={priceLabel}
+          hint={purpose === "Rent" ? "Monthly rent, in ₹" : undefined}
+          {...fieldProps("price")}
+        >
           <div style={inputWrap}>
             <span style={{ color: colors.muted, fontWeight: 600 }}>₹</span>
             <input
@@ -183,7 +221,11 @@ export default function DetailsStep({
           </div>
         </Field>
 
-        <Field label="Location" hint="City, state and country fill in automatically">
+        <Field
+          label="Location"
+          hint="City, state and country fill in automatically"
+          {...fieldProps("location")}
+        >
           <LocationMapPicker
             value={form.location}
             onChange={(loc) =>
@@ -199,7 +241,7 @@ export default function DetailsStep({
         </Field>
 
         <div className="grid grid-cols-1 sm:grid-cols-3" style={{ gap: spacing.md }}>
-          <Field label="City">
+          <Field label="City" {...fieldProps("city")}>
             <div style={inputWrap}>
               <input
                 type="text"
@@ -210,7 +252,7 @@ export default function DetailsStep({
               />
             </div>
           </Field>
-          <Field label="State">
+          <Field label="State" {...fieldProps("state")}>
             <div style={inputWrap}>
               <input
                 type="text"
@@ -221,7 +263,7 @@ export default function DetailsStep({
               />
             </div>
           </Field>
-          <Field label="Country">
+          <Field label="Country" {...fieldProps("country")}>
             <div style={inputWrap}>
               <input
                 type="text"
@@ -237,7 +279,7 @@ export default function DetailsStep({
         {(has("bedrooms") || has("bathrooms") || has("balcony")) && (
           <div className="grid grid-cols-1 sm:grid-cols-3" style={{ gap: spacing.md }}>
             {has("bedrooms") && (
-              <Field label="Bedrooms">
+              <Field label="Bedrooms" {...fieldProps("bedrooms")}>
                 <SelectField
                   value={form.bedrooms}
                   onChange={(v) => set("bedrooms", v)}
@@ -247,7 +289,7 @@ export default function DetailsStep({
               </Field>
             )}
             {has("bathrooms") && (
-              <Field label="Bathrooms">
+              <Field label="Bathrooms" {...fieldProps("bathrooms")}>
                 <NumberField
                   value={form.bathrooms}
                   onChange={(v) => set("bathrooms", v)}
@@ -256,7 +298,7 @@ export default function DetailsStep({
               </Field>
             )}
             {has("balcony") && (
-              <Field label="Balconies">
+              <Field label="Balconies" {...fieldProps("balcony")}>
                 <NumberField
                   value={form.balcony}
                   onChange={(v) => set("balcony", v)}
@@ -270,7 +312,7 @@ export default function DetailsStep({
         {(has("buildUpArea") || has("carpetArea") || has("plotArea")) && (
           <div className="grid grid-cols-1 sm:grid-cols-3" style={{ gap: spacing.md }}>
             {has("buildUpArea") && (
-              <Field label="Build-up area">
+              <Field label="Build-up area" {...fieldProps("buildUpArea")}>
                 <NumberField
                   value={form.buildUpArea}
                   onChange={(v) => set("buildUpArea", v)}
@@ -280,7 +322,7 @@ export default function DetailsStep({
               </Field>
             )}
             {has("carpetArea") && (
-              <Field label="Carpet area">
+              <Field label="Carpet area" {...fieldProps("carpetArea")}>
                 <NumberField
                   value={form.carpetArea}
                   onChange={(v) => set("carpetArea", v)}
@@ -290,7 +332,7 @@ export default function DetailsStep({
               </Field>
             )}
             {has("plotArea") && (
-              <Field label="Plot area">
+              <Field label="Plot area" {...fieldProps("plotArea")}>
                 <NumberField
                   value={form.plotArea}
                   onChange={(v) => set("plotArea", v)}
@@ -305,7 +347,7 @@ export default function DetailsStep({
         {(has("length") || has("breadth") || has("roadWidth")) && (
           <div className="grid grid-cols-1 sm:grid-cols-3" style={{ gap: spacing.md }}>
             {has("length") && (
-              <Field label="Length">
+              <Field label="Length" {...fieldProps("length")}>
                 <NumberField
                   value={form.length}
                   onChange={(v) => set("length", v)}
@@ -315,7 +357,7 @@ export default function DetailsStep({
               </Field>
             )}
             {has("breadth") && (
-              <Field label="Breadth">
+              <Field label="Breadth" {...fieldProps("breadth")}>
                 <NumberField
                   value={form.breadth}
                   onChange={(v) => set("breadth", v)}
@@ -325,7 +367,7 @@ export default function DetailsStep({
               </Field>
             )}
             {has("roadWidth") && (
-              <Field label="Road width">
+              <Field label="Road width" {...fieldProps("roadWidth")}>
                 <NumberField
                   value={form.roadWidth}
                   onChange={(v) => set("roadWidth", v)}
@@ -340,7 +382,7 @@ export default function DetailsStep({
         {(has("furnished") || has("noOfFloors") || has("garage") || has("maintenanceCharge")) && (
           <div className="grid grid-cols-1 sm:grid-cols-3" style={{ gap: spacing.md }}>
             {has("furnished") && (
-              <Field label="Furnishing">
+              <Field label="Furnishing" {...fieldProps("furnished")}>
                 <SelectField
                   value={form.furnished}
                   onChange={(v) => set("furnished", v)}
@@ -350,7 +392,7 @@ export default function DetailsStep({
               </Field>
             )}
             {has("noOfFloors") && (
-              <Field label="No. of floors">
+              <Field label="No. of floors" {...fieldProps("noOfFloors")}>
                 <NumberField
                   value={form.noOfFloors}
                   onChange={(v) => set("noOfFloors", v)}
@@ -380,7 +422,7 @@ export default function DetailsStep({
         )}
 
         {has("amenities") && (
-          <Field label="Amenities" hint="Select at least one">
+          <Field label="Amenities" hint="Select at least one" {...fieldProps("amenities")}>
             <div style={{ display: "flex", flexWrap: "wrap", gap: spacing.sm }}>
               {AMENITY_CATALOG.map((item) => {
                 const selected =
@@ -478,7 +520,7 @@ export default function DetailsStep({
       </div>
 
       <button
-        onClick={() => valid && onContinue()}
+        onClick={handleContinue}
         className={`login-cta${valid ? " is-ready" : ""}`}
         style={{
           display: "inline-flex",

@@ -20,12 +20,22 @@ export interface UploadedImage {
   url: string;
 }
 
-export type Step = "purpose" | "type" | "details" | "images" | "review" | "success";
+export type Step =
+  | "purpose"
+  | "type"
+  | "details"
+  | "images"
+  | "review"
+  | "success";
 
 // Drives both the step header/progress indicator and the URL-free wizard
 // navigation in index.tsx. "success" is deliberately excluded — it's a
 // terminal screen, not a step you progress toward.
-export const FLOW_STEPS: { key: Exclude<Step, "success">; label: string; icon: IconName }[] = [
+export const FLOW_STEPS: {
+  key: Exclude<Step, "success">;
+  label: string;
+  icon: IconName;
+}[] = [
   { key: "purpose", label: "Purpose", icon: "sparkle" },
   { key: "type", label: "Type", icon: "house" },
   { key: "details", label: "Details", icon: "ruler" },
@@ -48,6 +58,19 @@ export type FieldKey =
   | "amenities"
   | "length"
   | "breadth";
+
+// Every field DetailsStep can require, common ones included — used to
+// figure out which unfilled field to scroll to first when Continue is
+// pressed on an incomplete form (see getMissingFields below).
+export type AllFieldKey =
+  | FieldKey
+  | "title"
+  | "description"
+  | "price"
+  | "location"
+  | "city"
+  | "state"
+  | "country";
 
 export const KIND_ICON: Record<PropertyKind, IconName> = {
   villa: "villa",
@@ -99,7 +122,14 @@ export const KIND_FIELDS: Record<PropertyKind, FieldKey[]> = {
     "garage",
     "roadWidth",
   ],
-  office: ["buildUpArea", "carpetArea", "furnished", "noOfFloors", "maintenanceCharge", "garage"],
+  office: [
+    "buildUpArea",
+    "carpetArea",
+    "furnished",
+    "noOfFloors",
+    "maintenanceCharge",
+    "garage",
+  ],
   plot: ["plotArea", "length", "breadth", "roadWidth"],
 };
 
@@ -117,7 +147,11 @@ export function resolveKind(propertyType: string): PropertyKind {
 
 export const BEDROOM_OPTIONS = ["1", "2", "3", "4", "5+"];
 // Exact strings the backend expects (matches homedot-mobile-app's sell_Furnishing).
-export const FURNISHING_OPTIONS = ["Fully furnished", "Semi furnished", "Un furnished"];
+export const FURNISHING_OPTIONS = [
+  "Fully furnished",
+  "Semi furnished",
+  "Un furnished",
+];
 
 // Matches homedot-mobile-app's hardcoded `sellVillaAmenities` catalog
 // (SellOrRentDetailedNextScreen.js) exactly — same ids, same titles, same
@@ -169,19 +203,55 @@ export const fieldInputStyle: CSSProperties = {
 };
 
 export function Field({
+  id,
   label,
   hint,
+  invalid,
   children,
 }: {
+  id?: string;
   label: string;
   hint?: string;
+  // Set once the user has clicked Continue with this field still empty —
+  // turns the label red, adds an "· Required" flag, and pulses the
+  // field's border so it's easy to spot when DetailsStep scrolls to it.
+  invalid?: boolean;
   children: ReactNode;
 }) {
   return (
-    <label style={{ display: "flex", flexDirection: "column", gap: spacing.xs }}>
-      <span style={{ fontSize: fontSize.sm, fontWeight: 600, color: colors.ink }}>{label}</span>
+    <label
+      id={id}
+      className={invalid ? "pa-field-invalid" : undefined}
+      style={{
+        display: "flex",
+        flexDirection: "column",
+        gap: spacing.xs,
+        borderRadius: radius.md,
+      }}
+    >
+      <span
+        style={{
+          display: "inline-flex",
+          alignItems: "center",
+          gap: 6,
+          fontSize: fontSize.sm,
+          fontWeight: 600,
+          color: invalid ? "#C0392B" : colors.ink,
+        }}
+      >
+        {label}
+        {invalid && (
+          <span style={{ fontSize: fontSize.xs, fontWeight: 700 }}>
+            · Required
+          </span>
+        )}
+      </span>
       {children}
-      {hint && <span style={{ fontSize: fontSize.xs, color: colors.muted }}>{hint}</span>}
+      {hint && (
+        <span style={{ fontSize: fontSize.xs, color: colors.muted }}>
+          {hint}
+        </span>
+      )}
     </label>
   );
 }
@@ -278,40 +348,72 @@ export const initialFormState: PropertyFormState = {
   breadth: "",
 };
 
-// True once every field KIND_FIELDS[kind] requires (plus the always-common
-// ones) has a value — gates the "Continue" button on the details step.
-export function isDetailsComplete(kind: PropertyKind, f: PropertyFormState): boolean {
-  if (!f.title.trim() || !f.description.trim() || !f.price.trim()) return false;
-  if (!f.location || !f.city.trim() || !f.state.trim() || !f.country.trim()) return false;
+// Kind-specific fields in the order they appear in DetailsStep's DOM, so
+// getMissingFields below reports them in the same order the user reads the
+// form top-to-bottom. maintenanceCharge and garage are excluded — they're
+// left optional, mirroring homedot-mobile-app, which doesn't hard-require
+// them either.
+const KIND_FIELD_ORDER: FieldKey[] = [
+  "bedrooms",
+  "bathrooms",
+  "balcony",
+  "buildUpArea",
+  "carpetArea",
+  "plotArea",
+  "length",
+  "breadth",
+  "roadWidth",
+  "furnished",
+  "noOfFloors",
+  "amenities",
+];
+
+// Every required field still empty, in top-to-bottom DOM order — drives both
+// the "Continue" button's enabled state and, when the user clicks it while
+// the form is incomplete, which field DetailsStep scrolls to and highlights.
+export function getMissingFields(
+  kind: PropertyKind,
+  f: PropertyFormState,
+): AllFieldKey[] {
+  const missing: AllFieldKey[] = [];
+  if (!f.title.trim()) missing.push("title");
+  if (!f.description.trim()) missing.push("description");
+  if (!f.price.trim()) missing.push("price");
+  if (!f.location) missing.push("location");
+  if (!f.city.trim()) missing.push("city");
+  if (!f.state.trim()) missing.push("state");
+  if (!f.country.trim()) missing.push("country");
 
   const fields = KIND_FIELDS[kind];
-  const need = (key: FieldKey) => !fields.includes(key) || !!f[key as keyof PropertyFormState];
-  // Amenities is an array, so the generic truthy `need()` check above can't
-  // gate it (an empty array is still truthy) — mirrors homedot-mobile-app's
-  // validation(), which requires at least one amenity for Villas/Flat &
-  // Apartment specifically (not House, Office Space or Plots).
-  if (fields.includes("amenities") && f.amenities.length === 0) return false;
-  return (
-    need("bedrooms") &&
-    need("bathrooms") &&
-    need("balcony") &&
-    need("furnished") &&
-    need("buildUpArea") &&
-    need("carpetArea") &&
-    need("plotArea") &&
-    need("noOfFloors") &&
-    need("roadWidth") &&
-    need("length") &&
-    need("breadth")
-    // maintenanceCharge and garage are left optional — mirrors
-    // homedot-mobile-app, which doesn't hard-require them either.
-  );
+  for (const key of KIND_FIELD_ORDER) {
+    if (!fields.includes(key)) continue;
+    // Amenities is an array, so a generic truthy check can't gate it (an
+    // empty array is still truthy) — mirrors homedot-mobile-app's
+    // validation(), which requires at least one amenity for Villas/Flat &
+    // Apartment specifically (not House, Office Space or Plots).
+    if (key === "amenities") {
+      if (f.amenities.length === 0) missing.push("amenities");
+      continue;
+    }
+    if (!f[key as keyof PropertyFormState]) missing.push(key);
+  }
+  return missing;
+}
+
+// True once every field KIND_FIELDS[kind] requires (plus the always-common
+// ones) has a value — gates the "Continue" button on the details step.
+export function isDetailsComplete(
+  kind: PropertyKind,
+  f: PropertyFormState,
+): boolean {
+  return getMissingFields(kind, f).length === 0;
 }
 
 // Builds the wire payload for both property/create and property/update-info
 // (and their rent equivalents) — homedot-mobile-app sends byte-for-byte the
 // same shape for create and edit, just against a different endpoint. Shared
 // by PropertyAddScreen (create) and MyPropertyScreen's edit flow.
+
 export function buildPropertyPayload(
   propertyType: PropertyTypeRecord,
   form: PropertyFormState,
@@ -340,7 +442,10 @@ export function buildPropertyPayload(
     property_type: propertyType._id,
     price: num(form.price) ?? 0,
     property_images: imageIds,
-    bedrooms: has("bedrooms") && form.bedrooms ? bedroomsToApi(form.bedrooms) : undefined,
+    bedrooms:
+      has("bedrooms") && form.bedrooms
+        ? bedroomsToApi(form.bedrooms)
+        : undefined,
     bathrooms: has("bathrooms") ? num(form.bathrooms) : undefined,
     balcony: has("balcony") ? num(form.balcony) : undefined,
     furnished: has("furnished") ? form.furnished || undefined : undefined,
@@ -349,9 +454,12 @@ export function buildPropertyPayload(
     plot_area: has("plotArea") ? num(form.plotArea) : undefined,
     no_of_floors: has("noOfFloors") ? num(form.noOfFloors) : undefined,
     road_width: has("roadWidth") ? num(form.roadWidth) : undefined,
-    maintenanceCharge: has("maintenanceCharge") ? num(form.maintenanceCharge) : undefined,
+    maintenanceCharge: has("maintenanceCharge")
+      ? num(form.maintenanceCharge)
+      : undefined,
     garage: has("garage") ? num(form.garage) : undefined,
-    amenities: has("amenities") && form.amenities.length ? form.amenities : undefined,
+    amenities:
+      has("amenities") && form.amenities.length ? form.amenities : undefined,
     length: has("length") ? num(form.length) : undefined,
     breadth: has("breadth") ? num(form.breadth) : undefined,
   };
@@ -363,10 +471,31 @@ export function buildPropertyPayload(
 // rather than a series of disconnected screens.
 export function StepProgress({ currentIndex }: { currentIndex: number }) {
   return (
-    <div style={{ display: "flex", alignItems: "flex-start", marginBottom: spacing.xxl }}>
+    <div
+      style={{
+        display: "flex",
+        alignItems: "flex-start",
+        marginBottom: spacing.xxl,
+      }}
+    >
       {FLOW_STEPS.map((s, i) => (
-        <div key={s.key} style={{ display: "flex", alignItems: "flex-start", flex: i < FLOW_STEPS.length - 1 ? 1 : undefined }}>
-          <div style={{ display: "flex", flexDirection: "column", alignItems: "center", gap: 7, flexShrink: 0 }}>
+        <div
+          key={s.key}
+          style={{
+            display: "flex",
+            alignItems: "flex-start",
+            flex: i < FLOW_STEPS.length - 1 ? 1 : undefined,
+          }}
+        >
+          <div
+            style={{
+              display: "flex",
+              flexDirection: "column",
+              alignItems: "center",
+              gap: 7,
+              flexShrink: 0,
+            }}
+          >
             <span
               className="pa-step-dot"
               style={{
@@ -379,10 +508,17 @@ export function StepProgress({ currentIndex }: { currentIndex: number }) {
                 color: i <= currentIndex ? colors.white : colors.muted,
                 border: `2px solid ${i <= currentIndex ? colors.primary : colors.line}`,
                 transform: i === currentIndex ? "scale(1.12)" : "scale(1)",
-                boxShadow: i === currentIndex ? `0 0 0 4px ${colors.primarySoft}` : "none",
+                boxShadow:
+                  i === currentIndex
+                    ? `0 0 0 4px ${colors.primarySoft}`
+                    : "none",
               }}
             >
-              {i < currentIndex ? <Icon name="check" size={16} /> : <Icon name={s.icon} size={15} />}
+              {i < currentIndex ? (
+                <Icon name="check" size={16} />
+              ) : (
+                <Icon name={s.icon} size={15} />
+              )}
             </span>
             <span
               style={{

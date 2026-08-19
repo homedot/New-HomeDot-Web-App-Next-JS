@@ -884,7 +884,7 @@ export default function PropertyDetail({
             >
               {prop.priceUnit ? `/ ${prop.priceUnit}` : "onwards*"}
             </div>
-            {emi !== null && (
+            {/* {emi !== null && (
               <div
                 style={{
                   display: "inline-flex",
@@ -893,16 +893,16 @@ export default function PropertyDetail({
                   marginTop: 9,
                   fontSize: fontSize.xs,
                   fontWeight: 600,
-                  color: colors.ink2,
+                  color: colors.ink2,tin
                   background: colors.primarySoft,
-                  padding: "5px 11px",
+                  padding: "5px 11px",  
                   borderRadius: radius.full,
                 }}
               >
                 <Icon name="sparkle" size={12} color={colors.accent} /> EMI ≈ ₹
                 {emi.toLocaleString("en-IN")}/mo*
               </div>
-            )}
+            )} */}
           </div>
         </Reveal>
 
