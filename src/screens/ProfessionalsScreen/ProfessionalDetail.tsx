@@ -970,30 +970,6 @@ export default function ProfessionalDetail({
                     </Button>
                   </form>
                 )}
-
-                <div style={{ display: "flex", flexDirection: "column", gap: 10, marginTop: spacing.sm, paddingTop: spacing.md, borderTop: `1px solid ${colors.line}` }}>
-                  {[
-                    { icon: "shield" as const, label: "HomeDot service guarantee" },
-                    { icon: "verified" as const, label: "ID & license verified" },
-                    { icon: "briefcase" as const, label: `${pro.projects}+ projects on HomeDot` },
-                  ].map((t) => (
-                    <div key={t.label} style={{ display: "flex", alignItems: "center", gap: 10, fontSize: fontSize.sm - 1, color: colors.ink2 }}>
-                      <Icon name={t.icon} size={17} color={colors.primary} /> {t.label}
-                    </div>
-                  ))}
-                </div>
-              </div>
-            </div>
-
-            <div style={{ display: "flex", alignItems: "flex-start", gap: spacing.md, background: colors.card, border: `1px solid ${colors.line}`, borderRadius: radius.lg, padding: spacing.lg, boxShadow: shadow.sm }}>
-              <span style={{ width: 40, height: 40, borderRadius: 11, background: colors.primarySoft, color: colors.primary, display: "grid", placeItems: "center", flexShrink: 0 }}>
-                <Icon name="shield" size={18} />
-              </span>
-              <div>
-                <b style={{ display: "block", fontSize: fontSize.sm + 1, marginBottom: 3 }}>The HomeDot promise</b>
-                <span style={{ fontSize: fontSize.xs + 0.5, color: colors.muted, lineHeight: 1.5 }}>
-                  Every professional is manually checked for credentials and past work before they go live.
-                </span>
               </div>
             </div>
           </Reveal>
