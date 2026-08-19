@@ -1334,11 +1334,12 @@ body.has-cursor * {
 }
 
 /* DetailsStep's per-field error state: clicking Continue on an incomplete
-   form scrolls to the first empty field and adds this class, which draws a
-   persistent red outline plus one shake-and-glow pass. Re-clicking Continue
-   on the same still-empty field removes and re-adds the class (via a forced
-   reflow in DetailsStep) so the animation replays instead of staying inert
-   because the class never changed. */
+   form scrolls to the first empty field and adds this class, which plays a
+   one-off shake-and-glow pass (no persistent border — the section keeps its
+   standard look; the red label text and "· Required" flag are the lasting
+   indicator). Re-clicking Continue on the same still-empty field removes and
+   re-adds the class (via a forced reflow in DetailsStep) so the animation
+   replays instead of staying inert because the class never changed. */
 @keyframes paFieldAlert {
   0% { transform: translateX(0); box-shadow: 0 0 0 0 rgba(192, 57, 43, 0.24); }
   15% { transform: translateX(-6px); }
@@ -1350,10 +1351,6 @@ body.has-cursor * {
 }
 
 .pa-field-invalid {
-  border: 1.5px solid #c0392b;
-  background: rgba(192, 57, 43, 0.05);
-  padding: 8px;
-  margin: -8px;
   animation: paFieldAlert 0.6s ease;
 }
 
