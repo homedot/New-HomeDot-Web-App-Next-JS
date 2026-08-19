@@ -20,7 +20,11 @@ const OPTIONS: {
     icon: "house",
     title: "Sell",
     desc: "List a property you're looking to sell.",
-    points: ["Reach serious, verified buyers", "Set your own asking price", "Free to list, no hidden fees"],
+    points: [
+      "Reach serious, verified buyers",
+      "Set your own asking price",
+      "Free to list, no hidden fees",
+    ],
     accent: colors.primary,
     soft: colors.primarySoft,
   },
@@ -29,7 +33,11 @@ const OPTIONS: {
     icon: "sparkle",
     title: "Rent",
     desc: "List a property you're looking to rent out.",
-    points: ["Reach tenants actively searching", "Fill vacancies faster", "Manage enquiries in one place"],
+    points: [
+      "Reach tenants actively searching",
+      "Fill vacancies faster",
+      "Manage enquiries in one place",
+    ],
     accent: colors.price,
     soft: "rgba(14,124,138,0.12)",
   },
@@ -52,11 +60,22 @@ export default function PurposeStep({
       >
         What would you like to list?
       </h1>
-      <p style={{ fontSize: fontSize.base, color: colors.muted, marginBottom: spacing.xl }}>
-        Choose how you want to list this property — you can always list another one later.
+      <p
+        style={{
+          fontSize: fontSize.base,
+          color: colors.muted,
+          marginBottom: spacing.xl,
+        }}
+      >
+        Choose how you want to list this property — you can always list another
+        one later.
       </p>
 
-      <Reveal stagger className="grid grid-cols-1 sm:grid-cols-2" style={{ gap: spacing.lg }}>
+      <Reveal
+        stagger
+        className="grid grid-cols-1 sm:grid-cols-2"
+        style={{ gap: spacing.lg }}
+      >
         {OPTIONS.map((o) => (
           <button
             key={o.purpose}
@@ -102,10 +121,24 @@ export default function PurposeStep({
             >
               <Icon name={o.icon} size={24} />
             </span>
-            <b style={{ display: "block", fontFamily: "var(--font-display)", fontSize: fontSize.lg + 3, marginBottom: 6 }}>
+            <b
+              style={{
+                display: "block",
+                fontFamily: "var(--font-display)",
+                fontSize: fontSize.lg + 3,
+                marginBottom: 6,
+              }}
+            >
               {o.title}
             </b>
-            <p style={{ fontSize: fontSize.sm + 0.5, color: colors.muted, marginBottom: spacing.md, lineHeight: 1.5 }}>
+            <p
+              style={{
+                fontSize: fontSize.sm + 0.5,
+                color: colors.muted,
+                marginBottom: spacing.md,
+                lineHeight: 1.5,
+              }}
+            >
               {o.desc}
             </p>
             <div style={{ display: "flex", flexDirection: "column", gap: 7 }}>
