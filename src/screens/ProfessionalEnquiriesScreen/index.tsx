@@ -210,7 +210,9 @@ export default function ProfessionalEnquiriesScreen() {
                         />
                       ))}
                     </Reveal>
-                    <LoadMoreButton onClick={() => enq.loadMore(tab)} loading={enq.loadingMore} label="Show more enquiries" />
+                    {enq.enquiryCounts[tab] > activeEnquiries.length && (
+                      <LoadMoreButton onClick={() => enq.loadMore(tab)} loading={enq.loadingMore} label="Show more enquiries" />
+                    )}
                   </>
                 )}
               </Reveal>
