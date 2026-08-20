@@ -282,6 +282,25 @@ export const budgetRanges: Record<string, [number, number]> = {
   "₹5 Cr+": [5e7, Infinity],
 };
 
+// Monthly rent runs in the thousands, not lakhs/crores, so it needs its own
+// bucket list — matches the breakpoints (₹5k/10k/15k/20k) homedot_mobile_app
+// uses for its rent min/max pickers.
+export const rentPriceOptions = [
+  "Under ₹5,000",
+  "₹5,000 – ₹10,000",
+  "₹10,000 – ₹15,000",
+  "₹15,000 – ₹20,000",
+  "₹20,000+",
+];
+
+export const rentBudgetRanges: Record<string, [number, number]> = {
+  "Under ₹5,000": [0, 5000],
+  "₹5,000 – ₹10,000": [5000, 10000],
+  "₹10,000 – ₹15,000": [10000, 15000],
+  "₹15,000 – ₹20,000": [15000, 20000],
+  "₹20,000+": [20000, Infinity],
+};
+
 export const agent = {
   name: "Mahesh Mohanan",
   role: "HomeDot Verified Consultant",

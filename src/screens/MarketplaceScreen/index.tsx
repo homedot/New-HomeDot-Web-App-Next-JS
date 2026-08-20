@@ -42,6 +42,8 @@ import {
   bathOptions,
   priceOptions,
   budgetRanges,
+  rentPriceOptions,
+  rentBudgetRanges,
   parsePrice,
   unsplash,
   type MarketplaceProperty,
@@ -79,6 +81,10 @@ export default function MarketplaceScreen() {
   const requestedPropertyTypeId = searchParams.get("propertyType");
 
   const [purpose, setPurpose] = useState<"Buy" | "Rent">("Buy");
+  // Rent prices are monthly rupee amounts, not lakhs/crores, so Rent gets its
+  // own bucket list (mirrors homedot-mobile-app's rent min/max breakpoints).
+  const activePriceOptions = purpose === "Rent" ? rentPriceOptions : priceOptions;
+  const activeBudgetRanges = purpose === "Rent" ? rentBudgetRanges : budgetRanges;
   const [propertyTypeOptions, setPropertyTypeOptions] = useState<
     PropertyTypeRecord[]
   >([]);
@@ -394,7 +400,7 @@ export default function MarketplaceScreen() {
   // "5+" has no exact BHK value server-side — the real API's enum tops out
   // at 4_PLUS_BHK (matches the mobile app's filter payload).
   const filterPayload = useMemo((): PropertiesFilterPayload => {
-    const range = budget ? budgetRanges[budget] : undefined;
+    const range = budget ? activeBudgetRanges[budget] : undefined;
     const max = range?.[1];
     return {
       min: range?.[0] ?? null,
@@ -406,7 +412,7 @@ export default function MarketplaceScreen() {
       cities: appliedLocation?.city ? [appliedLocation.city] : null,
       propertyType: selectedPropertyType?._id ?? null,
     };
-  }, [budget, beds, baths, selectedPropertyType, appliedLocation]);
+  }, [budget, activeBudgetRanges, beds, baths, selectedPropertyType, appliedLocation]);
 
   useEffect(() => {
     let cancelled = false;
@@ -492,17 +498,17 @@ export default function MarketplaceScreen() {
 
   const list = useMemo(() => {
     let out = apiProperties.filter((p) => p.purpose === purpose);
-    // propertyType is already applied server-side via filterPayload; this is
-    // just a client-side safety net for whatever page(s) are currently loaded.
-    if (selectedPropertyType)
-      out = out.filter((p) => p.category === selectedPropertyType.propertyType);
+    // propertyType is applied server-side via filterPayload. It isn't
+    // re-checked here because rent listings don't come back with a
+    // `propertyType` field (only sale ones do), so re-matching on it would
+    // wrongly drop every rent result whenever a property type is selected.
     if (beds)
       out = out.filter((p) =>
         beds === "5+" ? p.beds >= 5 : p.beds === parseInt(beds),
       );
     if (baths) out = out.filter((p) => p.baths >= parseInt(baths));
-    if (budget && budgetRanges[budget]) {
-      const [lo, hi] = budgetRanges[budget];
+    if (budget && activeBudgetRanges[budget]) {
+      const [lo, hi] = activeBudgetRanges[budget];
       out = out.filter((p) => {
         const v = parsePrice(p.price);
         return v >= lo && v < hi;
@@ -514,7 +520,7 @@ export default function MarketplaceScreen() {
       out = [...out].sort((a, b) => parsePrice(b.price) - parsePrice(a.price));
     if (sort === "area") out = [...out].sort((a, b) => b.area - a.area);
     return out;
-  }, [apiProperties, purpose, selectedPropertyType, beds, baths, budget, sort]);
+  }, [apiProperties, purpose, beds, baths, budget, activeBudgetRanges, sort]);
 
   const activeCount =
     (selectedPropertyType ? 1 : 0) +
@@ -751,7 +757,10 @@ export default function MarketplaceScreen() {
                 {(["Buy", "Rent"] as const).map((o) => (
                   <button
                     key={o}
-                    onClick={() => setPurpose(o)}
+                    onClick={() => {
+                      setPurpose(o);
+                      setBudget("");
+                    }}
                     style={{
                       fontSize: fontSize.sm + 0.5,
                       fontWeight: 600,
@@ -1036,7 +1045,7 @@ export default function MarketplaceScreen() {
                 </FilterGroup>
 
                 <FilterGroup title="Budget" last={hidesBedBath(selectedPropertyType)}>
-                  {priceOptions.map((b) => (
+                  {activePriceOptions.map((b) => (
                     <RadioRow
                       key={b}
                       label={b}

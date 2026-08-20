@@ -1,6 +1,13 @@
 "use client";
 
-import { useEffect, useMemo, useRef, useState, type CSSProperties, type ReactNode } from "react";
+import {
+  useEffect,
+  useMemo,
+  useRef,
+  useState,
+  type CSSProperties,
+  type ReactNode,
+} from "react";
 import { useSearchParams, useRouter, usePathname } from "next/navigation";
 import { colors } from "@/constants/colors";
 import { spacing, radius, fontSize, shadow, maxWidth } from "@/utils/size";
@@ -32,7 +39,13 @@ import ProfessionalsScreenService, {
   type ProfessionalsFilterPayload,
 } from "@/services/ProfessionalsScreenService";
 import ProfessionalDetail from "./ProfessionalDetail";
-import { ratingBuckets, experienceBuckets, budgetBuckets, unsplash, type ProfessionalRecord } from "./data";
+import {
+  ratingBuckets,
+  experienceBuckets,
+  budgetBuckets,
+  unsplash,
+  type ProfessionalRecord,
+} from "./data";
 
 const wrap: CSSProperties = {
   maxWidth,
@@ -45,13 +58,17 @@ export default function ProfessionalsScreen() {
   const router = useRouter();
   const pathname = usePathname();
 
-  const [categoryOptions, setCategoryOptions] = useState<ServiceCategoryCard[]>([]);
+  const [categoryOptions, setCategoryOptions] = useState<ServiceCategoryCard[]>(
+    [],
+  );
   const [category, setCategory] = useState<string>("all");
   const [query, setQuery] = useState("");
   const [budget, setBudget] = useState<number | null>(null); // index into budgetBuckets
   const [rating, setRating] = useState<number | null>(null); // exact star value
   const [experience, setExperience] = useState<number | null>(null); // index into experienceBuckets
-  const [sort, setSort] = useState<"recommended" | "rating" | "experience">("recommended");
+  const [sort, setSort] = useState<"recommended" | "rating" | "experience">(
+    "recommended",
+  );
   const [view, setView] = useState<"grid" | "list">("grid");
   const [saved, setSaved] = useState<string[]>([]);
   const loginModalRef = useRef<LoginModalHandle>(null);
@@ -65,9 +82,15 @@ export default function ProfessionalsScreen() {
   // selectedPlaceDetailed) rather than Google's native "pac-container"
   // popup, which can't be restyled to match the rest of this screen.
   const [locationText, setLocationText] = useState("Kochi, Kerala");
-  const [appliedLocation, setAppliedLocation] = useState<{ address: string; lat: number; long: number } | null>(null);
+  const [appliedLocation, setAppliedLocation] = useState<{
+    address: string;
+    lat: number;
+    long: number;
+  } | null>(null);
   const [locatingMe, setLocatingMe] = useState(false);
-  const [suggestions, setSuggestions] = useState<GoogleMapsPlacePrediction[]>([]);
+  const [suggestions, setSuggestions] = useState<GoogleMapsPlacePrediction[]>(
+    [],
+  );
   const [showSuggestions, setShowSuggestions] = useState(false);
   const [locationError, setLocationError] = useState(false);
   const locationInputRef = useRef<HTMLInputElement | null>(null);
@@ -75,7 +98,9 @@ export default function ProfessionalsScreen() {
   const googleMapsRef = useRef<GoogleMapsNamespace | null>(null);
   const suggestTimer = useRef<ReturnType<typeof setTimeout> | null>(null);
 
-  const [apiProfessionals, setApiProfessionals] = useState<ProfessionalRecord[]>([]);
+  const [apiProfessionals, setApiProfessionals] = useState<
+    ProfessionalRecord[]
+  >([]);
   const [page, setPage] = useState(1);
   const [totalRows, setTotalRows] = useState(0);
   const [loading, setLoading] = useState(false);
@@ -145,7 +170,8 @@ export default function ProfessionalsScreen() {
   useEffect(() => {
     if (!showSuggestions) return;
     const onDocClick = (e: MouseEvent) => {
-      if (!locationFieldRef.current?.contains(e.target as Node)) setShowSuggestions(false);
+      if (!locationFieldRef.current?.contains(e.target as Node))
+        setShowSuggestions(false);
     };
     document.addEventListener("mousedown", onDocClick);
     return () => document.removeEventListener("mousedown", onDocClick);
@@ -199,19 +225,22 @@ export default function ProfessionalsScreen() {
     setSuggestions([]);
     const google = googleMapsRef.current;
     if (!google) return;
-    new google.maps.Geocoder().geocode({ placeId: prediction.place_id }, (results, status) => {
-      if (status === "OK" && results?.[0]) {
-        setLocationError(false);
-        setLocationText(results[0].formatted_address);
-        setAppliedLocation({
-          address: results[0].formatted_address,
-          lat: results[0].geometry.location.lat(),
-          long: results[0].geometry.location.lng(),
-        });
-      } else {
-        setLocationError(true);
-      }
-    });
+    new google.maps.Geocoder().geocode(
+      { placeId: prediction.place_id },
+      (results, status) => {
+        if (status === "OK" && results?.[0]) {
+          setLocationError(false);
+          setLocationText(results[0].formatted_address);
+          setAppliedLocation({
+            address: results[0].formatted_address,
+            lat: results[0].geometry.location.lat(),
+            long: results[0].geometry.location.lng(),
+          });
+        } else {
+          setLocationError(true);
+        }
+      },
+    );
   };
 
   const locateCurrentPosition = () => {
@@ -224,7 +253,11 @@ export default function ProfessionalsScreen() {
         const google = googleMapsRef.current;
         if (!google) {
           setLocatingMe(false);
-          setAppliedLocation({ address: "Current location", lat: latitude, long: longitude });
+          setAppliedLocation({
+            address: "Current location",
+            lat: latitude,
+            long: longitude,
+          });
           setLocationText("Current location");
           return;
         }
@@ -236,7 +269,10 @@ export default function ProfessionalsScreen() {
             // reverse geocoding is only used to fill in a readable address,
             // matching homedot-mobile-app's expoLocation (sets lat/long from
             // coords immediately, geocodes only for display text).
-            const address = status === "OK" && results?.[0] ? results[0].formatted_address : "Current location";
+            const address =
+              status === "OK" && results?.[0]
+                ? results[0].formatted_address
+                : "Current location";
             setLocationText(address);
             setAppliedLocation({ address, lat: latitude, long: longitude });
           },
@@ -312,13 +348,19 @@ export default function ProfessionalsScreen() {
     let cancelled = false;
     const load = async () => {
       setLoading(true);
-      const res = await ProfessionalsScreenService.getProfessionalsFilter(1, filterQuery, filterPayload);
+      const res = await ProfessionalsScreenService.getProfessionalsFilter(
+        1,
+        filterQuery,
+        filterPayload,
+      );
       if (cancelled) return;
       setLoading(false);
       setInitialLoad(false);
       const result = res.data?.data?.[0];
       if (res.success && res.data?.status) {
-        setApiProfessionals(result ? result.data.map(toProfessionalRecord) : []);
+        setApiProfessionals(
+          result ? result.data.map(toProfessionalRecord) : [],
+        );
         setTotalRows(result?.totalCount?.total_rows ?? 0);
         setPage(1);
       }
@@ -332,11 +374,18 @@ export default function ProfessionalsScreen() {
   const loadMore = async () => {
     if (loading || apiProfessionals.length >= totalRows) return;
     setLoading(true);
-    const res = await ProfessionalsScreenService.getProfessionalsFilter(page + 1, filterQuery, filterPayload);
+    const res = await ProfessionalsScreenService.getProfessionalsFilter(
+      page + 1,
+      filterQuery,
+      filterPayload,
+    );
     setLoading(false);
     const result = res.data?.data?.[0];
     if (res.success && res.data?.status && result) {
-      setApiProfessionals((prev) => [...prev, ...result.data.map(toProfessionalRecord)]);
+      setApiProfessionals((prev) => [
+        ...prev,
+        ...result.data.map(toProfessionalRecord),
+      ]);
       setPage((p) => p + 1);
     }
   };
@@ -404,17 +453,26 @@ export default function ProfessionalsScreen() {
       loginModalRef.current?.open();
       return;
     }
-    const userId = detail?.id === id ? detail.userId : apiProfessionals.find((p) => p.id === id)?.userId;
+    const userId =
+      detail?.id === id
+        ? detail.userId
+        : apiProfessionals.find((p) => p.id === id)?.userId;
     if (!userId) return;
     // `saved` holds userIds (seeded from favorites-list, which is keyed on
     // userId) — not `id` (the inviteId), which is a different id space.
     const wasSaved = saved.includes(userId);
-    setSaved((s) => (wasSaved ? s.filter((x) => x !== userId) : [...s, userId]));
-    ProfessionalsScreenService.toggleFavoriteProfessional(userId).then((res) => {
-      if (!res.success || !res.data?.status) {
-        setSaved((s) => (wasSaved ? [...s, userId] : s.filter((x) => x !== userId)));
-      }
-    });
+    setSaved((s) =>
+      wasSaved ? s.filter((x) => x !== userId) : [...s, userId],
+    );
+    ProfessionalsScreenService.toggleFavoriteProfessional(userId).then(
+      (res) => {
+        if (!res.success || !res.data?.status) {
+          setSaved((s) =>
+            wasSaved ? [...s, userId] : s.filter((x) => x !== userId),
+          );
+        }
+      },
+    );
   };
 
   // Client-side refinements only — the server already applied
@@ -433,12 +491,16 @@ export default function ProfessionalsScreen() {
       );
     }
     if (sort === "rating") out = [...out].sort((a, b) => b.rating - a.rating);
-    if (sort === "experience") out = [...out].sort((a, b) => b.experience - a.experience);
+    if (sort === "experience")
+      out = [...out].sort((a, b) => b.experience - a.experience);
     return out;
   }, [apiProfessionals, query, sort]);
 
   const activeCount =
-    (appliedLocation ? 1 : 0) + (budget != null ? 1 : 0) + (rating != null ? 1 : 0) + (experience != null ? 1 : 0);
+    (appliedLocation ? 1 : 0) +
+    (budget != null ? 1 : 0) +
+    (rating != null ? 1 : 0) +
+    (experience != null ? 1 : 0);
   const clearAll = () => {
     clearLocation();
     setBudget(null);
@@ -447,7 +509,9 @@ export default function ProfessionalsScreen() {
   };
 
   const similarFor = (p: ProfessionalRecord) => {
-    const sameCat = apiProfessionals.filter((x) => x.id !== p.id && x.category === p.category);
+    const sameCat = apiProfessionals.filter(
+      (x) => x.id !== p.id && x.category === p.category,
+    );
     const fallback = apiProfessionals.filter((x) => x.id !== p.id);
     return (sameCat.length >= 3 ? sameCat : fallback).slice(0, 3);
   };
@@ -455,7 +519,14 @@ export default function ProfessionalsScreen() {
   const hasMore = apiProfessionals.length < totalRows;
 
   return (
-    <div style={{ background: colors.bg, color: colors.ink, position: "relative", zIndex: 0 }}>
+    <div
+      style={{
+        background: colors.bg,
+        color: colors.ink,
+        position: "relative",
+        zIndex: 0,
+      }}
+    >
       <AmbientBackground />
       <ScrollProgress />
       <Cursor />
@@ -579,7 +650,10 @@ export default function ProfessionalsScreen() {
                   }}
                 />
               </label>
-              <div ref={locationFieldRef} style={{ position: "relative", flexShrink: 0 }}>
+              <div
+                ref={locationFieldRef}
+                style={{ position: "relative", flexShrink: 0 }}
+              >
                 <label
                   style={{
                     display: "flex",
@@ -591,16 +665,25 @@ export default function ProfessionalsScreen() {
                     padding: "0 14px",
                     color: colors.muted,
                     background: locationError ? "#FFF6F6" : "transparent",
-                    boxShadow: locationError ? "0 0 0 4px rgba(220,38,38,0.07)" : "none",
-                    transition: "border-color 0.2s ease, background 0.2s ease, box-shadow 0.2s ease",
+                    boxShadow: locationError
+                      ? "0 0 0 4px rgba(220,38,38,0.07)"
+                      : "none",
+                    transition:
+                      "border-color 0.2s ease, background 0.2s ease, box-shadow 0.2s ease",
                   }}
                 >
-                  <Icon name="location" size={18} color={locationError ? "#DC2626" : undefined} />
+                  <Icon
+                    name="location"
+                    size={18}
+                    color={locationError ? "#DC2626" : undefined}
+                  />
                   <input
                     ref={locationInputRef}
                     value={locationText}
                     onChange={(e) => onLocationInputChange(e.target.value)}
-                    onFocus={() => suggestions.length > 0 && setShowSuggestions(true)}
+                    onFocus={() =>
+                      suggestions.length > 0 && setShowSuggestions(true)
+                    }
                     onKeyDown={(e) => {
                       if (e.key === "Enter") {
                         e.preventDefault();
@@ -625,7 +708,11 @@ export default function ProfessionalsScreen() {
                       type="button"
                       onClick={clearLocation}
                       aria-label="Clear location"
-                      style={{ display: "flex", flexShrink: 0, color: colors.muted }}
+                      style={{
+                        display: "flex",
+                        flexShrink: 0,
+                        color: colors.muted,
+                      }}
                     >
                       <Icon name="close" size={14} />
                     </button>
@@ -635,7 +722,12 @@ export default function ProfessionalsScreen() {
                       onClick={locateCurrentPosition}
                       disabled={locatingMe}
                       aria-label="Use my current location"
-                      style={{ display: "flex", flexShrink: 0, color: colors.primary, opacity: locatingMe ? 0.5 : 1 }}
+                      style={{
+                        display: "flex",
+                        flexShrink: 0,
+                        color: colors.primary,
+                        opacity: locatingMe ? 0.5 : 1,
+                      }}
                     >
                       <Icon name="compass" size={17} />
                     </button>
@@ -657,9 +749,11 @@ export default function ProfessionalsScreen() {
                       background: "linear-gradient(180deg, #FFF8F8, #FFFFFF)",
                       border: "1px solid #FBD5D5",
                       borderRadius: radius.md,
-                      boxShadow: "0 10px 24px rgba(220,38,38,0.12), 0 1px 2px rgba(220,38,38,0.06)",
+                      boxShadow:
+                        "0 10px 24px rgba(220,38,38,0.12), 0 1px 2px rgba(220,38,38,0.06)",
                       zIndex: 20,
-                      animation: "warnBannerIn 0.22s cubic-bezier(0.16, 1, 0.3, 1) both",
+                      animation:
+                        "warnBannerIn 0.22s cubic-bezier(0.16, 1, 0.3, 1) both",
                     }}
                   >
                     <div
@@ -678,11 +772,26 @@ export default function ProfessionalsScreen() {
                       <Icon name="alertTriangle" size={14} color="#DC2626" />
                     </div>
                     <div>
-                      <p style={{ margin: 0, fontSize: fontSize.sm, fontWeight: 600, color: "#B91C1C" }}>
+                      <p
+                        style={{
+                          margin: 0,
+                          fontSize: fontSize.sm,
+                          fontWeight: 600,
+                          color: "#B91C1C",
+                        }}
+                      >
                         Location not found
                       </p>
-                      <p style={{ margin: "2px 0 0", fontSize: fontSize.xs, color: "#C0392B", lineHeight: 1.4 }}>
-                        We couldn&apos;t find that place. Try a city, locality, or landmark near you.
+                      <p
+                        style={{
+                          margin: "2px 0 0",
+                          fontSize: fontSize.xs,
+                          color: "#C0392B",
+                          lineHeight: 1.4,
+                        }}
+                      >
+                        We couldn&apos;t find that place. Try a city, locality,
+                        or landmark near you.
                       </p>
                     </div>
                   </div>
@@ -720,11 +829,22 @@ export default function ProfessionalsScreen() {
                           textAlign: "left",
                           fontSize: fontSize.sm + 0.5,
                           color: colors.ink2,
-                          borderBottom: i < suggestions.length - 1 ? `1px solid ${colors.line}` : "none",
+                          borderBottom:
+                            i < suggestions.length - 1
+                              ? `1px solid ${colors.line}`
+                              : "none",
                         }}
                       >
                         <Icon name="location" size={16} color={colors.accent} />
-                        <span style={{ overflow: "hidden", textOverflow: "ellipsis", whiteSpace: "nowrap" }}>{s.description}</span>
+                        <span
+                          style={{
+                            overflow: "hidden",
+                            textOverflow: "ellipsis",
+                            whiteSpace: "nowrap",
+                          }}
+                        >
+                          {s.description}
+                        </span>
                       </button>
                     ))}
                   </div>
@@ -743,7 +863,11 @@ export default function ProfessionalsScreen() {
                 paddingBottom: 2,
               }}
             >
-              <CategoryPill label="All" active={category === "all"} onClick={() => setCategory("all")} />
+              <CategoryPill
+                label="All"
+                active={category === "all"}
+                onClick={() => setCategory("all")}
+              />
               {categoryOptions.map((c) => (
                 <CategoryPill
                   key={c.id}
@@ -782,13 +906,25 @@ export default function ProfessionalsScreen() {
                     padding: "14px 0 4px",
                   }}
                 >
-                  <span style={{ fontSize: fontSize.sm, fontWeight: 600, color: colors.muted }}>
-                    {activeCount > 0 ? `${activeCount} active` : "All professionals"}
+                  <span
+                    style={{
+                      fontSize: fontSize.sm,
+                      fontWeight: 600,
+                      color: colors.muted,
+                    }}
+                  >
+                    {activeCount > 0
+                      ? `${activeCount} active`
+                      : "All professionals"}
                   </span>
                   {activeCount > 0 && (
                     <button
                       onClick={clearAll}
-                      style={{ fontSize: fontSize.sm, fontWeight: 600, color: colors.accent }}
+                      style={{
+                        fontSize: fontSize.sm,
+                        fontWeight: 600,
+                        color: colors.accent,
+                      }}
                     >
                       Clear all
                     </button>
@@ -797,7 +933,12 @@ export default function ProfessionalsScreen() {
 
                 <FilterGroup title="Budget (₹ / sqft)">
                   {budgetBuckets.map((b, i) => (
-                    <RadioRow key={b.label} label={b.label} checked={budget === i} onChange={() => setBudget(budget === i ? null : i)} />
+                    <RadioRow
+                      key={b.label}
+                      label={b.label}
+                      checked={budget === i}
+                      onChange={() => setBudget(budget === i ? null : i)}
+                    />
                   ))}
                 </FilterGroup>
 
@@ -807,7 +948,9 @@ export default function ProfessionalsScreen() {
                       key={r.value}
                       label={r.label}
                       checked={rating === r.value}
-                      onChange={() => setRating(rating === r.value ? null : r.value)}
+                      onChange={() =>
+                        setRating(rating === r.value ? null : r.value)
+                      }
                     />
                   ))}
                 </FilterGroup>
@@ -818,7 +961,9 @@ export default function ProfessionalsScreen() {
                       key={e.label}
                       label={e.label}
                       checked={experience === i}
-                      onChange={() => setExperience(experience === i ? null : i)}
+                      onChange={() =>
+                        setExperience(experience === i ? null : i)
+                      }
                     />
                   ))}
                 </FilterGroup>
@@ -827,10 +972,26 @@ export default function ProfessionalsScreen() {
               {/* results */}
               <main>
                 <div style={{ marginBottom: spacing.lg }}>
-                  <h2 style={{ fontFamily: "var(--font-display)", fontSize: "clamp(20px, 2.4vw, 28px)", fontWeight: 600 }}>
-                    {category === "all" ? "Professionals" : categoryOptions.find((c) => c.id === category)?.name} in Kochi
+                  <h2
+                    style={{
+                      fontFamily: "var(--font-display)",
+                      fontSize: "clamp(20px, 2.4vw, 28px)",
+                      fontWeight: 600,
+                    }}
+                  >
+                    {category === "all"
+                      ? "Professionals"
+                      : categoryOptions.find((c) => c.id === category)
+                          ?.name}{" "}
+                    in Kochi
                   </h2>
-                  <p style={{ color: colors.muted, fontSize: fontSize.base, marginTop: 5 }}>
+                  <p
+                    style={{
+                      color: colors.muted,
+                      fontSize: fontSize.base,
+                      marginTop: 5,
+                    }}
+                  >
                     {initialLoad
                       ? "Finding professionals for you…"
                       : `${totalRows} ${totalRows === 1 ? "professional" : "professionals"} found · sorted by ${sort}`}
@@ -847,10 +1008,26 @@ export default function ProfessionalsScreen() {
                     flexWrap: "wrap",
                   }}
                 >
-                  <span className="lg:hidden" style={{ fontSize: fontSize.sm, fontWeight: 600, color: colors.muted }}>
-                    {activeCount > 0 ? `${activeCount} filters active` : "All professionals"}
+                  <span
+                    className="lg:hidden"
+                    style={{
+                      fontSize: fontSize.sm,
+                      fontWeight: 600,
+                      color: colors.muted,
+                    }}
+                  >
+                    {activeCount > 0
+                      ? `${activeCount} filters active`
+                      : "All professionals"}
                   </span>
-                  <div style={{ display: "flex", alignItems: "center", gap: spacing.md, marginLeft: "auto" }}>
+                  <div
+                    style={{
+                      display: "flex",
+                      alignItems: "center",
+                      gap: spacing.md,
+                      marginLeft: "auto",
+                    }}
+                  >
                     <div
                       style={{
                         display: "flex",
@@ -872,10 +1049,14 @@ export default function ProfessionalsScreen() {
                             display: "grid",
                             placeItems: "center",
                             color: view === v ? colors.primary : colors.muted,
-                            background: view === v ? colors.primarySoft : "transparent",
+                            background:
+                              view === v ? colors.primarySoft : "transparent",
                           }}
                         >
-                          <Icon name={v === "grid" ? "grid" : "menu"} size={17} />
+                          <Icon
+                            name={v === "grid" ? "grid" : "menu"}
+                            size={17}
+                          />
                         </button>
                       ))}
                     </div>
@@ -896,7 +1077,13 @@ export default function ProfessionalsScreen() {
                       <select
                         value={sort}
                         onChange={(e) => setSort(e.target.value as typeof sort)}
-                        style={{ border: "none", outline: "none", background: "none", fontWeight: 600, color: colors.ink }}
+                        style={{
+                          border: "none",
+                          outline: "none",
+                          background: "none",
+                          fontWeight: 600,
+                          color: colors.ink,
+                        }}
                       >
                         <option value="recommended">Recommended</option>
                         <option value="rating">Highest rated</option>
@@ -907,14 +1094,48 @@ export default function ProfessionalsScreen() {
                 </div>
 
                 {activeCount > 0 && (
-                  <div style={{ display: "flex", flexWrap: "wrap", gap: 8, marginBottom: spacing.lg }}>
-                    {appliedLocation && <Chip label={appliedLocation.address} onRemove={clearLocation} />}
-                    {budget != null && <Chip label={budgetBuckets[budget].label} onRemove={() => setBudget(null)} />}
-                    {rating != null && <Chip label={ratingBuckets.find((r) => r.value === rating)!.label} onRemove={() => setRating(null)} />}
-                    {experience != null && <Chip label={experienceBuckets[experience].label} onRemove={() => setExperience(null)} />}
+                  <div
+                    style={{
+                      display: "flex",
+                      flexWrap: "wrap",
+                      gap: 8,
+                      marginBottom: spacing.lg,
+                    }}
+                  >
+                    {appliedLocation && (
+                      <Chip
+                        label={appliedLocation.address}
+                        onRemove={clearLocation}
+                      />
+                    )}
+                    {budget != null && (
+                      <Chip
+                        label={budgetBuckets[budget].label}
+                        onRemove={() => setBudget(null)}
+                      />
+                    )}
+                    {rating != null && (
+                      <Chip
+                        label={
+                          ratingBuckets.find((r) => r.value === rating)!.label
+                        }
+                        onRemove={() => setRating(null)}
+                      />
+                    )}
+                    {experience != null && (
+                      <Chip
+                        label={experienceBuckets[experience].label}
+                        onRemove={() => setExperience(null)}
+                      />
+                    )}
                     <button
                       onClick={clearAll}
-                      style={{ fontSize: fontSize.xs + 0.5, fontWeight: 600, color: colors.accent, textDecoration: "underline" }}
+                      style={{
+                        fontSize: fontSize.xs + 0.5,
+                        fontWeight: 600,
+                        color: colors.accent,
+                        textDecoration: "underline",
+                      }}
                     >
                       Clear all
                     </button>
@@ -922,7 +1143,10 @@ export default function ProfessionalsScreen() {
                 )}
 
                 {initialLoad ? (
-                  <div className="grid grid-cols-1 sm:grid-cols-2 xl:grid-cols-3" style={{ gap: spacing.xl }}>
+                  <div
+                    className="grid grid-cols-1 sm:grid-cols-2 xl:grid-cols-3"
+                    style={{ gap: spacing.xl }}
+                  >
                     {Array.from({ length: 6 }).map((_, i) => (
                       <CardSkeleton key={i} />
                     ))}
@@ -951,8 +1175,12 @@ export default function ProfessionalsScreen() {
                     >
                       <Icon name="search" size={26} />
                     </span>
-                    <h3 style={{ fontSize: fontSize.lg, marginBottom: 8 }}>No professionals match your filters</h3>
-                    <p style={{ color: colors.muted, marginBottom: spacing.lg }}>
+                    <h3 style={{ fontSize: fontSize.lg, marginBottom: 8 }}>
+                      No professionals match your filters
+                    </h3>
+                    <p
+                      style={{ color: colors.muted, marginBottom: spacing.lg }}
+                    >
                       Try widening your budget or removing a filter.
                     </p>
                     <Button variant="outline" onClick={clearAll}>
@@ -960,7 +1188,11 @@ export default function ProfessionalsScreen() {
                     </Button>
                   </div>
                 ) : view === "grid" ? (
-                  <Reveal stagger className="grid grid-cols-1 sm:grid-cols-2 xl:grid-cols-3" style={{ gap: spacing.xl }}>
+                  <Reveal
+                    stagger
+                    className="grid grid-cols-1 sm:grid-cols-2 xl:grid-cols-3"
+                    style={{ gap: spacing.xl }}
+                  >
                     {list.map((p) => (
                       <ProCard
                         key={p.id}
@@ -972,7 +1204,14 @@ export default function ProfessionalsScreen() {
                     ))}
                   </Reveal>
                 ) : (
-                  <Reveal stagger style={{ display: "flex", flexDirection: "column", gap: spacing.lg }}>
+                  <Reveal
+                    stagger
+                    style={{
+                      display: "flex",
+                      flexDirection: "column",
+                      gap: spacing.lg,
+                    }}
+                  >
                     {list.map((p) => (
                       <ProfessionalRow
                         key={p.id}
@@ -986,7 +1225,13 @@ export default function ProfessionalsScreen() {
                 )}
 
                 {hasMore && list.length > 0 && (
-                  <div style={{ display: "flex", justifyContent: "center", marginTop: spacing.xxl }}>
+                  <div
+                    style={{
+                      display: "flex",
+                      justifyContent: "center",
+                      marginTop: spacing.xxl,
+                    }}
+                  >
                     <Button variant="outline" size="lg" onClick={loadMore}>
                       {loading ? "Loading…" : "Show more professionals"}
                     </Button>
@@ -1009,7 +1254,11 @@ export default function ProfessionalsScreen() {
             description="From first hello to final handover, HomeDot connects you with people who've done the work before — and can prove it."
             promiseHeading="Vetted experts. Verified work. Zero guesswork."
             promiseDescription="Every professional is manually checked for credentials and past work before they appear on HomeDot. You see genuine reviews from real projects — never paid placements."
-            checklist={["ID & license verified", "Past work reviewed by our team", "Ratings from real clients only"]}
+            checklist={[
+              "ID & license verified",
+              "Past work reviewed by our team",
+              "Ratings from real clients only",
+            ]}
             stats={[
               { value: "180+", label: "Verified professionals ready to hire" },
               { value: "98%", label: "Pass ID & license checks" },
@@ -1065,19 +1314,70 @@ function CategoryPill({
   );
 }
 
-function FilterGroup({ title, children, last }: { title: string; children: ReactNode; last?: boolean }) {
+function FilterGroup({
+  title,
+  children,
+  last,
+}: {
+  title: string;
+  children: ReactNode;
+  last?: boolean;
+}) {
   return (
-    <div style={{ padding: "16px 0", borderBottom: last ? "none" : `1px solid ${colors.line}` }}>
-      <h4 style={{ fontSize: fontSize.sm + 0.5, fontWeight: 700, marginBottom: spacing.sm + 2 }}>{title}</h4>
-      <div style={{ display: "flex", flexDirection: "column", gap: spacing.sm + 1 }}>{children}</div>
+    <div
+      style={{
+        padding: "16px 0",
+        borderBottom: last ? "none" : `1px solid ${colors.line}`,
+      }}
+    >
+      <h4
+        style={{
+          fontSize: fontSize.sm + 0.5,
+          fontWeight: 700,
+          marginBottom: spacing.sm + 2,
+        }}
+      >
+        {title}
+      </h4>
+      <div
+        style={{
+          display: "flex",
+          flexDirection: "column",
+          gap: spacing.sm + 1,
+        }}
+      >
+        {children}
+      </div>
     </div>
   );
 }
 
-function RadioRow({ label, checked, onChange }: { label: string; checked: boolean; onChange: () => void }) {
+function RadioRow({
+  label,
+  checked,
+  onChange,
+}: {
+  label: string;
+  checked: boolean;
+  onChange: () => void;
+}) {
   return (
-    <label style={{ display: "flex", alignItems: "center", gap: 10, fontSize: fontSize.base - 1, color: colors.ink2, cursor: "pointer" }}>
-      <input type="checkbox" checked={checked} onChange={onChange} style={{ position: "absolute", opacity: 0, width: 0, height: 0 }} />
+    <label
+      style={{
+        display: "flex",
+        alignItems: "center",
+        gap: 10,
+        fontSize: fontSize.base - 1,
+        color: colors.ink2,
+        cursor: "pointer",
+      }}
+    >
+      <input
+        type="checkbox"
+        checked={checked}
+        onChange={onChange}
+        style={{ position: "absolute", opacity: 0, width: 0, height: 0 }}
+      />
       <span
         style={{
           width: 19,
@@ -1119,7 +1419,12 @@ function ProfessionalRow({
   onSave,
   onOpen,
 }: {
-  pro: Professional & { category: string; tags: string[]; experience: number; projects: number };
+  pro: Professional & {
+    category: string;
+    tags: string[];
+    experience: number;
+    projects: number;
+  };
   saved: boolean;
   onSave: (id: string) => void;
   onOpen: () => void;
@@ -1137,10 +1442,20 @@ function ProfessionalRow({
         boxShadow: shadow.sm,
       }}
     >
-      <div style={{ position: "relative", minHeight: 180, background: colors.primarySoft }}>
+      <div
+        style={{
+          position: "relative",
+          minHeight: 180,
+          background: colors.primarySoft,
+        }}
+      >
         {pro.cover && (
           // eslint-disable-next-line @next/next/no-img-element
-          <img src={pro.cover} alt={pro.name} style={{ width: "100%", height: "100%", objectFit: "cover" }} />
+          <img
+            src={pro.cover}
+            alt={pro.name}
+            style={{ width: "100%", height: "100%", objectFit: "cover" }}
+          />
         )}
         {pro.verified && (
           <span
@@ -1164,10 +1479,31 @@ function ProfessionalRow({
           </span>
         )}
       </div>
-      <div style={{ padding: spacing.lg + 2, display: "flex", flexDirection: "column", gap: spacing.sm + 1 }}>
-        <div style={{ display: "flex", justifyContent: "space-between", gap: spacing.md }}>
+      <div
+        style={{
+          padding: spacing.lg + 2,
+          display: "flex",
+          flexDirection: "column",
+          gap: spacing.sm + 1,
+        }}
+      >
+        <div
+          style={{
+            display: "flex",
+            justifyContent: "space-between",
+            gap: spacing.md,
+          }}
+        >
           <div>
-            <h3 style={{ fontSize: fontSize.lg - 1, fontWeight: 700, margin: "0 0 4px" }}>{pro.name}</h3>
+            <h3
+              style={{
+                fontSize: fontSize.lg - 1,
+                fontWeight: 700,
+                margin: "0 0 4px",
+              }}
+            >
+              {pro.name}
+            </h3>
             <p style={{ fontSize: fontSize.sm, color: colors.muted }}>
               {pro.profession} · {pro.location.split(",")[0]}
             </p>
@@ -1183,19 +1519,50 @@ function ProfessionalRow({
             <Icon name="heart" size={19} filled={saved} />
           </button>
         </div>
-        <p style={{ fontSize: fontSize.sm + 1, color: colors.ink2, lineHeight: 1.5 }}>{pro.tagline}</p>
+        <p
+          style={{
+            fontSize: fontSize.sm + 1,
+            color: colors.ink2,
+            lineHeight: 1.5,
+          }}
+        >
+          {pro.tagline}
+        </p>
         <div style={{ display: "flex", flexWrap: "wrap", gap: 7 }}>
           {pro.tags.map((t) => (
             <span
               key={t}
-              style={{ fontSize: 12, fontWeight: 600, color: colors.ink2, background: "#EFEFF2", padding: "5px 11px", borderRadius: radius.full }}
+              style={{
+                fontSize: 12,
+                fontWeight: 600,
+                color: colors.ink2,
+                background: "#EFEFF2",
+                padding: "5px 11px",
+                borderRadius: radius.full,
+              }}
             >
               {t}
             </span>
           ))}
         </div>
-        <div style={{ display: "flex", alignItems: "center", gap: 8, fontSize: 13.5, marginTop: "auto", paddingTop: spacing.sm }}>
-          <span style={{ display: "inline-flex", alignItems: "center", gap: 4, fontWeight: 700 }}>
+        <div
+          style={{
+            display: "flex",
+            alignItems: "center",
+            gap: 8,
+            fontSize: 13.5,
+            marginTop: "auto",
+            paddingTop: spacing.sm,
+          }}
+        >
+          <span
+            style={{
+              display: "inline-flex",
+              alignItems: "center",
+              gap: 4,
+              fontWeight: 700,
+            }}
+          >
             <Icon name="star" size={14} filled color={colors.gold} />
             {pro.rating.toFixed(1)}
           </span>
@@ -1204,12 +1571,33 @@ function ProfessionalRow({
           {pro.projects > 0 && (
             <>
               <span style={{ color: colors.line }}>·</span>
-              <span style={{ color: colors.muted }}>{pro.projects} projects</span>
+              <span style={{ color: colors.muted }}>
+                {pro.projects} projects
+              </span>
             </>
           )}
-          <span style={{ marginLeft: "auto", display: "flex", alignItems: "baseline", gap: 4 }}>
-            <b style={{ fontSize: fontSize.lg - 1 }}>{pro.price === "₹0" ? "Free" : pro.price}</b>
-            {pro.priceUnit && <em style={{ fontStyle: "normal", fontSize: fontSize.xs, color: colors.muted }}>/ {pro.priceUnit}</em>}
+          <span
+            style={{
+              marginLeft: "auto",
+              display: "flex",
+              alignItems: "baseline",
+              gap: 4,
+            }}
+          >
+            <b style={{ fontSize: fontSize.lg - 1 }}>
+              {pro.price === "₹0" ? "Free" : pro.price}
+            </b>
+            {pro.priceUnit && (
+              <em
+                style={{
+                  fontStyle: "normal",
+                  fontSize: fontSize.xs,
+                  color: colors.muted,
+                }}
+              >
+                / {pro.priceUnit}
+              </em>
+            )}
           </span>
         </div>
       </div>
