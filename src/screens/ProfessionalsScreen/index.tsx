@@ -51,7 +51,6 @@ export default function ProfessionalsScreen() {
   const [budget, setBudget] = useState<number | null>(null); // index into budgetBuckets
   const [rating, setRating] = useState<number | null>(null); // exact star value
   const [experience, setExperience] = useState<number | null>(null); // index into experienceBuckets
-  const [verifiedOnly, setVerifiedOnly] = useState(false);
   const [sort, setSort] = useState<"recommended" | "rating" | "experience">("recommended");
   const [view, setView] = useState<"grid" | "list">("grid");
   const [saved, setSaved] = useState<string[]>([]);
@@ -419,9 +418,9 @@ export default function ProfessionalsScreen() {
   };
 
   // Client-side refinements only — the server already applied
-  // category/budget/rating/experience. Free-text search and "verified
-  // only" have no server param on this endpoint, and sort has none either,
-  // so all three are applied here over whatever page(s) are loaded.
+  // category/budget/rating/experience. Free-text search has no server param
+  // on this endpoint, and sort has none either, so both are applied here
+  // over whatever page(s) are loaded.
   const list = useMemo(() => {
     let out = apiProfessionals.slice();
     if (query.trim()) {
@@ -433,20 +432,18 @@ export default function ProfessionalsScreen() {
           p.tags.some((t) => t.toLowerCase().includes(q)),
       );
     }
-    if (verifiedOnly) out = out.filter((p) => p.verified);
     if (sort === "rating") out = [...out].sort((a, b) => b.rating - a.rating);
     if (sort === "experience") out = [...out].sort((a, b) => b.experience - a.experience);
     return out;
-  }, [apiProfessionals, query, verifiedOnly, sort]);
+  }, [apiProfessionals, query, sort]);
 
   const activeCount =
-    (appliedLocation ? 1 : 0) + (budget != null ? 1 : 0) + (rating != null ? 1 : 0) + (experience != null ? 1 : 0) + (verifiedOnly ? 1 : 0);
+    (appliedLocation ? 1 : 0) + (budget != null ? 1 : 0) + (rating != null ? 1 : 0) + (experience != null ? 1 : 0);
   const clearAll = () => {
     clearLocation();
     setBudget(null);
     setRating(null);
     setExperience(null);
-    setVerifiedOnly(false);
   };
 
   const similarFor = (p: ProfessionalRecord) => {
@@ -815,7 +812,7 @@ export default function ProfessionalsScreen() {
                   ))}
                 </FilterGroup>
 
-                <FilterGroup title="Experience">
+                <FilterGroup title="Experience" last>
                   {experienceBuckets.map((e, i) => (
                     <RadioRow
                       key={e.label}
@@ -824,47 +821,6 @@ export default function ProfessionalsScreen() {
                       onChange={() => setExperience(experience === i ? null : i)}
                     />
                   ))}
-                </FilterGroup>
-
-                <FilterGroup title="Verification" last>
-                  <label
-                    style={{
-                      display: "flex",
-                      alignItems: "center",
-                      justifyContent: "space-between",
-                      cursor: "pointer",
-                    }}
-                  >
-                    <span style={{ fontSize: fontSize.base - 1, color: colors.ink2, fontWeight: 600 }}>
-                      HomeDot verified only
-                    </span>
-                    <span
-                      onClick={() => setVerifiedOnly((v) => !v)}
-                      style={{
-                        width: 40,
-                        height: 24,
-                        borderRadius: radius.full,
-                        background: verifiedOnly ? colors.primary : colors.line,
-                        position: "relative",
-                        flexShrink: 0,
-                        transition: "background .15s ease",
-                      }}
-                    >
-                      <span
-                        style={{
-                          position: "absolute",
-                          top: 3,
-                          left: verifiedOnly ? 19 : 3,
-                          width: 18,
-                          height: 18,
-                          borderRadius: "50%",
-                          background: colors.white,
-                          boxShadow: shadow.sm,
-                          transition: "left .15s ease",
-                        }}
-                      />
-                    </span>
-                  </label>
                 </FilterGroup>
               </aside>
 
@@ -956,7 +912,6 @@ export default function ProfessionalsScreen() {
                     {budget != null && <Chip label={budgetBuckets[budget].label} onRemove={() => setBudget(null)} />}
                     {rating != null && <Chip label={ratingBuckets.find((r) => r.value === rating)!.label} onRemove={() => setRating(null)} />}
                     {experience != null && <Chip label={experienceBuckets[experience].label} onRemove={() => setExperience(null)} />}
-                    {verifiedOnly && <Chip label="Verified only" onRemove={() => setVerifiedOnly(false)} />}
                     <button
                       onClick={clearAll}
                       style={{ fontSize: fontSize.xs + 0.5, fontWeight: 600, color: colors.accent, textDecoration: "underline" }}

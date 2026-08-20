@@ -14,6 +14,16 @@ export interface ScheduleVisitResponse {
   error?: string;
 }
 
+// Google Sheets treats a cell value starting with +, =, - or @ as the start
+// of a formula (e.g. "+91 98765..." becomes "=+91 98765..." -> #ERROR!
+// Formula parse error). A leading apostrophe is the standard escape Sheets
+// (and Apps Script's setValue/appendRow, which apply the same as-typed
+// parsing) use to force plain-text storage, so re-apply it here since phone
+// numbers are sent with a "+<dial code>" prefix.
+function sheetSafe(value: string): string {
+  return /^[+=@-]/.test(value) ? `'${value}` : value;
+}
+
 // Server-side proxy to a Google Apps Script Web App bound to the "Schedule a
 // visit" Google Sheet, so the (unauthenticated) Apps Script URL never reaches
 // the browser. Mirrors the validate-email route's proxy pattern.
@@ -60,9 +70,9 @@ export async function POST(request: NextRequest) {
       method: "POST",
       headers: { "Content-Type": "application/json" },
       body: JSON.stringify({
-        name,
-        phone,
-        message: body.message?.trim() ?? "",
+        name: sheetSafe(name),
+        phone: sheetSafe(phone),
+        message: sheetSafe(body.message?.trim() ?? ""),
         propertyId,
         propertyTitle,
         pageUrl: body.pageUrl?.trim() ?? "",

@@ -9,6 +9,8 @@ import Icon, { type IconName } from "@/components/Icon";
 import Button from "@/components/Button";
 import PropertyCard from "@/components/PropertyCard";
 import Reveal from "@/components/Reveal";
+import CountryCodeSelect from "@/components/LoginModal/CountryCodeSelect";
+import { digitLimitFor } from "@/components/LoginModal/shared";
 import { agent, parsePrice, type MarketplaceProperty } from "./data";
 
 const AMENITY_ICON: Record<string, IconName> = {
@@ -110,6 +112,8 @@ export default function PropertyDetail({
   const [sent, setSent] = useState(false);
   const [submitting, setSubmitting] = useState(false);
   const [submitError, setSubmitError] = useState<string | null>(null);
+  const [phoneCc, setPhoneCc] = useState("+91");
+  const [phoneDigits, setPhoneDigits] = useState("");
   const [mobileIndex, setMobileIndex] = useState(0);
   const [copied, setCopied] = useState(false);
   const [activeSection, setActiveSection] = useState("overview");
@@ -127,6 +131,8 @@ export default function PropertyDetail({
     setSent(false);
     setSubmitting(false);
     setSubmitError(null);
+    setPhoneCc("+91");
+    setPhoneDigits("");
     setMobileIndex(0);
     setCopied(false);
     setActiveSection("overview");
@@ -1499,12 +1505,22 @@ export default function PropertyDetail({
                       const form = e.currentTarget;
                       const formData = new FormData(form);
                       const name = String(formData.get("name") ?? "").trim();
-                      const phone = String(formData.get("phone") ?? "").trim();
                       const message = String(
                         formData.get("message") ?? "",
                       ).trim();
+                      const phoneDigitLimit = digitLimitFor(phoneCc);
 
-                      if (!name || !phone) return;
+                      if (!name) return;
+                      if (phoneDigits.length !== phoneDigitLimit) {
+                        setSubmitError(
+                          phoneDigits
+                            ? `Enter a valid ${phoneDigitLimit}-digit phone number`
+                            : "Phone number is required",
+                        );
+                        return;
+                      }
+
+                      const phone = `${phoneCc} ${phoneDigits}`;
 
                       setSubmitting(true);
                       setSubmitError(null);
@@ -1558,18 +1574,48 @@ export default function PropertyDetail({
                         outline: "none",
                       }}
                     />
-                    <input
-                      name="phone"
-                      required
-                      placeholder="Phone number"
+                    <div
                       style={{
+                        display: "flex",
+                        alignItems: "center",
+                        gap: 9,
                         border: `1.5px solid ${colors.line}`,
                         borderRadius: radius.sm + 1,
-                        padding: "11px 13px",
-                        fontSize: fontSize.sm + 1,
-                        outline: "none",
+                        padding: "0 13px",
                       }}
-                    />
+                    >
+                      <CountryCodeSelect
+                        value={phoneCc}
+                        onChange={(dialCode) => {
+                          setPhoneCc(dialCode);
+                          setPhoneDigits((d) =>
+                            d.slice(0, digitLimitFor(dialCode)),
+                          );
+                        }}
+                      />
+                      <input
+                        type="tel"
+                        inputMode="numeric"
+                        required
+                        placeholder="Phone number"
+                        value={phoneDigits}
+                        onChange={(e) =>
+                          setPhoneDigits(
+                            e.target.value
+                              .replace(/\D/g, "")
+                              .slice(0, digitLimitFor(phoneCc)),
+                          )
+                        }
+                        style={{
+                          border: "none",
+                          background: "none",
+                          padding: "11px 0",
+                          fontSize: fontSize.sm + 1,
+                          outline: "none",
+                          width: "100%",
+                        }}
+                      />
+                    </div>
                     <textarea
                       name="message"
                       rows={2}
