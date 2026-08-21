@@ -16,7 +16,9 @@ import AvatarLightbox from "@/components/AvatarLightbox";
 import EmptyState from "@/components/EmptyState";
 import ProDashboardSidebar from "@/components/ProDashboardSidebar";
 import ProDashboardSkeleton from "@/components/ProDashboardSkeleton";
-import LocationMapPicker, { type LocationValue } from "@/components/LocationMapPicker";
+import LocationMapPicker, {
+  type LocationValue,
+} from "@/components/LocationMapPicker";
 import ManageSkillsModal from "./ManageSkillsModal";
 import { getAuthToken, setActiveRole } from "@/utils/authStorage";
 import { useAuthStore } from "@/store/useAuthStore";
@@ -25,9 +27,17 @@ import { useProfessionalHomeStore } from "@/store/useProfessionalHomeStore";
 import { useRoleSwitchStore } from "@/store/useRoleSwitchStore";
 import ProfileService, { resolveLatLng } from "@/services/ProfileService";
 import ProfessionalDashboardService from "@/services/ProfessionalDashboardService";
-import SwitchProfessionalService, { PROFESSIONAL_TYPES, buildSkillsPayload, type ProfessionalSkillRecord } from "@/services/SwitchProfessionalService";
+import SwitchProfessionalService, {
+  PROFESSIONAL_TYPES,
+  buildSkillsPayload,
+  type ProfessionalSkillRecord,
+} from "@/services/SwitchProfessionalService";
 
-const wrap: CSSProperties = { maxWidth, margin: "0 auto", padding: `0 ${spacing.xl}px` };
+const wrap: CSSProperties = {
+  maxWidth,
+  margin: "0 auto",
+  padding: `0 ${spacing.xl}px`,
+};
 
 /** Web counterpart of homedot-mobile-app's ProfessionalEditProfileScreen —
  * the professional's own profile: photo, basic details, about, skills. A
@@ -44,18 +54,28 @@ export default function ProfessionalProfileScreen() {
   const loginModalRef = useRef<LoginModalHandle>(null);
   const profile = useProfileStore((s) => s.profile);
   const home = useProfessionalHomeStore((s) => s.home);
-  const loading = useProfessionalHomeStore((s) => s.loading || (!s.loaded && !s.home));
+  const loading = useProfessionalHomeStore(
+    (s) => s.loading || (!s.loaded && !s.home),
+  );
 
   const [signedIn, setSignedIn] = useState<boolean | null>(null);
   const [loggingOut, setLoggingOut] = useState(false);
-  const [toast, setToast] = useState<{ text: string; tone: "success" | "error" } | null>(null);
+  const [toast, setToast] = useState<{
+    text: string;
+    tone: "success" | "error";
+  } | null>(null);
   // Briefly rings the card that was just saved in green, so a save has a
   // visible effect right where the user's eyes already are — not just a
   // toast at the bottom of the screen that's easy to miss.
-  const [savedFlash, setSavedFlash] = useState<"details" | "skills" | null>(null);
+  const [savedFlash, setSavedFlash] = useState<"details" | "skills" | null>(
+    null,
+  );
   const flashSaved = (which: "details" | "skills") => {
     setSavedFlash(which);
-    setTimeout(() => setSavedFlash((cur) => (cur === which ? null : cur)), 1600);
+    setTimeout(
+      () => setSavedFlash((cur) => (cur === which ? null : cur)),
+      1600,
+    );
   };
 
   const [editing, setEditing] = useState(false);
@@ -103,12 +123,24 @@ export default function ProfessionalProfileScreen() {
 
   const resetForm = () => {
     setName(home?.name || "");
-    setProfessionalType(PROFESSIONAL_TYPES.find((t) => t.title === info?.professionalType)?.id ?? null);
+    setProfessionalType(
+      PROFESSIONAL_TYPES.find((t) => t.title === info?.professionalType)?.id ??
+        null,
+    );
     setExperience(info?.experience != null ? String(info.experience) : "");
-    setSquareFeetRate(info?.squareFeetRate != null ? String(info.squareFeetRate) : "");
+    setSquareFeetRate(
+      info?.squareFeetRate != null ? String(info.squareFeetRate) : "",
+    );
     setWorkingArea(info?.workingArea || "");
     setDescription(info?.description || "");
-    setLocation(profile?.location ? { address: profile.location, ...resolveLatLng(profile.locationKey?.coordinates ?? [0, 0]) } : null);
+    setLocation(
+      profile?.location
+        ? {
+            address: profile.location,
+            ...resolveLatLng(profile.locationKey?.coordinates ?? [0, 0]),
+          }
+        : null,
+    );
   };
 
   const startEdit = () => {
@@ -128,7 +160,13 @@ export default function ProfessionalProfileScreen() {
   // location when the Basic Details form isn't open (e.g. saving skills),
   // since `location` state is only populated while `editing`.
   const currentLocation = (): LocationValue | null =>
-    location ?? (profile?.location ? { address: profile.location, ...resolveLatLng(profile.locationKey?.coordinates ?? [0, 0]) } : null);
+    location ??
+    (profile?.location
+      ? {
+          address: profile.location,
+          ...resolveLatLng(profile.locationKey?.coordinates ?? [0, 0]),
+        }
+      : null);
 
   // Every skill sent to the backend must carry the professional's full
   // category/sub-category hierarchy alongside its own levelThreeId/Name —
@@ -154,7 +192,9 @@ export default function ProfessionalProfileScreen() {
     setSaveError(null);
     const res = await ProfessionalDashboardService.updateProfile({
       name: name.trim(),
-      professionalType: PROFESSIONAL_TYPES.find((t) => t.id === professionalType)?.title ?? info?.professionalType,
+      professionalType:
+        PROFESSIONAL_TYPES.find((t) => t.id === professionalType)?.title ??
+        info?.professionalType,
       professionalCategory: info?.professionalCategory,
       subCategory: info?.subCategory,
       experience: experience.trim(),
@@ -174,7 +214,10 @@ export default function ProfessionalProfileScreen() {
       // (impossible to miss even if the user isn't looking at the card) —
       // previously this only set the inline message, so a failed save (e.g.
       // a 500 from the backend) could look like nothing happened at all.
-      const message = res.data?.message || res.message || "Couldn't save your changes. Please try again.";
+      const message =
+        res.data?.message ||
+        res.message ||
+        "Couldn't save your changes. Please try again.";
       setSaveError(message);
       setToast({ text: message, tone: "error" });
       return;
@@ -193,13 +236,18 @@ export default function ProfessionalProfileScreen() {
     const res = await ProfessionalDashboardService.updateProfileImage(file);
     setUploadingAvatar(false);
     if (res.success) {
-      setToast({ text: "Profile picture updated successfully.", tone: "success" });
+      setToast({
+        text: "Profile picture updated successfully.",
+        tone: "success",
+      });
       refreshHome();
     } else {
-      setToast({ text: res.data?.message || res.message || "Couldn't update your photo.", tone: "error" });
+      setToast({
+        text: res.data?.message || res.message || "Couldn't update your photo.",
+        tone: "error",
+      });
     }
   };
-
   // Shared auth endpoint (ProfileService, not ProfessionalDashboardService)
   // — there's only one photo on the account regardless of which side
   // removes it, unlike the upload endpoints above which are split per role.
@@ -212,14 +260,19 @@ export default function ProfessionalProfileScreen() {
       setAvatarExpanded(false);
       refreshHome();
     } else {
-      setToast({ text: res.data?.message || res.message || "Couldn't remove your photo.", tone: "error" });
+      setToast({
+        text: res.data?.message || res.message || "Couldn't remove your photo.",
+        tone: "error",
+      });
     }
   };
-
   const saveSkills = async (skills: ProfessionalSkillRecord[]) => {
     const loc = currentLocation();
     if (!loc?.address) {
-      setToast({ text: "Please set your location on this profile before saving skills.", tone: "error" });
+      setToast({
+        text: "Please set your location on this profile before saving skills.",
+        tone: "error",
+      });
       return;
     }
     setSavingSkills(true);
@@ -229,7 +282,8 @@ export default function ProfessionalProfileScreen() {
       professionalCategory: info?.professionalCategory,
       subCategory: info?.subCategory,
       experience: info?.experience != null ? String(info.experience) : "",
-      squareFeetRate: info?.squareFeetRate != null ? String(info.squareFeetRate) : undefined,
+      squareFeetRate:
+        info?.squareFeetRate != null ? String(info.squareFeetRate) : undefined,
       workingArea: info?.workingArea,
       description: info?.description || "",
       skills: buildSkillsPayload(skills, skillCategoryContext()),
@@ -245,10 +299,13 @@ export default function ProfessionalProfileScreen() {
       flashSaved("skills");
       refreshHome();
     } else {
-      setToast({ text: res.data?.message || res.message || "Couldn't update your skills.", tone: "error" });
+      setToast({
+        text:
+          res.data?.message || res.message || "Couldn't update your skills.",
+        tone: "error",
+      });
     }
   };
-
   const logout = async () => {
     setLoggingOut(true);
     await ProfileService.logout().catch(() => null);
@@ -267,11 +324,18 @@ export default function ProfessionalProfileScreen() {
     await useRoleSwitchStore.getState().runSwitch("user", async () => {
       const res = await SwitchProfessionalService.switchRole();
       if (!res.success || res.data?.status === false) {
-        setRoleError(res.data?.message || res.message || "Couldn't switch modes. Please try again.");
+        setRoleError(
+          res.data?.message ||
+            res.message ||
+            "Couldn't switch modes. Please try again.",
+        );
         return false;
       }
       const pair = res.data?.data?.[0];
-      if (pair) useAuthStore.getState().setTokens({ token: pair.token, refreshToken: pair.reToken });
+      if (pair)
+        useAuthStore
+          .getState()
+          .setTokens({ token: pair.token, refreshToken: pair.reToken });
       setActiveRole("user");
       router.push("/");
       return true;
@@ -279,22 +343,54 @@ export default function ProfessionalProfileScreen() {
     setSwitchingRole(false);
   };
 
-  const title = [info?.professionalCategoryName, info?.subCategoryName].filter(Boolean).join(" · ");
+  const title = [info?.professionalCategoryName, info?.subCategoryName]
+    .filter(Boolean)
+    .join(" · ");
 
   const flashShadow = (key: "details" | "skills"): string =>
-    savedFlash === key ? `0 0 0 3px rgba(34,197,94,0.45), ${shadow.sm}` : shadow.sm;
+    savedFlash === key
+      ? `0 0 0 3px rgba(34,197,94,0.45), ${shadow.sm}`
+      : shadow.sm;
 
   // Exact 3-state copy from homedot-mobile-app's ProfessionalProfileScreen.js.
   const isFeatured = info?.featured === true;
   const isPending = info?.verified === false;
   const status = isFeatured
-    ? { label: "Featured Professional", color: colors.goldDeep, bg: "rgba(245,166,35,0.14)", icon: "star" as const, filled: true, text: "A featured professional is a standout expert highlighted for their exceptional skills, achievements, or contributions." }
+    ? {
+        label: "Featured Professional",
+        color: colors.goldDeep,
+        bg: "rgba(245,166,35,0.14)",
+        icon: "star" as const,
+        filled: true,
+        text: "A featured professional is a standout expert highlighted for their exceptional skills, achievements, or contributions.",
+      }
     : isPending
-      ? { label: "Verification Pending", color: colors.goldDeep, bg: "rgba(245,166,35,0.14)", icon: "clock" as const, filled: false, text: "Your verification is currently being processed by the HomeDot team." }
-      : { label: "Verified Professional", color: "#059669", bg: "#F0FDF4", icon: "verified" as const, filled: true, text: "A verified professional whose credentials have been confirmed, ensuring they meet the standards of expertise and reliability." };
+      ? {
+          label: "Verification Pending",
+          color: colors.goldDeep,
+          bg: "rgba(245,166,35,0.14)",
+          icon: "clock" as const,
+          filled: false,
+          text: "Your verification is currently being processed by the HomeDot team.",
+        }
+      : {
+          label: "Verified Professional",
+          color: "#059669",
+          bg: "#F0FDF4",
+          icon: "verified" as const,
+          filled: true,
+          text: "A verified professional whose credentials have been confirmed, ensuring they meet the standards of expertise and reliability.",
+        };
 
   return (
-    <div style={{ background: colors.bg, color: colors.ink, position: "relative", zIndex: 0 }}>
+    <div
+      style={{
+        background: colors.bg,
+        color: colors.ink,
+        position: "relative",
+        zIndex: 0,
+      }}
+    >
       <AmbientBackground />
       <ScrollProgress />
       <Cursor />
@@ -313,26 +409,57 @@ export default function ProfessionalProfileScreen() {
 
       {signedIn && (
         <ProDashboardHero minHeight="clamp(220px, 22vw, 280px)">
-          <div style={{ display: "flex", alignItems: "center", gap: 6, fontSize: fontSize.sm, color: "rgba(255,255,255,0.75)" }}>
+          <div
+            style={{
+              display: "flex",
+              alignItems: "center",
+              gap: 6,
+              fontSize: fontSize.sm,
+              color: "rgba(255,255,255,0.75)",
+            }}
+          >
             <span>Dashboard</span>
             <Icon name="arrow" size={13} />
             <span style={{ color: colors.white }}>Profile</span>
           </div>
-          <h1 style={{ fontFamily: "var(--font-display)", fontSize: "clamp(28px, 4.2vw, 44px)", fontWeight: 600, color: colors.white, letterSpacing: "-0.02em" }}>
+          <h1
+            style={{
+              fontFamily: "var(--font-display)",
+              fontSize: "clamp(28px, 4.2vw, 44px)",
+              fontWeight: 600,
+              color: colors.white,
+              letterSpacing: "-0.02em",
+            }}
+          >
             Professional Profile
           </h1>
-          <p style={{ color: "rgba(255,255,255,0.82)", fontSize: fontSize.md, maxWidth: 480 }}>How home owners see you across HomeDot.</p>
+          <p
+            style={{
+              color: "rgba(255,255,255,0.82)",
+              fontSize: fontSize.md,
+              maxWidth: 480,
+            }}
+          >
+            How home owners see you across HomeDot.
+          </p>
         </ProDashboardHero>
       )}
 
-      <section style={{ ...wrap, paddingTop: spacing.xl, paddingBottom: spacing.huge }}>
+      <section
+        style={{ ...wrap, paddingTop: spacing.xl, paddingBottom: spacing.huge }}
+      >
         {signedIn === false ? (
           <EmptyState
             icon="hardhat"
             title="Sign in to see your professional profile"
             subtitle="Your category, skills and business details show up here once you're signed in."
             action={
-              <Button variant="primary" size="lg" icon={<Icon name="check" size={18} />} onClick={() => loginModalRef.current?.open()}>
+              <Button
+                variant="primary"
+                size="lg"
+                icon={<Icon name="check" size={18} />}
+                onClick={() => loginModalRef.current?.open()}
+              >
                 Log in
               </Button>
             }
@@ -359,11 +486,29 @@ export default function ProfessionalProfileScreen() {
             }
           />
         ) : (
-          <div className="grid grid-cols-1 xl:grid-cols-[264px_1fr]" style={{ gap: spacing.xl, alignItems: "start" }}>
+          <div
+            className="grid grid-cols-1 xl:grid-cols-[264px_1fr]"
+            style={{ gap: spacing.xl, alignItems: "start" }}
+          >
             <ProDashboardSidebar onLogout={logout} loggingOut={loggingOut} />
 
-            <main style={{ minWidth: 0, display: "flex", flexDirection: "column", gap: spacing.xl }}>
-              <Reveal style={{ background: colors.card, border: `1px solid ${colors.line}`, borderRadius: radius.lg, boxShadow: shadow.sm, overflow: "hidden" }}>
+            <main
+              style={{
+                minWidth: 0,
+                display: "flex",
+                flexDirection: "column",
+                gap: spacing.xl,
+              }}
+            >
+              <Reveal
+                style={{
+                  background: colors.card,
+                  border: `1px solid ${colors.line}`,
+                  borderRadius: radius.lg,
+                  boxShadow: shadow.sm,
+                  overflow: "hidden",
+                }}
+              >
                 <div style={{ height: 96, background: colors.primary }} />
                 {/* Only the avatar (absolutely positioned) overlaps the dark
                     cover above — the name/category text sits in normal flow
@@ -379,8 +524,14 @@ export default function ProfessionalProfileScreen() {
                       <button
                         type="button"
                         className="avatar-photo-btn"
-                        aria-label={home.profileImage ? "View profile photo" : "Profile photo"}
-                        onClick={() => home.profileImage && setAvatarExpanded(true)}
+                        aria-label={
+                          home.profileImage
+                            ? "View profile photo"
+                            : "Profile photo"
+                        }
+                        onClick={() =>
+                          home.profileImage && setAvatarExpanded(true)
+                        }
                         disabled={!home.profileImage}
                         style={{
                           width: 96,
@@ -399,12 +550,31 @@ export default function ProfessionalProfileScreen() {
                         {home.profileImage ? (
                           <>
                             {/* eslint-disable-next-line @next/next/no-img-element */}
-                            <img src={home.profileImage} alt="" style={{ width: "100%", height: "100%", objectFit: "cover", display: "block" }} />
+                            <img
+                              src={home.profileImage}
+                              alt=""
+                              style={{
+                                width: "100%",
+                                height: "100%",
+                                objectFit: "cover",
+                                display: "block",
+                              }}
+                            />
                             <span
                               className="avatar-photo-hint"
-                              style={{ position: "absolute", inset: 0, background: "rgba(16,28,48,0.35)", display: "grid", placeItems: "center" }}
+                              style={{
+                                position: "absolute",
+                                inset: 0,
+                                background: "rgba(16,28,48,0.35)",
+                                display: "grid",
+                                placeItems: "center",
+                              }}
                             >
-                              <Icon name="search" size={18} color={colors.white} />
+                              <Icon
+                                name="search"
+                                size={18}
+                                color={colors.white}
+                              />
                             </span>
                           </>
                         ) : (
@@ -431,18 +601,74 @@ export default function ProfessionalProfileScreen() {
                       >
                         <Icon name="camera" size={14} />
                       </button>
-                      <input ref={avatarInputRef} type="file" accept="image/*" onChange={onAvatarSelected} style={{ display: "none" }} />
+                      <input
+                        ref={avatarInputRef}
+                        type="file"
+                        accept="image/*"
+                        onChange={onAvatarSelected}
+                        style={{ display: "none" }}
+                      />
                     </span>
 
-                    <div style={{ paddingLeft: 96 + spacing.lg, minHeight: 40 }}>
-                      <div style={{ display: "flex", alignItems: "center", gap: 6, flexWrap: "wrap" }}>
-                        <h2 style={{ fontSize: fontSize.lg, fontWeight: 700, color: colors.ink }}>{uploadingAvatar ? "Uploading…" : home.name}</h2>
-                        {info?.verified && <Icon name="verified" size={17} filled color={colors.primary} />}
+                    <div
+                      style={{ paddingLeft: 96 + spacing.lg, minHeight: 40 }}
+                    >
+                      <div
+                        style={{
+                          display: "flex",
+                          alignItems: "center",
+                          gap: 6,
+                          flexWrap: "wrap",
+                        }}
+                      >
+                        <h2
+                          style={{
+                            fontSize: fontSize.lg,
+                            fontWeight: 700,
+                            color: colors.ink,
+                          }}
+                        >
+                          {uploadingAvatar ? "Uploading…" : home.name}
+                        </h2>
+                        {info?.verified && (
+                          <Icon
+                            name="verified"
+                            size={17}
+                            filled
+                            color={colors.primary}
+                          />
+                        )}
                       </div>
-                      {title && <p style={{ fontSize: fontSize.sm, color: colors.muted, marginTop: 2 }}>{title}</p>}
+                      {title && (
+                        <p
+                          style={{
+                            fontSize: fontSize.sm,
+                            color: colors.muted,
+                            marginTop: 2,
+                          }}
+                        >
+                          {title}
+                        </p>
+                      )}
                       {info?.rating != null && (
-                        <span style={{ display: "inline-flex", alignItems: "center", gap: 4, fontSize: fontSize.xs, fontWeight: 700, color: colors.ink2, marginTop: 6 }}>
-                          <Icon name="star" size={13} filled color={colors.gold} /> {info.rating}
+                        <span
+                          style={{
+                            display: "inline-flex",
+                            alignItems: "center",
+                            gap: 4,
+                            fontSize: fontSize.xs,
+                            fontWeight: 700,
+                            color: colors.ink2,
+                            marginTop: 6,
+                          }}
+                        >
+                          <Icon
+                            name="star"
+                            size={13}
+                            filled
+                            color={colors.gold}
+                          />{" "}
+                          {info.rating}
                         </span>
                       )}
                     </div>
@@ -453,7 +679,8 @@ export default function ProfessionalProfileScreen() {
                   style={{
                     borderTop: `1px solid ${colors.line}`,
                     margin: "0 clamp(20px, 3vw, 32px)",
-                    padding: "clamp(16px, 2.4vw, 22px) 0 clamp(20px, 2.8vw, 28px)",
+                    padding:
+                      "clamp(16px, 2.4vw, 22px) 0 clamp(20px, 2.8vw, 28px)",
                     display: "flex",
                     flexWrap: "wrap",
                     alignItems: "center",
@@ -475,17 +702,52 @@ export default function ProfessionalProfileScreen() {
                         borderRadius: radius.full,
                       }}
                     >
-                      <Icon name={status.icon} size={12} filled={status.filled} color={status.color} /> {status.label}
+                      <Icon
+                        name={status.icon}
+                        size={12}
+                        filled={status.filled}
+                        color={status.color}
+                      />{" "}
+                      {status.label}
                     </span>
-                    <p style={{ fontSize: fontSize.xs, color: colors.muted, marginTop: 8, lineHeight: 1.5, maxWidth: 460 }}>{status.text}</p>
+                    <p
+                      style={{
+                        fontSize: fontSize.xs,
+                        color: colors.muted,
+                        marginTop: 8,
+                        lineHeight: 1.5,
+                        maxWidth: 460,
+                      }}
+                    >
+                      {status.text}
+                    </p>
                     {profile?.location && (
-                      <span style={{ display: "inline-flex", alignItems: "center", gap: 5, fontSize: fontSize.xs, color: colors.ink2, marginTop: 8 }}>
-                        <Icon name="location" size={13} color={colors.muted} /> {profile.location}
+                      <span
+                        style={{
+                          display: "inline-flex",
+                          alignItems: "center",
+                          gap: 5,
+                          fontSize: fontSize.xs,
+                          color: colors.ink2,
+                          marginTop: 8,
+                        }}
+                      >
+                        <Icon name="location" size={13} color={colors.muted} />{" "}
+                        {profile.location}
                       </span>
                     )}
-                    {roleError && <p style={{ color: "#C0392B", fontSize: fontSize.xs, marginTop: 8 }}>{roleError}</p>}
+                    {roleError && (
+                      <p
+                        style={{
+                          color: "#C0392B",
+                          fontSize: fontSize.xs,
+                          marginTop: 8,
+                        }}
+                      >
+                        {roleError}
+                      </p>
+                    )}
                   </div>
-
                   <button
                     onClick={switchToUser}
                     disabled={switchingRole}
@@ -504,7 +766,11 @@ export default function ProfessionalProfileScreen() {
                       flexShrink: 0,
                     }}
                   >
-                    {switchingRole ? "Switching…" : home.userType && home.userType.length === 1 ? "Become a Home Owner" : "Switch to Home Owner"}
+                    {switchingRole
+                      ? "Switching…"
+                      : home.userType && home.userType.length === 1
+                        ? "Become a Home Owner"
+                        : "Switch to Home Owner"}
                     <Icon name="arrow" size={14} />
                   </button>
                 </div>
@@ -520,8 +786,17 @@ export default function ProfessionalProfileScreen() {
                   transition: "box-shadow 0.3s ease",
                 }}
               >
-                <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center", marginBottom: spacing.lg }}>
-                  <h3 style={{ fontSize: fontSize.md, fontWeight: 700 }}>Basic details</h3>
+                <div
+                  style={{
+                    display: "flex",
+                    justifyContent: "space-between",
+                    alignItems: "center",
+                    marginBottom: spacing.lg,
+                  }}
+                >
+                  <h3 style={{ fontSize: fontSize.md, fontWeight: 700 }}>
+                    Basic details
+                  </h3>
                   {!editing ? (
                     <button onClick={startEdit} style={ghostBtnStyle}>
                       <Icon name="edit" size={14} /> Edit profile
@@ -531,18 +806,44 @@ export default function ProfessionalProfileScreen() {
                       <button onClick={cancelEdit} style={ghostBtnStyle}>
                         Cancel
                       </button>
-                      <button onClick={saveEdit} disabled={saving} style={primaryBtnStyle}>
-                        <Icon name="check" size={14} color="#fff" /> {saving ? "Saving…" : "Save changes"}
+                      <button
+                        onClick={saveEdit}
+                        disabled={saving}
+                        style={primaryBtnStyle}
+                      >
+                        <Icon name="check" size={14} color="#fff" />{" "}
+                        {saving ? "Saving…" : "Save changes"}
                       </button>
                     </div>
                   )}
                 </div>
 
-                {saveError && <p style={{ color: "#C0392B", fontSize: fontSize.sm, marginBottom: spacing.md }}>{saveError}</p>}
+                {saveError && (
+                  <p
+                    style={{
+                      color: "#C0392B",
+                      fontSize: fontSize.sm,
+                      marginBottom: spacing.md,
+                    }}
+                  >
+                    {saveError}
+                  </p>
+                )}
 
-                <div className="grid grid-cols-1 sm:grid-cols-2" style={{ gap: spacing.lg }}>
+                <div
+                  className="grid grid-cols-1 sm:grid-cols-2"
+                  style={{ gap: spacing.lg }}
+                >
                   <Field label="Full name">
-                    {editing ? <input value={name} onChange={(e) => setName(e.target.value)} style={inputStyle} /> : <FieldValue>{home.name}</FieldValue>}
+                    {editing ? (
+                      <input
+                        value={name}
+                        onChange={(e) => setName(e.target.value)}
+                        style={inputStyle}
+                      />
+                    ) : (
+                      <FieldValue>{home.name}</FieldValue>
+                    )}
                   </Field>
                   <Field label="Professional type">
                     {editing ? (
@@ -558,7 +859,9 @@ export default function ProfessionalProfileScreen() {
                                 height: 44,
                                 borderRadius: radius.md,
                                 border: `1.5px solid ${active ? colors.primary : colors.line}`,
-                                background: active ? colors.primarySoft : colors.bg,
+                                background: active
+                                  ? colors.primarySoft
+                                  : colors.bg,
                                 color: active ? colors.primary : colors.ink2,
                                 fontSize: fontSize.sm,
                                 fontWeight: 600,
@@ -581,21 +884,46 @@ export default function ProfessionalProfileScreen() {
                   </Field>
                   <Field label="Experience (years)">
                     {editing ? (
-                      <input type="number" min={0} max={70} value={experience} onChange={(e) => setExperience(e.target.value)} style={inputStyle} />
+                      <input
+                        type="number"
+                        min={0}
+                        max={70}
+                        value={experience}
+                        onChange={(e) => setExperience(e.target.value)}
+                        style={inputStyle}
+                      />
                     ) : (
-                      <FieldValue>{info?.experience != null ? `${info.experience} years` : "—"}</FieldValue>
+                      <FieldValue>
+                        {info?.experience != null
+                          ? `${info.experience} years`
+                          : "—"}
+                      </FieldValue>
                     )}
                   </Field>
                   <Field label="Rate per sq.ft">
                     {editing ? (
-                      <input type="number" min={0} value={squareFeetRate} onChange={(e) => setSquareFeetRate(e.target.value)} style={inputStyle} />
+                      <input
+                        type="number"
+                        min={0}
+                        value={squareFeetRate}
+                        onChange={(e) => setSquareFeetRate(e.target.value)}
+                        style={inputStyle}
+                      />
                     ) : (
-                      <FieldValue>{info?.squareFeetRate != null ? info.squareFeetRate : "—"}</FieldValue>
+                      <FieldValue>
+                        {info?.squareFeetRate != null
+                          ? info.squareFeetRate
+                          : "—"}
+                      </FieldValue>
                     )}
                   </Field>
                   <Field label="Working area (sq km)">
                     {editing ? (
-                      <input value={workingArea} onChange={(e) => setWorkingArea(e.target.value)} style={inputStyle} />
+                      <input
+                        value={workingArea}
+                        onChange={(e) => setWorkingArea(e.target.value)}
+                        style={inputStyle}
+                      />
                     ) : (
                       <FieldValue>{info?.workingArea || "—"}</FieldValue>
                     )}
@@ -608,7 +936,11 @@ export default function ProfessionalProfileScreen() {
                 <div style={{ marginTop: spacing.lg }}>
                   <Field label="Location">
                     {editing ? (
-                      <LocationMapPicker value={location} onChange={setLocation} height={200} />
+                      <LocationMapPicker
+                        value={location}
+                        onChange={setLocation}
+                        height={200}
+                      />
                     ) : (
                       <FieldValue>{profile?.location || "—"}</FieldValue>
                     )}
@@ -626,17 +958,38 @@ export default function ProfessionalProfileScreen() {
                   transition: "box-shadow 0.3s ease",
                 }}
               >
-                <h3 style={{ fontSize: fontSize.md, fontWeight: 700, marginBottom: spacing.md }}>About</h3>
+                <h3
+                  style={{
+                    fontSize: fontSize.md,
+                    fontWeight: 700,
+                    marginBottom: spacing.md,
+                  }}
+                >
+                  About
+                </h3>
                 {editing ? (
                   <textarea
                     value={description}
                     onChange={(e) => setDescription(e.target.value)}
                     rows={4}
                     placeholder="Tell home owners about your experience and how you work…"
-                    style={{ ...inputStyle, height: "auto", padding: 12, resize: "vertical" as const }}
+                    style={{
+                      ...inputStyle,
+                      height: "auto",
+                      padding: 12,
+                      resize: "vertical" as const,
+                    }}
                   />
                 ) : (
-                  <p style={{ fontSize: fontSize.sm, color: colors.ink2, lineHeight: 1.6 }}>{info?.description || "No description added yet."}</p>
+                  <p
+                    style={{
+                      fontSize: fontSize.sm,
+                      color: colors.ink2,
+                      lineHeight: 1.6,
+                    }}
+                  >
+                    {info?.description || "No description added yet."}
+                  </p>
                 )}
               </Reveal>
 
@@ -650,9 +1003,21 @@ export default function ProfessionalProfileScreen() {
                   transition: "box-shadow 0.3s ease",
                 }}
               >
-                <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center", marginBottom: spacing.md }}>
-                  <h3 style={{ fontSize: fontSize.md, fontWeight: 700 }}>Skills</h3>
-                  <button onClick={() => setManagingSkills(true)} style={ghostBtnStyle}>
+                <div
+                  style={{
+                    display: "flex",
+                    justifyContent: "space-between",
+                    alignItems: "center",
+                    marginBottom: spacing.md,
+                  }}
+                >
+                  <h3 style={{ fontSize: fontSize.md, fontWeight: 700 }}>
+                    Skills
+                  </h3>
+                  <button
+                    onClick={() => setManagingSkills(true)}
+                    style={ghostBtnStyle}
+                  >
                     <Icon name="edit" size={14} /> Manage skills
                   </button>
                 </div>
@@ -661,14 +1026,23 @@ export default function ProfessionalProfileScreen() {
                     {info.skills.map((s) => (
                       <span
                         key={s.levelThreeId}
-                        style={{ fontSize: fontSize.xs, fontWeight: 600, color: colors.primary, background: colors.primarySoft, padding: "6px 12px", borderRadius: radius.full }}
+                        style={{
+                          fontSize: fontSize.xs,
+                          fontWeight: 600,
+                          color: colors.primary,
+                          background: colors.primarySoft,
+                          padding: "6px 12px",
+                          borderRadius: radius.full,
+                        }}
                       >
                         {s.levelThreeName}
                       </span>
                     ))}
                   </div>
                 ) : (
-                  <p style={{ fontSize: fontSize.sm, color: colors.muted }}>No skills added yet.</p>
+                  <p style={{ fontSize: fontSize.sm, color: colors.muted }}>
+                    No skills added yet.
+                  </p>
                 )}
               </Reveal>
             </main>
@@ -720,7 +1094,11 @@ export default function ProfessionalProfileScreen() {
               flexShrink: 0,
             }}
           >
-            <Icon name={toast.tone === "success" ? "check" : "close"} size={11} color="#0B1F17" />
+            <Icon
+              name={toast.tone === "success" ? "check" : "close"}
+              size={11}
+              color="#0B1F17"
+            />
           </span>
           {toast.text}
         </div>
@@ -729,17 +1107,49 @@ export default function ProfessionalProfileScreen() {
   );
 }
 
-function Field({ label, children }: { label: string; children: React.ReactNode }) {
+function Field({
+  label,
+  children,
+}: {
+  label: string;
+  children: React.ReactNode;
+}) {
   return (
     <div style={{ display: "flex", flexDirection: "column", gap: 6 }}>
-      <span style={{ fontSize: 10.5, fontWeight: 700, color: colors.muted, textTransform: "uppercase", letterSpacing: 0.5 }}>{label}</span>
+      <span
+        style={{
+          fontSize: 10.5,
+          fontWeight: 700,
+          color: colors.muted,
+          textTransform: "uppercase",
+          letterSpacing: 0.5,
+        }}
+      >
+        {label}
+      </span>
       {children}
     </div>
   );
 }
 
-function FieldValue({ children, muted }: { children: React.ReactNode; muted?: boolean }) {
-  return <span style={{ fontSize: fontSize.sm, fontWeight: 600, color: muted ? colors.muted : colors.ink }}>{children}</span>;
+function FieldValue({
+  children,
+  muted,
+}: {
+  children: React.ReactNode;
+  muted?: boolean;
+}) {
+  return (
+    <span
+      style={{
+        fontSize: fontSize.sm,
+        fontWeight: 600,
+        color: muted ? colors.muted : colors.ink,
+      }}
+    >
+      {children}
+    </span>
+  );
 }
 
 const inputStyle: CSSProperties = {

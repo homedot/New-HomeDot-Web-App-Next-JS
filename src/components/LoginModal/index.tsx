@@ -304,6 +304,15 @@ const LoginModal = forwardRef<LoginModalHandle, LoginModalProps>(
       finishSuccess(role);
     };
 
+    const goBackToMethod = () => {
+      setOtp(["", "", "", "", "", ""]);
+      setOtpError(null);
+      setCheckError(null);
+      setValue("");
+      setSecs(0);
+      setStep("method");
+    };
+
     const resendOtp = async () => {
       setOtpError(null);
       let recaptchaToken: string;
@@ -571,7 +580,7 @@ const LoginModal = forwardRef<LoginModalHandle, LoginModalProps>(
                     secs={secs}
                     verifying={verifying}
                     error={otpError}
-                    onBack={() => setStep("method")}
+                    onBack={goBackToMethod}
                     onVerify={verify}
                     onResend={resendOtp}
                   />
