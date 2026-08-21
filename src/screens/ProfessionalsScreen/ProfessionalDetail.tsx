@@ -15,10 +15,9 @@ import {
 import ProfessionalsScreenService from "@/services/ProfessionalsScreenService";
 import { reviews, type ProfessionalRecord } from "./data";
 
-type Tab = "portfolio" | "about" | "services" | "reviews";
+type Tab = "portfolio" | "services" | "reviews";
 const TABS: { key: Tab; label: string }[] = [
   { key: "portfolio", label: "Portfolio" },
-  { key: "about", label: "About" },
   { key: "services", label: "Services" },
   { key: "reviews", label: "Reviews" },
 ];
@@ -650,47 +649,6 @@ export default function ProfessionalDetail({
                     </div>
                   </button>
                 ))}
-              </Reveal>
-            )}
-
-            {tab === "about" && (
-              <Reveal style={{ display: "flex", flexDirection: "column", gap: spacing.xl }}>
-                <p style={{ fontSize: fontSize.md - 1, lineHeight: 1.75, color: colors.ink2 }}>{pro.about}</p>
-                <div>
-                  <h3 style={{ fontSize: fontSize.md, fontWeight: 700, marginBottom: spacing.md }}>Why clients choose us</h3>
-                  <div style={{ display: "flex", flexDirection: "column", gap: spacing.sm + 2 }}>
-                    {[
-                      "Transparent, itemised quotes with no hidden costs",
-                      "Weekly progress updates with photos",
-                      "Local craft and climate-appropriate materials",
-                      "Dedicated point of contact through handover",
-                    ].map((c) => (
-                      <div key={c} style={{ display: "flex", alignItems: "flex-start", gap: spacing.md - 1, fontSize: fontSize.base - 1, color: colors.ink2 }}>
-                        <span
-                          style={{ width: 24, height: 24, borderRadius: "50%", background: colors.primarySoft, color: colors.primary, display: "grid", placeItems: "center", flexShrink: 0, marginTop: 1 }}
-                        >
-                          <Icon name="check" size={14} />
-                        </span>
-                        {c}
-                      </div>
-                    ))}
-                  </div>
-                </div>
-                <div>
-                  <h3 style={{ fontSize: fontSize.md, fontWeight: 700, marginBottom: spacing.md }}>Verified credentials</h3>
-                  <div className="grid grid-cols-1 sm:grid-cols-2" style={{ gap: spacing.md }}>
-                    {["Government ID verified", "Trade license on file", "Background checked", "Insurance covered"].map((c) => (
-                      <div key={c} style={{ display: "flex", alignItems: "center", gap: 9, fontSize: fontSize.base - 1, color: colors.ink2 }}>
-                        <span
-                          style={{ width: 24, height: 24, borderRadius: "50%", background: colors.primarySoft, color: colors.primary, display: "grid", placeItems: "center", flexShrink: 0 }}
-                        >
-                          <Icon name="check" size={14} />
-                        </span>
-                        {c}
-                      </div>
-                    ))}
-                  </div>
-                </div>
               </Reveal>
             )}
 

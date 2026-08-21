@@ -183,7 +183,8 @@ export default function ProfessionalsScreen() {
   // by the JS SDK's AutocompleteService instead of the raw REST endpoint
   // (which has no CORS headers and can't be called from a browser — same
   // reason MarketplaceScreen avoids it).
-  const onLocationInputChange = (value: string) => {
+  const onLocationInputChange = (rawValue: string) => {
+    const value = rawValue.replace(/[^a-zA-Z0-9\s,.'/-]/g, "");
     setLocationText(value);
     setLocationError(false);
     if (suggestTimer.current) clearTimeout(suggestTimer.current);

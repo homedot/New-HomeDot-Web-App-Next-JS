@@ -46,6 +46,8 @@ export default function InitiateProjectModal({
   const [dragActive, setDragActive] = useState(false);
   const inputRef = useRef<HTMLInputElement | null>(null);
 
+  const today = new Date().toISOString().slice(0, 10);
+
   useEffect(() => {
     const onKey = (e: KeyboardEvent) => e.key === "Escape" && onClose();
     window.addEventListener("keydown", onKey);
@@ -144,10 +146,10 @@ export default function InitiateProjectModal({
 
           <div className="grid grid-cols-2" style={{ gap: spacing.md }}>
             <Field label="Start date" error={touched && !startDate ? "Required" : undefined}>
-              <input type="date" value={startDate} onChange={(e) => setStartDate(e.target.value)} style={inputStyle(touched && !startDate)} />
+              <input type="date" min={today} value={startDate} onChange={(e) => setStartDate(e.target.value)} style={inputStyle(touched && !startDate)} />
             </Field>
             <Field label="End date" error={touched && (!endDate || !datesValid) ? (!endDate ? "Required" : "Must be after start date") : undefined}>
-              <input type="date" value={endDate} onChange={(e) => setEndDate(e.target.value)} style={inputStyle(touched && (!endDate || !datesValid))} />
+              <input type="date" min={startDate || today} value={endDate} onChange={(e) => setEndDate(e.target.value)} style={inputStyle(touched && (!endDate || !datesValid))} />
             </Field>
           </div>
 
