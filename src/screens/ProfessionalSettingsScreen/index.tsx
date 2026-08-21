@@ -14,7 +14,6 @@ import Cursor from "@/components/Cursor";
 import Reveal from "@/components/Reveal";
 import LoginModal, { type LoginModalHandle } from "@/components/LoginModal";
 import EmptyState from "@/components/EmptyState";
-import ConfirmModal from "@/components/ConfirmModal";
 import ProDashboardSidebar from "@/components/ProDashboardSidebar";
 import ProDashboardSkeleton from "@/components/ProDashboardSkeleton";
 import { getAuthToken, setActiveRole } from "@/utils/authStorage";
@@ -27,35 +26,19 @@ import SwitchProfessionalService from "@/services/SwitchProfessionalService";
 
 const wrap: CSSProperties = { maxWidth, margin: "0 auto", padding: `0 ${spacing.xl}px` };
 
-// Same key/value shape as homedot-mobile-app's SettingsScreen
-// (AsyncStorage "notificationsEnabled") — localStorage is this app's
-// client-only-system equivalent.
-const NOTIFICATIONS_KEY = "hd_pro_push_notifications";
-const SUPPORT_EMAIL = "mail@homedotapp.com";
-
 /** Web counterpart of homedot-mobile-app's SettingsScreen, reached from
  * ProDashboardSidebar's "Settings" item. Account fields are read-only
  * summaries linking into Profile's real edit form rather than duplicating
  * it; "Switch to Home Owner" and "Log out" reuse the exact same actions
- * ProfessionalDashboardScreen already wires up. There's no delete-account or
- * notification-preference API on this side (mobile's equivalents live on
- * endpoints this app's ApiConstants doesn't define), so those are a mailto
- * request and a local preference respectively — same honesty ProDashboardSidebar
- * already applies to "Coming soon" items, just not disabled outright since
- * both still do something real. */
+ * ProfessionalDashboardScreen already wires up. */
 export default function ProfessionalSettingsScreen() {
   const router = useRouter();
   const loginModalRef = useRef<LoginModalHandle>(null);
-
-  const profile = useProfileStore((s) => s.profile);
-  const home = useProfessionalHomeStore((s) => s.home);
 
   const [signedIn, setSignedIn] = useState<boolean | null>(null);
   const [loggingOut, setLoggingOut] = useState(false);
   const [switchingRole, setSwitchingRole] = useState(false);
   const [roleError, setRoleError] = useState<string | null>(null);
-  const [notifications, setNotifications] = useState(true);
-  const [confirmingDelete, setConfirmingDelete] = useState(false);
 
   useEffect(() => {
     if (!getAuthToken()) {
@@ -66,15 +49,7 @@ export default function ProfessionalSettingsScreen() {
     setSignedIn(true);
     useProfileStore.getState().fetch();
     useProfessionalHomeStore.getState().refresh();
-    const saved = localStorage.getItem(NOTIFICATIONS_KEY);
-    if (saved !== null) setNotifications(saved === "true");
   }, []);
-
-  const toggleNotifications = () => {
-    const next = !notifications;
-    setNotifications(next);
-    localStorage.setItem(NOTIFICATIONS_KEY, String(next));
-  };
 
   const switchToUser = async () => {
     setSwitchingRole(true);
@@ -103,13 +78,6 @@ export default function ProfessionalSettingsScreen() {
     router.push("/");
   };
 
-  const requestDeletion = () => {
-    setConfirmingDelete(false);
-    window.location.href = `mailto:${SUPPORT_EMAIL}?subject=${encodeURIComponent("Delete my HomeDot account")}&body=${encodeURIComponent(
-      `Hi HomeDot team,\n\nPlease delete my professional account${home?.name ? ` (${home.name})` : ""}${profile?.email ? ` — ${profile.email}` : ""}.\n\nThanks.`
-    )}`;
-  };
-
   return (
     <div style={{ background: colors.bg, color: colors.ink, position: "relative", zIndex: 0 }}>
       <AmbientBackground />
@@ -125,7 +93,7 @@ export default function ProfessionalSettingsScreen() {
             <span style={{ color: colors.white }}>Settings</span>
           </div>
           <h1 style={{ fontFamily: "var(--font-display)", fontSize: "clamp(28px, 4.2vw, 44px)", fontWeight: 600, color: colors.white, letterSpacing: "-0.02em" }}>Settings</h1>
-          <p style={{ color: "rgba(255,255,255,0.82)", fontSize: fontSize.md, maxWidth: 480 }}>Manage your account, notifications and legal preferences.</p>
+          <p style={{ color: "rgba(255,255,255,0.82)", fontSize: fontSize.md, maxWidth: 480 }}>Manage your account and legal preferences.</p>
         </ProDashboardHero>
       )}
 
@@ -148,27 +116,6 @@ export default function ProfessionalSettingsScreen() {
             <ProDashboardSidebar onLogout={logout} loggingOut={loggingOut} />
 
             <main style={{ minWidth: 0, display: "flex", flexDirection: "column", gap: spacing.xl }}>
-              {/* Account */}
-              <SettingsCard title="Account">
-                <SettingRow icon="user" label="Name" value={home?.name || "—"} />
-                <SettingRow icon="mail" label="Email" value={profile?.email || "—"} />
-                <SettingRow icon="phone" label="Mobile" value={profile?.mobile ? `${profile.countryCode || ""} ${profile.mobile}` : "—"} />
-                <div style={{ padding: "14px 10px 4px" }}>
-                  <Button variant="outline" size="sm" icon={<Icon name="edit" size={14} />} onClick={() => router.push("/professional/profile")}>
-                    Edit profile
-                  </Button>
-                </div>
-              </SettingsCard>
-
-              {/* Preferences */}
-              <SettingsCard title="Preferences">
-                <SettingRow
-                  icon="chat"
-                  label="Push Notifications"
-                  action={<ToggleSwitch checked={notifications} onChange={toggleNotifications} label="Push notifications" />}
-                />
-              </SettingsCard>
-
               {/* Account mode */}
               <SettingsCard title="Account mode">
                 <SettingRow
@@ -197,24 +144,11 @@ export default function ProfessionalSettingsScreen() {
                   disabled={loggingOut}
                   action={<Icon name="arrow" size={15} color={colors.muted} />}
                 />
-                <SettingRow icon="trash" label="Delete account" danger onClick={() => setConfirmingDelete(true)} action={<Icon name="arrow" size={15} color="#C0392B" />} />
               </SettingsCard>
             </main>
           </div>
         )}
       </section>
-
-      {confirmingDelete && (
-        <ConfirmModal
-          icon="trash"
-          title="Delete your account?"
-          message={`This can't be undone. We'll email you at ${SUPPORT_EMAIL} instructions once your account and data are permanently removed within 90 days.`}
-          confirmLabel="Email support to delete"
-          loading={false}
-          onClose={() => setConfirmingDelete(false)}
-          onConfirm={requestDeletion}
-        />
-      )}
     </div>
   );
 }
@@ -295,36 +229,3 @@ function SettingLinkRow({ icon, label, href }: { icon: IconName; label: string; 
   );
 }
 
-function ToggleSwitch({ checked, onChange, label }: { checked: boolean; onChange: () => void; label: string }) {
-  return (
-    <button
-      role="switch"
-      aria-checked={checked}
-      aria-label={label}
-      onClick={onChange}
-      style={{
-        width: 44,
-        height: 26,
-        borderRadius: radius.full,
-        background: checked ? colors.primary : colors.line,
-        position: "relative",
-        flexShrink: 0,
-        transition: "background .15s ease",
-      }}
-    >
-      <span
-        style={{
-          position: "absolute",
-          top: 3,
-          left: checked ? 21 : 3,
-          width: 20,
-          height: 20,
-          borderRadius: "50%",
-          background: colors.white,
-          boxShadow: "0 1px 3px rgba(0,0,0,0.25)",
-          transition: "left .15s ease",
-        }}
-      />
-    </button>
-  );
-}
