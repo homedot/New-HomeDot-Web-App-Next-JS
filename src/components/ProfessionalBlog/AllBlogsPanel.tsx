@@ -186,6 +186,16 @@ export default function AllBlogsPanel() {
           placeholder="Search all blogs — kitchens, budgets, contractors…"
           style={{ border: "none", outline: "none", background: "none", width: "100%", fontSize: fontSize.sm, color: colors.ink }}
         />
+        {query && (
+          <button
+            type="button"
+            onClick={() => setQuery("")}
+            aria-label="Clear search"
+            style={{ display: "flex", flexShrink: 0, color: colors.muted }}
+          >
+            <Icon name="close" size={14} />
+          </button>
+        )}
       </label>
 
       {initialLoad ? (

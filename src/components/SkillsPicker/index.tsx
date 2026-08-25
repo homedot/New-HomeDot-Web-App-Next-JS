@@ -77,6 +77,16 @@ export default function SkillsPicker({
       <div style={{ ...inputWrap, marginBottom: 10 }}>
         <Icon name="search" size={15} color={colors.muted} />
         <input value={skillQuery} onChange={(e) => setSkillQuery(e.target.value)} placeholder="Search skills…" style={fieldInputStyle} />
+        {skillQuery && (
+          <button
+            type="button"
+            onClick={() => setSkillQuery("")}
+            aria-label="Clear search"
+            style={{ display: "flex", flexShrink: 0, color: colors.muted }}
+          >
+            <Icon name="close" size={11} />
+          </button>
+        )}
       </div>
       {selected.length > 0 && (
         <div style={{ display: "flex", flexWrap: "wrap", gap: 8, marginBottom: 10 }}>

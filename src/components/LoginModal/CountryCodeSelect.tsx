@@ -134,6 +134,19 @@ export default function CountryCodeSelect({
                   color: colors.ink,
                 }}
               />
+              {query && (
+                <button
+                  type="button"
+                  onClick={() => {
+                    setQuery("");
+                    searchRef.current?.focus();
+                  }}
+                  aria-label="Clear search"
+                  style={{ display: "flex", flexShrink: 0, color: colors.muted }}
+                >
+                  <Icon name="close" size={13} />
+                </button>
+              )}
             </div>
           </div>
 

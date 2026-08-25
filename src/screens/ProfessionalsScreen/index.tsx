@@ -704,7 +704,7 @@ export default function ProfessionalsScreen() {
                       width: 140,
                     }}
                   />
-                  {appliedLocation ? (
+                  {locationText ? (
                     <button
                       type="button"
                       onClick={clearLocation}

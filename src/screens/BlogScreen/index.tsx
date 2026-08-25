@@ -308,6 +308,16 @@ export default function BlogScreen() {
                     color: colors.ink,
                   }}
                 />
+                {query && (
+                  <button
+                    type="button"
+                    onClick={() => setQuery("")}
+                    aria-label="Clear search"
+                    style={{ display: "flex", flexShrink: 0, color: colors.muted }}
+                  >
+                    <Icon name="close" size={14} />
+                  </button>
+                )}
               </label>
             </div>
           </section>

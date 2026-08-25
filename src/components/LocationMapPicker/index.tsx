@@ -235,6 +235,20 @@ export default function LocationMapPicker({
             color: colors.ink,
           }}
         />
+        {address && (
+          <button
+            type="button"
+            onClick={() => {
+              setAddress("");
+              setLocationError(false);
+              inputRef.current?.focus();
+            }}
+            aria-label="Clear search"
+            style={{ display: "flex", flexShrink: 0, color: colors.muted }}
+          >
+            <Icon name="close" size={14} />
+          </button>
+        )}
       </div>
       {locationError && (
         <div

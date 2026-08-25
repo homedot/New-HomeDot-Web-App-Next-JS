@@ -816,7 +816,7 @@ export default function MarketplaceScreen() {
                       color: colors.ink,
                     }}
                   />
-                  {appliedLocation ? (
+                  {locationText ? (
                     <button
                       type="button"
                       onClick={clearLocation}
