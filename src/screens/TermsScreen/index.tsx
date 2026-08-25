@@ -1,12 +1,13 @@
 "use client";
 
-import { useState, type CSSProperties } from "react";
+import { useEffect, useState, type CSSProperties } from "react";
 import { colors } from "@/constants/colors";
 import { spacing, radius, fontSize, shadow, maxWidth } from "@/utils/size";
 import { hexToRgb } from "@/utils/color";
 import Icon from "@/components/Icon";
 import SiteNav from "@/components/SiteNav";
 import SiteFooter from "@/components/SiteFooter";
+import { getActiveRole } from "@/utils/authStorage";
 import AmbientBackground from "@/components/AmbientBackground";
 import ScrollProgress from "@/components/ScrollProgress";
 import Cursor from "@/components/Cursor";
@@ -24,6 +25,13 @@ const ALPHA = "abcdefghijklmnop";
  * PrivacyPolicyScreen. */
 export default function TermsScreen() {
   const [active, setActive] = useState(TERMS_SECTIONS[0].id);
+  // Same professional-mode header reasoning as PrivacyPolicyScreen — this
+  // page is also reachable from the professional Settings/Support Legal
+  // section, so the public site header is omitted entirely there.
+  const [professionalMode, setProfessionalMode] = useState(false);
+  useEffect(() => {
+    setProfessionalMode(getActiveRole() === "professional");
+  }, []);
 
   const jumpTo = (id: string) => {
     setActive(id);
@@ -35,7 +43,7 @@ export default function TermsScreen() {
       <AmbientBackground />
       <ScrollProgress />
       <Cursor />
-      <SiteNav />
+      {!professionalMode && <SiteNav />}
 
       <section style={{ ...wrap, paddingTop: spacing.xl, paddingBottom: spacing.huge }}>
         {/* header */}

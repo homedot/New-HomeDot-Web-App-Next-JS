@@ -926,11 +926,17 @@ function FeaturedProperties() {
 
 function Categories() {
   const [items, setItems] = useState<ServiceCategoryCard[]>(categories);
+  // Tracks whether `items` holds real category ids from the API rather than
+  // the local mock's placeholder slugs (e.g. "architects") — ProfessionalsScreen
+  // only pre-selects/highlights a category when the id in the URL matches one
+  // of its own API-sourced options, so a card must not link with a mock id.
+  const [loaded, setLoaded] = useState(false);
 
   useEffect(() => {
     LandingScreenService.getServiceCategories().then((res) => {
       if (res.success && res.data?.status && res.data.data.length > 0) {
         setItems(res.data.data.map(toServiceCategoryCard));
+        setLoaded(true);
       }
     });
   }, []);
@@ -951,7 +957,11 @@ function Categories() {
         {items.map((c) => (
           <Link
             key={c.id}
-            href={`/professionals?category=${encodeURIComponent(c.id)}`}
+            href={
+              loaded
+                ? `/professionals?category=${encodeURIComponent(c.id)}`
+                : "/professionals"
+            }
             className="card-hover"
             style={{
               background: colors.card,

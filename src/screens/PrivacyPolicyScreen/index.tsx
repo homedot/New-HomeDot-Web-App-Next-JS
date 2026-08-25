@@ -1,12 +1,13 @@
 "use client";
 
-import { useState, type CSSProperties } from "react";
+import { useEffect, useState, type CSSProperties } from "react";
 import { colors } from "@/constants/colors";
 import { spacing, radius, fontSize, shadow, maxWidth } from "@/utils/size";
 import { hexToRgb } from "@/utils/color";
 import Icon from "@/components/Icon";
 import SiteNav from "@/components/SiteNav";
 import SiteFooter from "@/components/SiteFooter";
+import { getActiveRole } from "@/utils/authStorage";
 import AmbientBackground from "@/components/AmbientBackground";
 import ScrollProgress from "@/components/ScrollProgress";
 import Cursor from "@/components/Cursor";
@@ -23,6 +24,15 @@ const wrap: CSSProperties = { maxWidth, margin: "0 auto", padding: `0 ${spacing.
  * ProjectsScreen already use for general (non-professional) content pages. */
 export default function PrivacyPolicyScreen() {
   const [active, setActive] = useState(PRIVACY_SECTIONS[0].id);
+  // Reachable from the professional Settings/Support Legal section (RoleGate
+  // exempts this route so it isn't bounced back to the dashboard) — the
+  // public site header doesn't belong in that context, so it's omitted
+  // entirely there. Read after mount, not during render, since the role
+  // lives in localStorage and isn't available on the server.
+  const [professionalMode, setProfessionalMode] = useState(false);
+  useEffect(() => {
+    setProfessionalMode(getActiveRole() === "professional");
+  }, []);
 
   const jumpTo = (id: string) => {
     setActive(id);
@@ -34,7 +44,7 @@ export default function PrivacyPolicyScreen() {
       <AmbientBackground />
       <ScrollProgress />
       <Cursor />
-      <SiteNav />
+      {!professionalMode && <SiteNav />}
 
       <section style={{ ...wrap, paddingTop: spacing.xl, paddingBottom: spacing.huge }}>
         {/* header */}
