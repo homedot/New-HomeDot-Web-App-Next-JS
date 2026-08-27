@@ -551,7 +551,8 @@ function FeatureShowcase() {
                 whiteSpace: "nowrap",
                 background: i === active ? colors.primary : colors.card,
                 color: i === active ? colors.white : colors.ink2,
-                boxShadow: i === active ? "none" : `inset 0 0 0 1.5px ${colors.line}`,
+                boxShadow:
+                  i === active ? "none" : `inset 0 0 0 1.5px ${colors.line}`,
                 transition: "background .2s ease, color .2s ease",
               }}
             >
@@ -661,11 +662,13 @@ function FeatureShowcase() {
                 }}
                 style={featureCtaStyle}
               >
-                {current.cta} <Icon name="arrow" size={16} color={colors.primary} />
+                {current.cta}{" "}
+                <Icon name="arrow" size={16} color={colors.primary} />
               </a>
             ) : (
               <Link href={current.href} style={featureCtaStyle}>
-                {current.cta} <Icon name="arrow" size={16} color={colors.primary} />
+                {current.cta}{" "}
+                <Icon name="arrow" size={16} color={colors.primary} />
               </Link>
             )}
           </div>
@@ -1435,6 +1438,7 @@ function HowItWorks() {
 // each beat (story intro → trust promise → app promo) flows into the next,
 // echoing the immersive full-bleed treatment the Hero section opens with.
 function StoryShowcase() {
+  const router = useRouter();
   const appFeatures = [
     "Browse 240+ verified properties",
     "Hire 180+ trusted professionals",
@@ -1620,6 +1624,7 @@ function StoryShowcase() {
               variant="light"
               size="lg"
               icon={<Icon name="arrow" size={18} />}
+              onClick={() => router.push("/professionals")}
             >
               Start your search
             </Button>
@@ -2247,13 +2252,21 @@ function Testimonials() {
 type ContactField = "name" | "email" | "message";
 type ContactFormValues = Record<ContactField, string>;
 
-const EMPTY_CONTACT_FORM: ContactFormValues = { name: "", email: "", message: "" };
+const EMPTY_CONTACT_FORM: ContactFormValues = {
+  name: "",
+  email: "",
+  message: "",
+};
 
 function ContactSection() {
   const [form, setForm] = useState<ContactFormValues>(EMPTY_CONTACT_FORM);
-  const [errors, setErrors] = useState<Partial<Record<ContactField, string>>>({});
+  const [errors, setErrors] = useState<Partial<Record<ContactField, string>>>(
+    {},
+  );
   const [submitting, setSubmitting] = useState(false);
-  const [result, setResult] = useState<{ ok: boolean; text: string } | null>(null);
+  const [result, setResult] = useState<{ ok: boolean; text: string } | null>(
+    null,
+  );
 
   const updateField =
     (field: ContactField) =>
@@ -2394,7 +2407,9 @@ function ContactSection() {
             style={{ ...contactSubmitStyle, opacity: submitting ? 0.6 : 1 }}
           >
             {submitting ? "Sending…" : "Send message"}
-            {!submitting && <Icon name="arrow" size={18} color={colors.white} />}
+            {!submitting && (
+              <Icon name="arrow" size={18} color={colors.white} />
+            )}
           </button>
         </form>
 
@@ -2421,7 +2436,11 @@ function ContactSection() {
               Connect with us
             </h3>
             <div
-              style={{ display: "flex", flexDirection: "column", gap: spacing.xl }}
+              style={{
+                display: "flex",
+                flexDirection: "column",
+                gap: spacing.xl,
+              }}
             >
               <ConnectRow
                 icon="location"
@@ -2434,7 +2453,11 @@ function ContactSection() {
                 lines={[`+91 - ${CONTACT_PHONE}`]}
                 href={`tel:${CONTACT_PHONE}`}
               />
-              <ConnectRow icon="clock" label="Office hours" lines={CONTACT_HOURS} />
+              <ConnectRow
+                icon="clock"
+                label="Office hours"
+                lines={CONTACT_HOURS}
+              />
             </div>
           </div>
           <div style={{ display: "flex", gap: spacing.md }}>
@@ -2541,7 +2564,10 @@ function ConnectRow({
     </>
   );
   return href ? (
-    <a href={href} style={{ ...rowStyle, color: "inherit", textDecoration: "none" }}>
+    <a
+      href={href}
+      style={{ ...rowStyle, color: "inherit", textDecoration: "none" }}
+    >
       {content}
     </a>
   ) : (

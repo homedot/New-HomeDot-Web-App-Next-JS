@@ -634,7 +634,7 @@ export default function MyPropertyDetail({
   const confirmDelete = async () => {
     setActionLoading(true);
     const res = await MarketplaceScreenService.deleteProperty(
-      detail._id,
+      slug,
       purpose,
     );
     setActionLoading(false);

@@ -119,12 +119,12 @@ export default function MyPropertyScreen() {
     setPropertyQueryParam(null);
   };
 
-  const removeFromList = (id: string, p: Purpose) => {
-    setLists((prev) => ({ ...prev, [p]: prev[p].filter((r) => r._id !== id) }));
+  const removeFromList = (slug: string, p: Purpose) => {
+    setLists((prev) => ({ ...prev, [p]: prev[p].filter((r) => r.propertySlug !== slug) }));
   };
 
-  const updateInList = (id: string, p: Purpose, patch: Partial<PropertyRecord>) => {
-    setLists((prev) => ({ ...prev, [p]: prev[p].map((r) => (r._id === id ? { ...r, ...patch } : r)) }));
+  const updateInList = (slug: string, p: Purpose, patch: Partial<PropertyRecord>) => {
+    setLists((prev) => ({ ...prev, [p]: prev[p].map((r) => (r.propertySlug === slug ? { ...r, ...patch } : r)) }));
   };
 
   if (detail) {

@@ -378,7 +378,7 @@ export function getMissingFields(
   const missing: AllFieldKey[] = [];
   if (!f.title.trim()) missing.push("title");
   if (!f.description.trim()) missing.push("description");
-  if (!f.price.trim()) missing.push("price");
+  if (!f.price.trim() || Number(f.price) <= 0) missing.push("price");
   if (!f.location) missing.push("location");
   if (!f.city.trim()) missing.push("city");
   if (!f.state.trim()) missing.push("state");

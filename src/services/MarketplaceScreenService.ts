@@ -340,10 +340,10 @@ export const MarketplaceScreenService = {
 
   // Requires a stored auth token. A soft delete — mirrors homedot-mobile-app's
   // delete_Property/delete_RentProperty, which PUT (not DELETE) keyed by the
-  // property's _id.
-  deleteProperty: (id: string, purpose: "Buy" | "Rent" = "Buy"): Promise<ApiResponse<PropertyActionBody>> =>
+  // property's slug (propertyDetails?.propertySlug), not its Mongo _id.
+  deleteProperty: (slug: string, purpose: "Buy" | "Rent" = "Buy"): Promise<ApiResponse<PropertyActionBody>> =>
     ApiService.put<PropertyActionBody>(
-      purpose === "Rent" ? API_ENDPOINTS.MARKETPLACE.RENT_PROPERTY_DELETE(id) : API_ENDPOINTS.MARKETPLACE.PROPERTY_DELETE(id),
+      purpose === "Rent" ? API_ENDPOINTS.MARKETPLACE.RENT_PROPERTY_DELETE(slug) : API_ENDPOINTS.MARKETPLACE.PROPERTY_DELETE(slug),
       {},
     ),
 };
