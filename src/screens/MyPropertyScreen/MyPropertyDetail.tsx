@@ -20,6 +20,7 @@ import ReviewStep from "@/screens/PropertyAddScreen/ReviewStep";
 import {
   AMENITY_CATALOG,
   buildPropertyPayload,
+  getMissingFields,
   initialFormState,
   KIND_ICON,
   resolveKind,
@@ -543,6 +544,15 @@ export default function MyPropertyDetail({
   };
 
   const saveEdit = async () => {
+    if (getMissingFields(kind, editForm).includes("price")) {
+      setToast(
+        editForm.price.trim()
+          ? "Price can't be ₹0 — enter the actual amount."
+          : "Enter a valid price to continue.",
+      );
+      setMode("editDetails");
+      return;
+    }
     const propertyType: PropertyTypeRecord = {
       _id: detail.propertyTypeDetails?.[0]?._id ?? "",
       propertyType: typeName,

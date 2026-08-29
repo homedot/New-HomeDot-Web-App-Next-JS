@@ -207,6 +207,7 @@ export function Field({
   label,
   hint,
   invalid,
+  error,
   children,
 }: {
   id?: string;
@@ -216,6 +217,10 @@ export function Field({
   // turns the label red, adds an "· Required" flag, and pulses the
   // field's border so it's easy to spot when DetailsStep scrolls to it.
   invalid?: boolean;
+  // A specific validation message (e.g. "Price can't be ₹0…") shown right
+  // under the field instead of the generic hint — takes priority over hint
+  // whenever both are present.
+  error?: string;
   children: ReactNode;
 }) {
   return (
@@ -247,10 +252,16 @@ export function Field({
         )}
       </span>
       {children}
-      {hint && (
-        <span style={{ fontSize: fontSize.xs, color: colors.muted }}>
-          {hint}
+      {error ? (
+        <span style={{ fontSize: fontSize.xs, fontWeight: 600, color: "#C0392B" }}>
+          {error}
         </span>
+      ) : (
+        hint && (
+          <span style={{ fontSize: fontSize.xs, color: colors.muted }}>
+            {hint}
+          </span>
+        )
       )}
     </label>
   );
