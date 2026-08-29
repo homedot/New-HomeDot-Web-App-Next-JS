@@ -1,6 +1,6 @@
 "use client";
 
-import { useEffect, useState } from "react";
+import { useState } from "react";
 import { colors } from "@/constants/colors";
 import { spacing, radius, fontSize } from "@/utils/size";
 import Icon from "@/components/Icon";
@@ -90,19 +90,16 @@ export default function DetailsStep({
     invalid: showErrors && missingSet.has(key),
   });
 
-  const [toast, setToast] = useState<string | null>(null);
-  useEffect(() => {
-    if (!toast) return;
-    const t = setTimeout(() => setToast(null), 3000);
-    return () => clearTimeout(t);
-  }, [toast]);
+  const setPrice = (value: string) => set("price", value);
 
-  const setPrice = (value: string) => {
-    if (Number(value) <= 0 && value.trim() !== "") {
-      setToast("Price can't be ₹0 — enter the actual amount.");
-    }
-    set("price", value);
-  };
+  // Shown inline under the price field instead of the floating toast, so the
+  // message sits right next to the input the user needs to fix.
+  const priceError =
+    form.price.trim() !== "" && Number(form.price) <= 0
+      ? "Price can't be ₹0 — enter the actual amount."
+      : showErrors && missingSet.has("price")
+        ? "Enter a valid price to continue."
+        : undefined;
 
   const toggleCatalogAmenity = (item: (typeof AMENITY_CATALOG)[number]) => {
     if (item.title === "Others") {
@@ -219,6 +216,7 @@ export default function DetailsStep({
         <Field
           label={priceLabel}
           hint={purpose === "Rent" ? "Monthly rent, in ₹" : undefined}
+          error={priceError}
           {...fieldProps("price")}
         >
           <div style={inputWrap}>
@@ -554,45 +552,6 @@ export default function DetailsStep({
       >
         Continue <Icon name="arrow" size={18} color={colors.white} />
       </button>
-
-      {toast && (
-        <div
-          className="pr-toast"
-          style={{
-            position: "fixed",
-            bottom: 24,
-            left: "50%",
-            transform: "translateX(-50%)",
-            zIndex: 1100,
-            display: "inline-flex",
-            alignItems: "center",
-            gap: 8,
-            background: colors.ink,
-            color: colors.white,
-            padding: "12px 20px",
-            borderRadius: radius.full,
-            fontSize: fontSize.sm,
-            fontWeight: 600,
-            boxShadow: "0 20px 40px -14px rgba(0,0,0,0.35)",
-          }}
-        >
-          <span
-            className="toast-badge-pop"
-            style={{
-              width: 20,
-              height: 20,
-              borderRadius: "50%",
-              background: "#F87171",
-              display: "grid",
-              placeItems: "center",
-              flexShrink: 0,
-            }}
-          >
-            <Icon name="close" size={11} color="#0B1F17" />
-          </span>
-          {toast}
-        </div>
-      )}
     </div>
   );
 }
