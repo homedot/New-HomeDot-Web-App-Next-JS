@@ -23,9 +23,16 @@ import { useAuthStore } from "@/store/useAuthStore";
 import { useProfileStore } from "@/store/useProfileStore";
 import { useProfessionalHomeStore } from "@/store/useProfessionalHomeStore";
 import ProfileService from "@/services/ProfileService";
-import ProfessionalGalleryService, { flattenGallery, type GalleryImage } from "@/services/ProfessionalGalleryService";
+import ProfessionalGalleryService, {
+  flattenGallery,
+  type GalleryImage,
+} from "@/services/ProfessionalGalleryService";
 
-const wrap: CSSProperties = { maxWidth, margin: "0 auto", padding: `0 ${spacing.xl}px` };
+const wrap: CSSProperties = {
+  maxWidth,
+  margin: "0 auto",
+  padding: `0 ${spacing.xl}px`,
+};
 
 /** Web counterpart of homedot-mobile-app's ProfessionalGalleryScreen.js —
  * a flat masonry grid of work photos pulled from the professional's own
@@ -36,11 +43,16 @@ export default function ProfessionalWorkfolioScreen() {
   const router = useRouter();
   const loginModalRef = useRef<LoginModalHandle>(null);
   const home = useProfessionalHomeStore((s) => s.home);
-  const homeLoading = useProfessionalHomeStore((s) => s.loading || (!s.loaded && !s.home));
+  const homeLoading = useProfessionalHomeStore(
+    (s) => s.loading || (!s.loaded && !s.home),
+  );
 
   const [signedIn, setSignedIn] = useState<boolean | null>(null);
   const [loggingOut, setLoggingOut] = useState(false);
-  const [toast, setToast] = useState<{ text: string; tone: "success" | "error" } | null>(null);
+  const [toast, setToast] = useState<{
+    text: string;
+    tone: "success" | "error";
+  } | null>(null);
 
   const [gallery, setGallery] = useState<GalleryImage[]>([]);
   const [galleryLoaded, setGalleryLoaded] = useState(false);
@@ -52,6 +64,14 @@ export default function ProfessionalWorkfolioScreen() {
 
   const [addingWork, setAddingWork] = useState(false);
   const [savingWork, setSavingWork] = useState(false);
+  // The only "add work" endpoint is backend's create-project-*history* — every
+  // upload lands in the past bucket (historyType: true) from the server's
+  // point of view, even the one the professional just added seconds ago. Track
+  // project names added this session and locally clear historyType for their
+  // photos so the "Past" badge doesn't show on something just uploaded. A ref
+  // (not state) since it only needs to be read when transforming a fetch
+  // result, never rendered directly.
+  const recentProjectNamesRef = useRef<Set<string>>(new Set());
 
   const userId = home?.professionalInfo?.[0]?.userId;
 
@@ -61,7 +81,17 @@ export default function ProfessionalWorkfolioScreen() {
     setGalleryLoading(false);
     setGalleryLoaded(true);
     if (res.success && res.data?.status && res.data.data?.[0]) {
-      setGallery(flattenGallery(res.data.data[0]));
+      const fresh = recentProjectNamesRef.current;
+      const flat = flattenGallery(res.data.data[0]);
+      setGallery(
+        fresh.size === 0
+          ? flat
+          : flat.map((img) =>
+              img.historyType && img.projectName && fresh.has(img.projectName)
+                ? { ...img, historyType: false }
+                : img,
+            ),
+      );
     }
   };
 
@@ -98,16 +128,23 @@ export default function ProfessionalWorkfolioScreen() {
     router.push("/");
   };
 
-  const submitAddWork = async (payload: { projectName: string; projectImages: string[] }) => {
+  const submitAddWork = async (payload: {
+    projectName: string;
+    projectImages: string[];
+  }) => {
     setSavingWork(true);
     const res = await ProfessionalGalleryService.addProject(payload);
     setSavingWork(false);
     if (res.success && res.data?.status !== false) {
       setAddingWork(false);
       setToast({ text: "Added to your Workfolio.", tone: "success" });
+      recentProjectNamesRef.current.add(payload.projectName);
       if (userId) refreshGallery(userId);
     } else {
-      setToast({ text: res.data?.message || res.message || "Couldn't add those photos.", tone: "error" });
+      setToast({
+        text: res.data?.message || res.message || "Couldn't add those photos.",
+        tone: "error",
+      });
     }
   };
 
@@ -116,7 +153,10 @@ export default function ProfessionalWorkfolioScreen() {
     const image = gallery.find((g) => g._id === deletingId);
     if (!image) return;
     setDeleting(true);
-    const res = await ProfessionalGalleryService.deleteImage(image._id, image.historyType);
+    const res = await ProfessionalGalleryService.deleteImage(
+      image._id,
+      image.historyType,
+    );
     setDeleting(false);
     setDeletingId(null);
     setLightboxIndex(null);
@@ -124,14 +164,24 @@ export default function ProfessionalWorkfolioScreen() {
       setToast({ text: "Photo removed.", tone: "success" });
       if (userId) refreshGallery(userId);
     } else {
-      setToast({ text: res.data?.message || res.message || "Couldn't remove that photo.", tone: "error" });
+      setToast({
+        text: res.data?.message || res.message || "Couldn't remove that photo.",
+        tone: "error",
+      });
     }
   };
 
   const loading = homeLoading || (!!userId && galleryLoading && !galleryLoaded);
 
   return (
-    <div style={{ background: colors.bg, color: colors.ink, position: "relative", zIndex: 0 }}>
+    <div
+      style={{
+        background: colors.bg,
+        color: colors.ink,
+        position: "relative",
+        zIndex: 0,
+      }}
+    >
       <AmbientBackground />
       <ScrollProgress />
       <Cursor />
@@ -141,28 +191,59 @@ export default function ProfessionalWorkfolioScreen() {
 
       {signedIn && (
         <ProDashboardHero minHeight="clamp(220px, 22vw, 280px)">
-          <div style={{ display: "flex", alignItems: "center", gap: 6, fontSize: fontSize.sm, color: "rgba(255,255,255,0.75)" }}>
+          <div
+            style={{
+              display: "flex",
+              alignItems: "center",
+              gap: 6,
+              fontSize: fontSize.sm,
+              color: "rgba(255,255,255,0.75)",
+            }}
+          >
             <span>Dashboard</span>
             <Icon name="arrow" size={13} />
             <span style={{ color: colors.white }}>Workfolio</span>
           </div>
-          <h1 style={{ fontFamily: "var(--font-display)", fontSize: "clamp(28px, 4.2vw, 44px)", fontWeight: 600, color: colors.white, letterSpacing: "-0.02em" }}>
+          <h1
+            style={{
+              fontFamily: "var(--font-display)",
+              fontSize: "clamp(28px, 4.2vw, 44px)",
+              fontWeight: 600,
+              color: colors.white,
+              letterSpacing: "-0.02em",
+            }}
+          >
             Workfolio
           </h1>
-          <p style={{ color: "rgba(255,255,255,0.82)", fontSize: fontSize.md, maxWidth: 480 }}>
-            {gallery.length > 0 ? `${gallery.length} photo${gallery.length === 1 ? "" : "s"} across your projects.` : "Showcase your completed work to home owners."}
+          <p
+            style={{
+              color: "rgba(255,255,255,0.82)",
+              fontSize: fontSize.md,
+              maxWidth: 480,
+            }}
+          >
+            {gallery.length > 0
+              ? `${gallery.length} photo${gallery.length === 1 ? "" : "s"} across your projects.`
+              : "Showcase your completed work to home owners."}
           </p>
         </ProDashboardHero>
       )}
 
-      <section style={{ ...wrap, paddingTop: spacing.xl, paddingBottom: spacing.huge }}>
+      <section
+        style={{ ...wrap, paddingTop: spacing.xl, paddingBottom: spacing.huge }}
+      >
         {signedIn === false ? (
           <EmptyState
             icon="hardhat"
             title="Sign in to see your Workfolio"
             subtitle="Your project photos show up here once you're signed in."
             action={
-              <Button variant="primary" size="lg" icon={<Icon name="check" size={18} />} onClick={() => loginModalRef.current?.open()}>
+              <Button
+                variant="primary"
+                size="lg"
+                icon={<Icon name="check" size={18} />}
+                onClick={() => loginModalRef.current?.open()}
+              >
                 Log in
               </Button>
             }
@@ -170,16 +251,50 @@ export default function ProfessionalWorkfolioScreen() {
         ) : loading ? (
           <ProDashboardSkeleton />
         ) : (
-          <div className="grid grid-cols-1 xl:grid-cols-[264px_1fr]" style={{ gap: spacing.xl, alignItems: "start" }}>
+          <div
+            className="grid grid-cols-1 xl:grid-cols-[264px_1fr]"
+            style={{ gap: spacing.xl, alignItems: "start" }}
+          >
             <ProDashboardSidebar onLogout={logout} loggingOut={loggingOut} />
 
             <main style={{ minWidth: 0 }}>
-              <Reveal style={{ background: colors.card, border: `1px solid ${colors.line}`, borderRadius: radius.lg, padding: "clamp(20px, 2.8vw, 28px)", boxShadow: shadow.sm }}>
-                <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center", marginBottom: spacing.lg, flexWrap: "wrap", gap: spacing.sm }}>
-                  <div style={{ display: "flex", alignItems: "center", gap: 10 }}>
-                    <h3 style={{ fontSize: fontSize.md, fontWeight: 700 }}>Work photos</h3>
+              <Reveal
+                style={{
+                  background: colors.card,
+                  border: `1px solid ${colors.line}`,
+                  borderRadius: radius.lg,
+                  padding: "clamp(20px, 2.8vw, 28px)",
+                  boxShadow: shadow.sm,
+                }}
+              >
+                <div
+                  style={{
+                    display: "flex",
+                    justifyContent: "space-between",
+                    alignItems: "center",
+                    marginBottom: spacing.lg,
+                    flexWrap: "wrap",
+                    gap: spacing.sm,
+                  }}
+                >
+                  <div
+                    style={{ display: "flex", alignItems: "center", gap: 10 }}
+                  >
+                    <h3 style={{ fontSize: fontSize.md, fontWeight: 700 }}>
+                      Work photos
+                    </h3>
                     {gallery.length > 0 && (
-                      <span style={{ fontSize: fontSize.xs, fontWeight: 700, color: colors.muted, background: colors.bg, border: `1px solid ${colors.line}`, padding: "3px 10px", borderRadius: radius.full }}>
+                      <span
+                        style={{
+                          fontSize: fontSize.xs,
+                          fontWeight: 700,
+                          color: colors.muted,
+                          background: colors.bg,
+                          border: `1px solid ${colors.line}`,
+                          padding: "3px 10px",
+                          borderRadius: radius.full,
+                        }}
+                      >
                         {gallery.length}
                       </span>
                     )}
@@ -209,13 +324,21 @@ export default function ProfessionalWorkfolioScreen() {
                     title="Your Workfolio is empty"
                     subtitle="Add project photos to showcase your work to home owners."
                     action={
-                      <Button variant="primary" size="lg" icon={<Icon name="camera" size={18} />} onClick={() => setAddingWork(true)}>
+                      <Button
+                        variant="primary"
+                        size="lg"
+                        icon={<Icon name="camera" size={18} />}
+                        onClick={() => setAddingWork(true)}
+                      >
                         Add work
                       </Button>
                     }
                   />
                 ) : (
-                  <div style={{ columnCount: 2, columnGap: 12 }} className="wf-masonry">
+                  <div
+                    style={{ columnCount: 2, columnGap: 12 }}
+                    className="wf-masonry"
+                  >
                     {gallery.map((img, i) => (
                       <button
                         key={img._id}
@@ -232,8 +355,16 @@ export default function ProfessionalWorkfolioScreen() {
                         }}
                       >
                         {/* eslint-disable-next-line @next/next/no-img-element */}
-                        <img src={img.projectImage} alt="" style={{ width: "100%", display: "block", objectFit: "cover" }} />
-                        {img.historyType && (
+                        <img
+                          src={img.projectImage}
+                          alt=""
+                          style={{
+                            width: "100%",
+                            display: "block",
+                            objectFit: "cover",
+                          }}
+                        />
+                        {/* {img.historyType && (
                           <span
                             style={{
                               position: "absolute",
@@ -252,7 +383,7 @@ export default function ProfessionalWorkfolioScreen() {
                           >
                             <Icon name="clock" size={9} color="#fff" /> Past
                           </span>
-                        )}
+                        )} */}
                       </button>
                     ))}
                   </div>
@@ -263,7 +394,13 @@ export default function ProfessionalWorkfolioScreen() {
         )}
       </section>
 
-      {addingWork && <AddWorkModal loading={savingWork} onClose={() => setAddingWork(false)} onSubmit={submitAddWork} />}
+      {addingWork && (
+        <AddWorkModal
+          loading={savingWork}
+          onClose={() => setAddingWork(false)}
+          onSubmit={submitAddWork}
+        />
+      )}
 
       {lightboxIndex !== null && gallery.length > 0 && (
         <WorkfolioLightbox
@@ -319,7 +456,11 @@ export default function ProfessionalWorkfolioScreen() {
               flexShrink: 0,
             }}
           >
-            <Icon name={toast.tone === "success" ? "check" : "close"} size={11} color="#0B1F17" />
+            <Icon
+              name={toast.tone === "success" ? "check" : "close"}
+              size={11}
+              color="#0B1F17"
+            />
           </span>
           {toast.text}
         </div>

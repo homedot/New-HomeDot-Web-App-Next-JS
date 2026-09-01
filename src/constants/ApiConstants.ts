@@ -287,6 +287,7 @@ export const API_ENDPOINTS = {
     // project's professional review.
     APP_REVIEW: "review/create-review-user",
   },
+
   ENQUIRY: {
     // Requires a stored auth token. Mirrors homedot-mobile-app's
     // VIEW_ENQUERY ("v1/enquiry/user-enquiries") — the signed-in user's own
@@ -421,7 +422,8 @@ export const API_ENDPOINTS = {
     // reused for the draft→publish action (mirrors homedot-mobile-app's
     // draftToPublishBlog, which calls this identical endpoint with
     // draft: false rather than a dedicated one).
-    BLOG_UPDATE: (slug: string) => `blog/update-blog/${encodeURIComponent(slug)}`,
+    BLOG_UPDATE: (slug: string) =>
+      `blog/update-blog/${encodeURIComponent(slug)}`,
     // Requires a stored auth token. Mirrors PROFESSIONALS_API.DELETE_BLOG
     // ("v1/blog/delete-blog/") — PUT, no body (soft delete), same pattern as
     // MARKETPLACE.PROPERTY_DELETE.

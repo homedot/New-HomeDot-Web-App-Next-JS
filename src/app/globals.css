@@ -456,6 +456,15 @@ body.has-cursor * {
   }
 }
 
+/* Marketplace "All property types" custom dropdown row hover. */
+.mp-type-option {
+  transition: background 0.15s ease;
+}
+
+.mp-type-option:hover {
+  background: #F5F5F7;
+}
+
 /* Explore-style hover for property/pro cards: lift + shadow + image zoom. */
 .card-hover {
   transition: transform 0.2s ease, box-shadow 0.2s ease, border-color 0.2s ease;

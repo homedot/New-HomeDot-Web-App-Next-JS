@@ -103,8 +103,10 @@ export default function MarketplaceScreen() {
   const [locationError, setLocationError] = useState(false);
   const [suggestions, setSuggestions] = useState<GoogleMapsPlacePrediction[]>([]);
   const [showSuggestions, setShowSuggestions] = useState(false);
+  const [showTypeMenu, setShowTypeMenu] = useState(false);
   const locationInputRef = useRef<HTMLInputElement | null>(null);
   const locationFieldRef = useRef<HTMLDivElement | null>(null);
+  const typeFieldRef = useRef<HTMLDivElement | null>(null);
   const googleMapsRef = useRef<GoogleMapsNamespace | null>(null);
   const suggestTimer = useRef<ReturnType<typeof setTimeout> | null>(null);
   const [beds, setBeds] = useState("");
@@ -251,6 +253,22 @@ export default function MarketplaceScreen() {
     document.addEventListener("mousedown", onDocClick);
     return () => document.removeEventListener("mousedown", onDocClick);
   }, [showSuggestions]);
+
+  useEffect(() => {
+    if (!showTypeMenu) return;
+    const onDocClick = (e: MouseEvent) => {
+      if (!typeFieldRef.current?.contains(e.target as Node)) setShowTypeMenu(false);
+    };
+    const onKeyDown = (e: KeyboardEvent) => {
+      if (e.key === "Escape") setShowTypeMenu(false);
+    };
+    document.addEventListener("mousedown", onDocClick);
+    document.addEventListener("keydown", onKeyDown);
+    return () => {
+      document.removeEventListener("mousedown", onDocClick);
+      document.removeEventListener("keydown", onKeyDown);
+    };
+  }, [showTypeMenu]);
 
   // Fetches predictions as the user types (debounced) and renders them in
   // our own dropdown below the input — mirrors ProfessionalsScreen's
@@ -932,45 +950,95 @@ export default function MarketplaceScreen() {
                   </div>
                 )}
               </div>
-              <label
-                style={{
-                  display: "flex",
-                  alignItems: "center",
-                  gap: 9,
-                  height: 50,
-                  border: `1.5px solid ${colors.line}`,
-                  borderRadius: 12,
-                  padding: "0 14px",
-                  color: colors.muted,
-                  flexShrink: 0,
-                }}
-              >
-                <Icon name="house" size={18} />
-                <select
-                  value={selectedPropertyType?._id ?? ""}
-                  onChange={(e) =>
-                    selectPropertyType(
-                      propertyTypeOptions.find(
-                        (t) => t._id === e.target.value,
-                      ) ?? null,
-                    )
-                  }
+              <div ref={typeFieldRef} style={{ position: "relative", flexShrink: 0 }}>
+                <button
+                  type="button"
+                  onClick={() => setShowTypeMenu((v) => !v)}
+                  aria-haspopup="listbox"
+                  aria-expanded={showTypeMenu}
                   style={{
-                    border: "none",
-                    outline: "none",
-                    background: "none",
-                    fontSize: fontSize.base - 0.5,
-                    color: colors.ink,
+                    display: "flex",
+                    alignItems: "center",
+                    gap: 9,
+                    height: 50,
+                    minWidth: 190,
+                    border: `1.5px solid ${showTypeMenu ? colors.primary : colors.line}`,
+                    borderRadius: 12,
+                    padding: "0 12px 0 14px",
+                    background: colors.card,
+                    boxShadow: showTypeMenu ? `0 0 0 4px ${colors.primarySoft}` : "none",
+                    transition: "border-color 0.2s ease, box-shadow 0.2s ease",
                   }}
                 >
-                  <option value="">All property types</option>
-                  {propertyTypeOptions.map((t) => (
-                    <option key={t._id} value={t._id}>
-                      {t.propertyType}
-                    </option>
-                  ))}
-                </select>
-              </label>
+                  <Icon name="house" size={18} color={colors.muted} />
+                  <span
+                    style={{
+                      flex: 1,
+                      textAlign: "left",
+                      fontSize: fontSize.base - 0.5,
+                      fontWeight: selectedPropertyType ? 600 : 400,
+                      color: selectedPropertyType ? colors.ink : colors.muted,
+                      overflow: "hidden",
+                      textOverflow: "ellipsis",
+                      whiteSpace: "nowrap",
+                    }}
+                  >
+                    {selectedPropertyType?.propertyType ?? "All property types"}
+                  </span>
+                  <span
+                    style={{
+                      display: "flex",
+                      flexShrink: 0,
+                      transition: "transform 0.2s ease",
+                      transform: showTypeMenu ? "rotate(180deg)" : "none",
+                    }}
+                  >
+                    <Icon name="chevronDown" size={16} color={colors.muted} />
+                  </span>
+                </button>
+
+                {showTypeMenu && (
+                  <div
+                    role="listbox"
+                    style={{
+                      position: "absolute",
+                      top: "calc(100% + 6px)",
+                      left: 0,
+                      minWidth: 240,
+                      background: colors.card,
+                      border: `1px solid ${colors.line}`,
+                      borderRadius: radius.md,
+                      boxShadow: shadow.lg,
+                      zIndex: 20,
+                      overflow: "hidden",
+                      maxHeight: 320,
+                      overflowY: "auto",
+                      padding: 6,
+                    }}
+                  >
+                    <TypeMenuOption
+                      label="All property types"
+                      selected={!selectedPropertyType}
+                      onClick={() => {
+                        selectPropertyType(null);
+                        setShowTypeMenu(false);
+                      }}
+                    />
+                    {propertyTypeOptions.map((t) => (
+                      <TypeMenuOption
+                        key={t._id}
+                        label={t.propertyType}
+                        count={t.propertyCount ?? undefined}
+                        selected={selectedPropertyType?._id === t._id}
+                        onClick={() => {
+                          selectPropertyType(t);
+                          setShowTypeMenu(false);
+                        }}
+                      />
+                    ))}
+                  </div>
+                )}
+              </div>
             </div>
           </section>
 
@@ -1467,6 +1535,58 @@ function RadioRow({
       />
       {label}
     </label>
+  );
+}
+
+function TypeMenuOption({
+  label,
+  count,
+  selected,
+  onClick,
+}: {
+  label: string;
+  count?: number;
+  selected: boolean;
+  onClick: () => void;
+}) {
+  return (
+    <button
+      type="button"
+      role="option"
+      aria-selected={selected}
+      onClick={onClick}
+      className="mp-type-option"
+      style={{
+        display: "flex",
+        alignItems: "center",
+        gap: 10,
+        width: "100%",
+        padding: "10px 10px",
+        borderRadius: radius.sm,
+        textAlign: "left",
+        fontSize: fontSize.sm + 0.5,
+        fontWeight: selected ? 600 : 500,
+        color: selected ? colors.primary : colors.ink2,
+        background: selected ? colors.primarySoft : "transparent",
+      }}
+    >
+      <span
+        style={{
+          flex: 1,
+          overflow: "hidden",
+          textOverflow: "ellipsis",
+          whiteSpace: "nowrap",
+        }}
+      >
+        {label}
+      </span>
+      {typeof count === "number" && (
+        <span style={{ fontSize: fontSize.xs, fontWeight: 500, color: colors.muted, flexShrink: 0 }}>
+          {count.toLocaleString()}
+        </span>
+      )}
+      {selected && <Icon name="check" size={14} color={colors.primary} />}
+    </button>
   );
 }
 

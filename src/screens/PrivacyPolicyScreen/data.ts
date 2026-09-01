@@ -31,11 +31,21 @@ export const PRIVACY_SECTIONS: PrivacySection[] = [
     lists: [
       {
         heading: "Registration & Profile",
-        items: ["Name/username and telephone number", "Profile photo upload option", "Content posting and sharing", "Messages and communications"],
+        items: [
+          "Name/username and telephone number",
+          "Profile photo upload option",
+          "Content posting and sharing",
+          "Messages and communications",
+        ],
       },
       {
         heading: "Content & Communications",
-        items: ["Information about content you provide", "Metadata (location, date created)", "Messages and interactions", "Shared images and media"],
+        items: [
+          "Information about content you provide",
+          "Metadata (location, date created)",
+          "Messages and interactions",
+          "Shared images and media",
+        ],
       },
     ],
   },
@@ -64,13 +74,40 @@ export const PRIVACY_SECTIONS: PrivacySection[] = [
     lists: [
       {
         heading: "Device Attributes",
-        items: ["Operating system information", "Hardware and software versions", "Battery level and signal strength", "Available storage space", "Browser type and app information"],
+        items: [
+          "Operating system information",
+          "Hardware and software versions",
+          "Battery level and signal strength",
+          "Available storage space",
+          "Browser type and app information",
+        ],
       },
-      { heading: "Device Signals", items: ["Bluetooth signals", "Wi-Fi access points information", "Beacons and cell towers"] },
-      { heading: "Device Settings", items: ["GPS location (if enabled)", "Camera access (if enabled)", "Photo access (if enabled)"] },
+      {
+        heading: "Device Signals",
+        items: [
+          "Bluetooth signals",
+          "Wi-Fi access points information",
+          "Beacons and cell towers",
+        ],
+      },
+      {
+        heading: "Device Settings",
+        items: [
+          "GPS location (if enabled)",
+          "Camera access (if enabled)",
+          "Photo access (if enabled)",
+        ],
+      },
       {
         heading: "Network Connections",
-        items: ["Name of your mobile operator or ISP", "Language", "Time zone", "Mobile phone number", "IP address", "Connection speed"],
+        items: [
+          "Name of your mobile operator or ISP",
+          "Language",
+          "Time zone",
+          "Mobile phone number",
+          "IP address",
+          "Connection speed",
+        ],
       },
     ],
   },
@@ -82,7 +119,16 @@ export const PRIVACY_SECTIONS: PrivacySection[] = [
       `"When you choose to use third-party apps, websites, or other services that use, or are integrated with, our Products, they can receive information about what you post or share."`,
       `The company uses information to "Identify you as a user in our system, Provide improved administration of our Site and Services, Provide the Services you request, Improve the quality of your experience, Send you email notifications, Send newsletters, surveys, offers, and promotional materials, Protect our services and users, Market and customer analysis, research and statistics, Prevent and detect fraud or abuse."`,
     ],
-    lists: [{ heading: "Third-Party Service Providers", items: ["Google Play Services", "Google Analytics for Firebase", "Firebase Crashlytics"] }],
+    lists: [
+      {
+        heading: "Third-Party Service Providers",
+        items: [
+          "Google Play Services",
+          "Google Analytics for Firebase",
+          "Firebase Crashlytics",
+        ],
+      },
+    ],
   },
   {
     id: "friends",
@@ -175,7 +221,10 @@ export const PRIVACY_SECTIONS: PrivacySection[] = [
     id: "links",
     icon: "arrow",
     title: "Links to Other Sites",
-    paragraphs: [`"Our Service may link to external websites."`, `The company is "not responsible for the privacy practices or content of third-party sites."`],
+    paragraphs: [
+      `"Our Service may link to external websites."`,
+      `The company is "not responsible for the privacy practices or content of third-party sites."`,
+    ],
   },
   {
     id: "children",
@@ -190,12 +239,17 @@ export const PRIVACY_SECTIONS: PrivacySection[] = [
     id: "changes",
     icon: "clock",
     title: "Changes to This Privacy Policy",
-    paragraphs: [`"We may update this Privacy Policy from time to time."`, `Changes will be posted on the page. Effective Date: ${EFFECTIVE_DATE}`],
+    paragraphs: [
+      `"We may update this Privacy Policy from time to time."`,
+      `Changes will be posted on the page. Effective Date: ${EFFECTIVE_DATE}`,
+    ],
   },
   {
     id: "contact",
     icon: "mail",
     title: "Contact Us",
-    paragraphs: [`"If you have questions or suggestions regarding our Privacy Policy, contact us at ${SUPPORT_EMAIL}"`],
+    paragraphs: [
+      `"If you have questions or suggestions regarding our Privacy Policy, contact us at ${SUPPORT_EMAIL}"`,
+    ],
   },
 ];
