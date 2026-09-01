@@ -6,12 +6,14 @@ import { spacing, radius, fontSize } from "@/utils/size";
 import Icon from "@/components/Icon";
 import Reveal from "@/components/Reveal";
 import MarketplaceScreenService, { type PropertyTypeRecord } from "@/services/MarketplaceScreenService";
-import { KIND_ICON, resolveKind } from "./shared";
+import { KIND_ICON, resolveKind, type ListingPurpose } from "./shared";
 
 export default function TypeStep({
+  purpose,
   onBack,
   onSelect,
 }: {
+  purpose: ListingPurpose;
   onBack?: () => void;
   onSelect: (type: PropertyTypeRecord) => void;
 }) {
@@ -110,7 +112,7 @@ export default function TypeStep({
                 <b style={{ display: "block", fontSize: fontSize.md - 1, fontWeight: 600 }}>
                   {t.propertyType}
                 </b>
-                {typeof t.propertyCount === "number" && (
+                {purpose !== "Rent" && typeof t.propertyCount === "number" && (
                   <em style={{ fontStyle: "normal", fontSize: fontSize.xs, color: colors.muted }}>
                     {t.propertyCount.toLocaleString()} listed
                   </em>

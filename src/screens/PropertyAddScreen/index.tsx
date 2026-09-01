@@ -124,6 +124,7 @@ export default function PropertyAddScreen() {
 
             {step === "type" && (
               <TypeStep
+                purpose={purpose}
                 onBack={() => setStep("purpose")}
                 onSelect={(t) => {
                   setPropertyType(t);
