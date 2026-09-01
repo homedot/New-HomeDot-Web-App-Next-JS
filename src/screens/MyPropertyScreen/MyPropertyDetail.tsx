@@ -20,6 +20,7 @@ import ReviewStep from "@/screens/PropertyAddScreen/ReviewStep";
 import {
   AMENITY_CATALOG,
   buildPropertyPayload,
+  getMinPrice,
   getMissingFields,
   initialFormState,
   KIND_ICON,
@@ -544,10 +545,11 @@ export default function MyPropertyDetail({
   };
 
   const saveEdit = async () => {
-    if (getMissingFields(kind, editForm).includes("price")) {
+    if (getMissingFields(kind, editForm, purpose).includes("price")) {
+      const minPrice = getMinPrice(purpose);
       setToast(
         editForm.price.trim()
-          ? "Price can't be ₹0 — enter the actual amount."
+          ? `Minimum ${purpose === "Rent" ? "rent" : "price"} is ₹${minPrice.toLocaleString("en-IN")}.`
           : "Enter a valid price to continue.",
       );
       setMode("editDetails");

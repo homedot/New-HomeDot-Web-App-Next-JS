@@ -193,6 +193,18 @@ export const inputWrap: CSSProperties = {
   background: colors.white,
 };
 
+// All numeric fields in this form (price, bathrooms, balcony, areas, etc.)
+// are whole-number counts server-side (buildPropertyPayload parses them with
+// parseInt) — but a bare <input type="number"> still lets the browser accept
+// "-5", ".4" or "00.5" as valid intermediate values. Stripping everything but
+// digits on every keystroke, plus collapsing leading zeros, keeps what's on
+// screen always a clean non-negative integer instead of relying on
+// after-the-fact validation.
+export function sanitizeIntegerInput(raw: string): string {
+  const digitsOnly = raw.replace(/[^\d]/g, "");
+  return digitsOnly.replace(/^0+(?=\d)/, "");
+}
+
 export const fieldInputStyle: CSSProperties = {
   border: "none",
   outline: "none",
@@ -379,17 +391,26 @@ const KIND_FIELD_ORDER: FieldKey[] = [
   "amenities",
 ];
 
+// Lowest price a listing can be posted at — ₹1 lakh for a sale, ₹1,000/month
+// for a rental. Below this it's almost certainly a typo (a missing digit or
+// two), so it's rejected the same way an empty price is rather than accepted
+// as a legitimately cheap listing.
+export function getMinPrice(purpose: ListingPurpose): number {
+  return purpose === "Rent" ? 1000 : 100000;
+}
+
 // Every required field still empty, in top-to-bottom DOM order — drives both
 // the "Continue" button's enabled state and, when the user clicks it while
 // the form is incomplete, which field DetailsStep scrolls to and highlights.
 export function getMissingFields(
   kind: PropertyKind,
   f: PropertyFormState,
+  purpose: ListingPurpose,
 ): AllFieldKey[] {
   const missing: AllFieldKey[] = [];
   if (!f.title.trim()) missing.push("title");
   if (!f.description.trim()) missing.push("description");
-  if (!f.price.trim() || Number(f.price) <= 0) missing.push("price");
+  if (!f.price.trim() || Number(f.price) < getMinPrice(purpose)) missing.push("price");
   if (!f.location) missing.push("location");
   if (!f.city.trim()) missing.push("city");
   if (!f.state.trim()) missing.push("state");
@@ -416,8 +437,9 @@ export function getMissingFields(
 export function isDetailsComplete(
   kind: PropertyKind,
   f: PropertyFormState,
+  purpose: ListingPurpose,
 ): boolean {
-  return getMissingFields(kind, f).length === 0;
+  return getMissingFields(kind, f, purpose).length === 0;
 }
 
 // Builds the wire payload for both property/create and property/update-info

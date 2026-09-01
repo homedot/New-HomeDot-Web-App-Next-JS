@@ -13,8 +13,10 @@ import {
   KIND_FIELDS,
   SelectField,
   fieldInputStyle,
+  getMinPrice,
   getMissingFields,
   inputWrap,
+  sanitizeIntegerInput,
   type AllFieldKey,
   type ListingPurpose,
   type PropertyFormState,
@@ -40,7 +42,7 @@ function NumberField({
         inputMode="numeric"
         placeholder={placeholder}
         value={value}
-        onChange={(e) => onChange(e.target.value)}
+        onChange={(e) => onChange(sanitizeIntegerInput(e.target.value))}
         style={fieldInputStyle}
       />
       {suffix && (
@@ -83,20 +85,21 @@ export default function DetailsStep({
   // clears live as the user fills each one in) instead of just failing
   // silently.
   const [showErrors, setShowErrors] = useState(false);
-  const missing = getMissingFields(kind, form);
+  const missing = getMissingFields(kind, form, purpose);
   const missingSet = new Set(missing);
   const fieldProps = (key: AllFieldKey) => ({
     id: `pa-field-${key}`,
     invalid: showErrors && missingSet.has(key),
   });
 
-  const setPrice = (value: string) => set("price", value);
+  const setPrice = (value: string) => set("price", sanitizeIntegerInput(value));
 
   // Shown inline under the price field instead of the floating toast, so the
   // message sits right next to the input the user needs to fix.
+  const minPrice = getMinPrice(purpose);
   const priceError =
-    form.price.trim() !== "" && Number(form.price) <= 0
-      ? "Price can't be ₹0 — enter the actual amount."
+    form.price.trim() !== "" && Number(form.price) < minPrice
+      ? `Minimum ${purpose === "Rent" ? "rent" : "price"} is ₹${minPrice.toLocaleString("en-IN")}.`
       : showErrors && missingSet.has("price")
         ? "Enter a valid price to continue."
         : undefined;

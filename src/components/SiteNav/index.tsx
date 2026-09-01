@@ -37,7 +37,7 @@ const LINKS: { label: string; href?: string }[] = [
   { label: "Home", href: "/" },
   { label: "Professionals", href: "/professionals" },
   { label: "Blogs", href: "/blog" },
-  { label: "Marketplace", href: "/marketplace" },
+  { label: "Reality", href: "/marketplace" },
   { label: "Contact" },
 ];
 
@@ -127,7 +127,9 @@ export default function SiteNav() {
         <nav className="hidden md:flex" style={{ gap: 2, marginRight: "auto" }}>
           {LINKS.map((l) => {
             const active = !!l.href && pathname === l.href;
-            const style = { "--nav-color": active ? colors.primary : colors.ink2 } as CSSProperties;
+            const style = {
+              "--nav-color": active ? colors.primary : colors.ink2,
+            } as CSSProperties;
             const className = `nav-link${active ? " nav-link-active" : ""}`;
             if (l.href) {
               return (
@@ -147,7 +149,12 @@ export default function SiteNav() {
                 key={l.label}
                 onClick={() => contactModalRef.current?.open()}
                 className={className}
-                style={{ font: "inherit", ...style, background: "none", border: "none" }}
+                style={{
+                  font: "inherit",
+                  ...style,
+                  background: "none",
+                  border: "none",
+                }}
               >
                 {l.label}
               </button>
@@ -200,7 +207,9 @@ export default function SiteNav() {
           </button>
         </div>
       </div>
-      <div className={`nav-mobile-menu${menuOpen ? " nav-mobile-menu-open" : ""}`}>
+      <div
+        className={`nav-mobile-menu${menuOpen ? " nav-mobile-menu-open" : ""}`}
+      >
         <nav className="nav-mobile-links">
           {LINKS.map((l, i) => {
             const active = !!l.href && pathname === l.href;
