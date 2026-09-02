@@ -61,14 +61,8 @@ export default function MyPropertyScreen() {
 
   const [detail, setDetail] = useState<{ slug: string; purpose: Purpose } | null>(null);
 
-  useEffect(() => {
-    if (!getAuthToken()) {
-      // eslint-disable-next-line react-hooks/set-state-in-effect -- token lives in localStorage, a client-only system; see LoginModal's identical pattern
-      setSignedIn(false);
-      setLoading(false);
-      return;
-    }
-    setSignedIn(true);
+  const fetchLists = () => {
+    setLoading(true);
     Promise.all([MarketplaceScreenService.getMyProperties("Buy"), MarketplaceScreenService.getMyProperties("Rent")]).then(
       ([buyRes, rentRes]) => {
         setLoading(false);
@@ -78,6 +72,17 @@ export default function MyPropertyScreen() {
         });
       },
     );
+  };
+
+  useEffect(() => {
+    if (!getAuthToken()) {
+      // eslint-disable-next-line react-hooks/set-state-in-effect -- token lives in localStorage, a client-only system; see LoginModal's identical pattern
+      setSignedIn(false);
+      setLoading(false);
+      return;
+    }
+    setSignedIn(true);
+    fetchLists();
   }, []);
 
   // Resolves a shared "?property=<slug>&purpose=<Buy|Rent>" link once, same
@@ -139,6 +144,7 @@ export default function MyPropertyScreen() {
           purpose={detail.purpose}
           onBack={closeDetail}
           onSoldOut={() => updateInList(detail.slug, detail.purpose, { status: "Sold Out" })}
+          onSaved={fetchLists}
           onDeleted={() => {
             removeFromList(detail.slug, detail.purpose);
             closeDetail();

@@ -84,7 +84,10 @@ export interface SkillCategoryContext {
 // levelThreeId/levelThreeName, not just the level-three pair, or the
 // backend rejects the update. `context` is the professional's current
 // category/sub-category (id + name for each) at the time of saving.
-export function buildSkillsPayload(skills: ProfessionalSkillRecord[], context: SkillCategoryContext): string[] {
+export function buildSkillsPayload(
+  skills: ProfessionalSkillRecord[],
+  context: SkillCategoryContext,
+): string[] {
   return skills.map((s) =>
     JSON.stringify({
       ...s,
@@ -98,7 +101,7 @@ export function buildSkillsPayload(skills: ProfessionalSkillRecord[], context: S
 
 // All "become/switch to professional" API calls live here. The
 // BecomeProfessionalModal and ProfileScreen only ever import this file —
-// never ApiService or fetch directly.
+// never ApiService or fetch directly. q
 export const SwitchProfessionalService = {
   // Guest-accessible — no auth required. Top-level (level-one) categories.
   getCategories: (): Promise<ApiResponse<CategoryListBody>> =>
@@ -106,24 +109,48 @@ export const SwitchProfessionalService = {
 
   // Guest-accessible — no auth required. Level-two subcategories for a
   // chosen top-level category.
-  getSubCategories: (categoryId: string): Promise<ApiResponse<SubCategoryListBody>> =>
-    ApiService.post<SubCategoryListBody>(API_ENDPOINTS.COMMON.SUBCATEGORY_LIST, {
-      levelOneCategory: categoryId,
-    }),
+  getSubCategories: (
+    categoryId: string,
+  ): Promise<ApiResponse<SubCategoryListBody>> =>
+    ApiService.post<SubCategoryListBody>(
+      API_ENDPOINTS.COMMON.SUBCATEGORY_LIST,
+      {
+        levelOneCategory: categoryId,
+      },
+    ),
 
   // Guest-accessible — no auth required. Starter skill suggestions once
   // category + subcategory are both chosen.
-  getSkillSuggestions: (category: string, subCategory: string): Promise<ApiResponse<SkillsBody>> =>
-    ApiService.post<SkillsBody>(API_ENDPOINTS.COMMON.SKILLS_SUGGESTIONS, { category, subCategory }),
+  getSkillSuggestions: (
+    category: string,
+    subCategory: string,
+  ): Promise<ApiResponse<SkillsBody>> =>
+    ApiService.post<SkillsBody>(API_ENDPOINTS.COMMON.SKILLS_SUGGESTIONS, {
+      category,
+      subCategory,
+    }),
 
   // Guest-accessible — no auth required. Live skill search as the user types.
-  searchSkills: (category: string, subCategory: string, keyString: string): Promise<ApiResponse<SkillsBody>> =>
-    ApiService.post<SkillsBody>(API_ENDPOINTS.COMMON.SKILLS, { category, subCategory, keyString }),
+  searchSkills: (
+    category: string,
+    subCategory: string,
+    keyString: string,
+  ): Promise<ApiResponse<SkillsBody>> =>
+    ApiService.post<SkillsBody>(API_ENDPOINTS.COMMON.SKILLS, {
+      category,
+      subCategory,
+      keyString,
+    }),
 
   // Requires a stored auth token. Adds the professional role to the
   // signed-in account.
-  becomeProfessional: (payload: BecomeProfessionalPayload): Promise<ApiResponse<RoleSwitchBody>> =>
-    ApiService.post<RoleSwitchBody>(API_ENDPOINTS.AUTH.BECOME_A_PROFESSIONAL, payload),
+  becomeProfessional: (
+    payload: BecomeProfessionalPayload,
+  ): Promise<ApiResponse<RoleSwitchBody>> =>
+    ApiService.post<RoleSwitchBody>(
+      API_ENDPOINTS.AUTH.BECOME_A_PROFESSIONAL,
+      payload,
+    ),
 
   // Requires a stored auth token. Only reachable once the account already
   // has both roles — toggles which role the current session is scoped to.

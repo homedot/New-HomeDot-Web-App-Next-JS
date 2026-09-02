@@ -124,12 +124,18 @@ export default function MyPropertyDetail({
   onBack,
   onSoldOut,
   onDeleted,
+  onSaved,
 }: {
   slug: string;
   purpose: Purpose;
   onBack: () => void;
   onSoldOut: () => void;
   onDeleted: () => void;
+  // Called after a successful edit save (detail already re-fetched here) so
+  // the parent list screen can re-fetch the My Property listing too — the
+  // list's cached card (title/price/thumbnail) would otherwise keep showing
+  // pre-edit data until the user reloads the page.
+  onSaved?: () => void;
 }) {
   const [detail, setDetail] = useState<PropertyDetailRecord | null>(null);
   const [loading, setLoading] = useState(true);
@@ -594,33 +600,21 @@ export default function MyPropertyDetail({
       );
       return;
     }
-    setDetail({
-      ...detail,
-      propertyAdTitle: payload.property_ad_title,
-      description: payload.description,
-      price: payload.price,
-      propertyLocation: payload.property_location,
-      propertySubLocation: payload.property_sub_location,
-      propertyCity: payload.property_city,
-      propertyCountry: payload.property_country,
-      latitude: payload.latitude,
-      longitude: payload.longitude,
-      bedrooms: payload.bedrooms,
-      bathrooms: payload.bathrooms,
-      balcony: payload.balcony,
-      furnished: payload.furnished,
-      buildUpArea: payload.build_up_area,
-      carpetArea: payload.carpet_area,
-      plotArea: payload.plot_area,
-      noOfFloors: payload.no_of_floors,
-      roadWidth: payload.road_width,
-      maintenanceCharge: payload.maintenanceCharge,
-      garage: payload.garage,
-      length: payload.length,
-      breadth: payload.breadth,
-    });
+    // Re-fetch rather than hand-merge `payload` into `detail`: payload only
+    // carries image ids (not the server's resolved propertyImages), so a
+    // manual merge here left the gallery showing the pre-edit images even
+    // though the update (including newly uploaded photos) had succeeded.
+    const refreshed = await MarketplaceScreenService.getMyPropertyDetail(
+      slug,
+      purpose,
+    );
+    const refreshedRecord = refreshed.data?.data?.[0]?.propertyDetails?.[0];
+    if (refreshed.success && refreshed.data?.status && refreshedRecord) {
+      setDetail(refreshedRecord);
+    }
     setMode("view");
     setToast("Listing updated.");
+    onSaved?.();
   };
 
   const confirmSoldOut = async () => {
