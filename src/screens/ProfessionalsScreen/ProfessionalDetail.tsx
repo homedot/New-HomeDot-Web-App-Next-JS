@@ -505,8 +505,21 @@ export default function ProfessionalDetail({
             </Button>
             <div style={{ display: "flex", gap: spacing.sm }}>
               <span style={{ flex: 1 }}>
-                <Button variant="outline" size="md" full icon={<Icon name="phone" size={16} />}>
-                  Call
+                <Button
+                  variant="outline"
+                  size="md"
+                  full
+                  icon={<Icon name="whatsapp" size={16} color="#25D366" />}
+                  onClick={() => {
+                    const message = `Hi, I'm interested in your services on HomeDot (${pro.profession}).`;
+                    window.open(
+                      `https://wa.me/917012303017?text=${encodeURIComponent(message)}`,
+                      "_blank",
+                      "noopener,noreferrer",
+                    );
+                  }}
+                >
+                  WhatsApp
                 </Button>
               </span>
             </div>

@@ -253,7 +253,10 @@ export const MarketplaceScreenService = {
   uploadPropertyImage: (file: File): Promise<ApiResponse<ImageUploadBody>> => {
     const form = new FormData();
     form.append("image", file);
-    return ApiService.post<ImageUploadBody>(API_ENDPOINTS.COMMON.IMAGE_UPLOAD, form);
+    return ApiService.post<ImageUploadBody>(
+      API_ENDPOINTS.COMMON.IMAGE_UPLOAD,
+      form,
+    );
   },
 
   // Requires a stored auth token. "Buy" and "Rent" are separate create
@@ -302,14 +305,21 @@ export const MarketplaceScreenService = {
   // (My Property screen) — same response shape as getPropertiesFilter
   // (data[0].data), but GET with no filter body, matching homedot-mobile-app's
   // get_Properties/get_Rent_Properties.
-  getMyProperties: (purpose: "Buy" | "Rent" = "Buy"): Promise<ApiResponse<PropertiesFilterBody>> =>
+  getMyProperties: (
+    purpose: "Buy" | "Rent" = "Buy",
+  ): Promise<ApiResponse<PropertiesFilterBody>> =>
     ApiService.get<PropertiesFilterBody>(
-      purpose === "Rent" ? API_ENDPOINTS.MARKETPLACE.GET_MY_RENT_PROPERTIES : API_ENDPOINTS.MARKETPLACE.GET_MY_PROPERTIES,
+      purpose === "Rent"
+        ? API_ENDPOINTS.MARKETPLACE.GET_MY_RENT_PROPERTIES
+        : API_ENDPOINTS.MARKETPLACE.GET_MY_PROPERTIES,
     ),
 
   // Requires a stored auth token. Owner-authed detail route, for prefilling
   // the edit form — distinct from the guest getPropertyBySlug route.
-  getMyPropertyDetail: (slug: string, purpose: "Buy" | "Rent" = "Buy"): Promise<ApiResponse<PropertyDetailBody>> =>
+  getMyPropertyDetail: (
+    slug: string,
+    purpose: "Buy" | "Rent" = "Buy",
+  ): Promise<ApiResponse<PropertyDetailBody>> =>
     ApiService.get<PropertyDetailBody>(
       purpose === "Rent"
         ? API_ENDPOINTS.MARKETPLACE.RENT_PROPERTY_DETAIL_AUTH(slug)
@@ -325,25 +335,37 @@ export const MarketplaceScreenService = {
     purpose: "Buy" | "Rent" = "Buy",
   ): Promise<ApiResponse<PropertyActionBody>> =>
     ApiService.put<PropertyActionBody>(
-      purpose === "Rent" ? API_ENDPOINTS.MARKETPLACE.UPDATE_RENT_PROPERTY(slug) : API_ENDPOINTS.MARKETPLACE.UPDATE_SELL_PROPERTY(slug),
+      purpose === "Rent"
+        ? API_ENDPOINTS.MARKETPLACE.UPDATE_RENT_PROPERTY(slug)
+        : API_ENDPOINTS.MARKETPLACE.UPDATE_SELL_PROPERTY(slug),
       payload,
     ),
 
   // Requires a stored auth token. One-way — mirrors homedot-mobile-app's
   // property_Sold_Out/property_Rent_Sold_Out, which have no reverse endpoint
   // (the owner has to contact HomeDot to undo it).
-  markPropertySoldOut: (slug: string, purpose: "Buy" | "Rent" = "Buy"): Promise<ApiResponse<PropertyActionBody>> =>
+  markPropertySoldOut: (
+    slug: string,
+    purpose: "Buy" | "Rent" = "Buy",
+  ): Promise<ApiResponse<PropertyActionBody>> =>
     ApiService.post<PropertyActionBody>(
-      purpose === "Rent" ? API_ENDPOINTS.MARKETPLACE.RENT_PROPERTY_SOLD_OUT(slug) : API_ENDPOINTS.MARKETPLACE.PROPERTY_SOLD_OUT(slug),
+      purpose === "Rent"
+        ? API_ENDPOINTS.MARKETPLACE.RENT_PROPERTY_SOLD_OUT(slug)
+        : API_ENDPOINTS.MARKETPLACE.PROPERTY_SOLD_OUT(slug),
       {},
     ),
 
   // Requires a stored auth token. A soft delete — mirrors homedot-mobile-app's
   // delete_Property/delete_RentProperty, which PUT (not DELETE) keyed by the
   // property's slug (propertyDetails?.propertySlug), not its Mongo _id.
-  deleteProperty: (slug: string, purpose: "Buy" | "Rent" = "Buy"): Promise<ApiResponse<PropertyActionBody>> =>
+  deleteProperty: (
+    slug: string,
+    purpose: "Buy" | "Rent" = "Buy",
+  ): Promise<ApiResponse<PropertyActionBody>> =>
     ApiService.put<PropertyActionBody>(
-      purpose === "Rent" ? API_ENDPOINTS.MARKETPLACE.RENT_PROPERTY_DELETE(slug) : API_ENDPOINTS.MARKETPLACE.PROPERTY_DELETE(slug),
+      purpose === "Rent"
+        ? API_ENDPOINTS.MARKETPLACE.RENT_PROPERTY_DELETE(slug)
+        : API_ENDPOINTS.MARKETPLACE.PROPERTY_DELETE(slug),
       {},
     ),
 };
@@ -459,7 +481,12 @@ export function toMarketplacePropertyDetail(
   return {
     id: record._id,
     propertySlug: record.propertySlug,
-    status: record.status === "Listed" ? (purpose === "Rent" ? "For Rent" : "For Sale") : record.status,
+    status:
+      record.status === "Listed"
+        ? purpose === "Rent"
+          ? "For Rent"
+          : "For Sale"
+        : record.status,
     purpose,
     category: record.propertyTypeDetails?.[0]?.propertyType || "Property",
     title: record.propertyAdTitle.trim(),
