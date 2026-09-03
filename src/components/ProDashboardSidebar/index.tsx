@@ -38,7 +38,7 @@ export default function ProDashboardSidebar({ onLogout, loggingOut, bare = false
     { icon: "book", label: "Blogs", href: "/professional/blogs" },
     { icon: "user", label: "Profile", href: "/professional/profile" },
     { icon: "briefcase", label: "Workfolio", href: "/professional/workfolio" },
-    { icon: "heart", label: "Favourites", href: "/favorites" },
+    { icon: "heart", label: "Favourites", href: "/professional/favorites" },
   ];
   const more: SidebarNavEntry[] = [
     { icon: "share", label: "Refer & earn", href: "/professional/refer" },
