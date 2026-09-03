@@ -28,21 +28,34 @@ function NumberField({
   onChange,
   placeholder,
   suffix,
+  max,
 }: {
   value: string;
   onChange: (v: string) => void;
   placeholder: string;
   suffix?: string;
+  // Caps the value at this many digits — used for counts like
+  // bathrooms/balconies that must stay single-digit (< 10), unlike areas or
+  // price which have no sensible upper bound here.
+  max?: number;
 }) {
   return (
     <div style={inputWrap}>
       <input
         type="number"
         min={0}
+        max={max}
         inputMode="numeric"
         placeholder={placeholder}
         value={value}
-        onChange={(e) => onChange(sanitizeIntegerInput(e.target.value))}
+        onChange={(e) => {
+          const sanitized = sanitizeIntegerInput(e.target.value);
+          if (max != null && sanitized !== "" && Number(sanitized) > max) {
+            onChange(String(max));
+            return;
+          }
+          onChange(sanitized);
+        }}
         style={fieldInputStyle}
       />
       {suffix && (
@@ -309,6 +322,7 @@ export default function DetailsStep({
                   value={form.bathrooms}
                   onChange={(v) => set("bathrooms", v)}
                   placeholder="e.g. 2"
+                  max={9}
                 />
               </Field>
             )}
@@ -318,6 +332,7 @@ export default function DetailsStep({
                   value={form.balcony}
                   onChange={(v) => set("balcony", v)}
                   placeholder="e.g. 1"
+                  max={9}
                 />
               </Field>
             )}
