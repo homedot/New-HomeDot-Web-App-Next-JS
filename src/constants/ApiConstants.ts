@@ -428,5 +428,22 @@ export const API_ENDPOINTS = {
     // ("v1/blog/delete-blog/") — PUT, no body (soft delete), same pattern as
     // MARKETPLACE.PROPERTY_DELETE.
     BLOG_DELETE: (id: string) => `blog/delete-blog/${encodeURIComponent(id)}`,
+    // Requires a stored auth token. Mirrors PROFESSIONALS_API.GET_ALL_BLOGS
+    // ("v1/commonblog/favorites-blog-list") — the "All Blogs" tab's feed
+    // (every professional's published blogs), distinct from the guest
+    // BLOG.LIST feed. Each record's `fav` is personalized against the
+    // signed-in *professional's* favorites, not BLOG.LIST's user-scoped one
+    // — using BLOG.LIST here was why a professional's favorite/unfavorite
+    // never stuck on reload (see FAVORITE_BLOGS below for the matching
+    // read-back gap).
+    ALL_BLOGS: (page: number) => `commonblog/favorites-blog-list?page=${page}`,
+    // Requires a stored auth token. Mirrors PROFESSIONALS_API.FAVORITE_BLOG
+    // ("v1/professional/favorite-blogs") — the signed-in professional's own
+    // favorited blogs, seeding the saved/favorited set on load. Distinct
+    // from BLOG.GET_FAVORITES ("user/favorite-blogs"), which reads back the
+    // *user*-role favorites list and returns nothing for a professional
+    // token even after BLOG.TOGGLE_FAVORITE (below) has recorded the
+    // favorite server-side.
+    FAVORITE_BLOGS: "professional/favorite-blogs",
   },
 } as const;

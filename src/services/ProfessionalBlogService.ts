@@ -1,6 +1,11 @@
 import ApiService, { type ApiResponse } from "./ApiService";
 import { API_ENDPOINTS } from "@/constants/ApiConstants";
-import { normalizeBlogImage, type RawBlogImage } from "./BlogScreenService";
+import {
+  normalizeBlogImage,
+  type RawBlogImage,
+  type BlogListBody,
+  type FavoriteBlogBody,
+} from "./BlogScreenService";
 
 // The signed-in professional's own blog record — same underlying shape as
 // BlogScreenService's BlogRecord (blogImage arrives in the same
@@ -73,6 +78,17 @@ export const ProfessionalBlogService = {
   // Requires a stored auth token. PUT, no body — soft delete.
   deleteBlog: (id: string): Promise<ApiResponse<MutateBlogBody>> =>
     ApiService.put<MutateBlogBody>(API_ENDPOINTS.PROFESSIONAL.BLOG_DELETE(id)),
+
+  // Requires a stored auth token. The "All Blogs" tab's feed — every
+  // professional's published blogs, `fav` personalized against the
+  // signed-in professional (see ApiConstants.PROFESSIONAL.ALL_BLOGS).
+  getAllBlogs: (page: number): Promise<ApiResponse<BlogListBody>> =>
+    ApiService.get<BlogListBody>(API_ENDPOINTS.PROFESSIONAL.ALL_BLOGS(page)),
+
+  // Requires a stored auth token. The signed-in professional's own
+  // favorited blogs — seeds the saved/favorited set on load.
+  getFavoriteBlogs: (): Promise<ApiResponse<FavoriteBlogBody>> =>
+    ApiService.get<FavoriteBlogBody>(API_ENDPOINTS.PROFESSIONAL.FAVORITE_BLOGS),
 };
 
 function truncate(text: string, max: number): string {

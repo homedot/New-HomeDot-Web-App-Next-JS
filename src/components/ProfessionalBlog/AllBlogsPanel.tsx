@@ -15,22 +15,26 @@ import BlogScreenService, {
   type BlogCard as BlogCardData,
   type BlogArticle,
 } from "@/services/BlogScreenService";
+import ProfessionalBlogService from "@/services/ProfessionalBlogService";
 import BlogDetail from "@/screens/BlogScreen/BlogDetail";
 import { fallbackPosts } from "@/screens/BlogScreen/data";
 
 /** "All Blogs" — the professional dashboard counterpart of homedot-mobile-app's
  * AllBlogList "All" tab (every professional's published blog, not just the
  * signed-in professional's own — that's ProfessionalBlogScreen's separate
- * "My Blogs" mode). Reuses BlogScreenService/BlogCard/BlogDetail as-is
- * rather than wiring PROFESSIONALS_API's GET_ALL_BLOGS
- * ("commonblog/favorites-blog-list") — the guest BLOG.LIST feed already
- * personalizes with fav state for any signed-in caller (ApiService attaches
- * the token automatically), same reasoning BlogScreenService's own comment
- * on BLOG.LIST gives for not duplicating that branch. No login-gating here
- * (unlike BlogScreen) since this only ever renders once the professional is
- * already signed in. Mobile's category tabs (House/Garden/Home Design)
- * aren't reproduced — the web /blog feed already dropped those in favor of
- * a single feed + search, and this mirrors that same simplification. */
+ * "My Blogs" mode). The feed and the saved/favorited set both come from
+ * PROFESSIONAL.ALL_BLOGS ("commonblog/favorites-blog-list") and
+ * PROFESSIONAL.FAVORITE_BLOGS ("professional/favorite-blogs") — the
+ * *professional*-scoped endpoints homedot-mobile-app's AllBlogList/
+ * BlogScreenGradeningandHomeDesignCards use, not BLOG.LIST/BLOG.GET_FAVORITES
+ * (those are user-role-scoped: a professional's favorite toggle recorded
+ * fine through the shared BLOG.TOGGLE_FAVORITE endpoint, but reading it back
+ * via the user-role feeds returned nothing, which is what made
+ * favorite/unfavorite look broken here). No login-gating here (unlike
+ * BlogScreen) since this only ever renders once the professional is already
+ * signed in. Mobile's category tabs (House/Garden/Home Design) aren't
+ * reproduced — the web /blog feed already dropped those in favor of a
+ * single feed + search, and this mirrors that same simplification. */
 export default function AllBlogsPanel() {
   const searchParams = useSearchParams();
   const router = useRouter();
@@ -49,7 +53,7 @@ export default function AllBlogsPanel() {
   const autoOpenHandled = useRef(false);
 
   useEffect(() => {
-    BlogScreenService.getFavoriteBlogs().then((res) => {
+    ProfessionalBlogService.getFavoriteBlogs().then((res) => {
       if (res.success && res.data?.status && res.data.data) {
         setSaved(res.data.data.map((b) => b.blogId || b._id || ""));
       }
@@ -58,7 +62,7 @@ export default function AllBlogsPanel() {
 
   useEffect(() => {
     let cancelled = false;
-    BlogScreenService.getBlogList(1).then((res) => {
+    ProfessionalBlogService.getAllBlogs(1).then((res) => {
       if (cancelled) return;
       setInitialLoad(false);
       const result = res.data?.data?.[0];
@@ -80,7 +84,7 @@ export default function AllBlogsPanel() {
   const loadMore = async () => {
     if (loadingMore) return;
     setLoadingMore(true);
-    const res = await BlogScreenService.getBlogList(page + 1);
+    const res = await ProfessionalBlogService.getAllBlogs(page + 1);
     setLoadingMore(false);
     const result = res.data?.data?.[0];
     if (res.success && res.data?.status && result && result.data.length > 0) {
