@@ -40,7 +40,12 @@ export default function ProfessionalEnquiryCard({
 }) {
   const [pinPop, setPinPop] = useState(0);
   const response = enquiry.professionalResponse?.[0];
-  const hasResponded = !!response?.responseText || !!response?.response;
+  // Mirrors EnquiryCard.tsx's isRejected (user side) — rejectDirectEnquiry
+  // posts responseText: "rejected" as the professional's own decline, a
+  // state token rather than a real message, distinct from the customer
+  // declining the professional's response (userReject below).
+  const professionalDeclined = response?.responseText === "rejected";
+  const hasResponded = (!!response?.responseText || !!response?.response) && !professionalDeclined;
   const customerDeclined = !!response?.userReject;
   const customerAccepted = !!response?.userAccepted;
   const hasProject = Array.isArray(enquiry.projectInfo) && enquiry.projectInfo.length > 0;
@@ -58,7 +63,7 @@ export default function ProfessionalEnquiryCard({
 
   const customerName = enquiry.customerInfo?.[0]?.name || "Customer";
   const ref = enquiry._id ? `#${enquiry._id.slice(-8).toUpperCase()}` : null;
-  const responseText = response?.responseText;
+  const responseText = professionalDeclined ? undefined : response?.responseText;
   const thread: { who: string; text: string }[] = [
     { who: customerName, text: enquiry.requirement },
     ...(responseText ? [{ who: "Me", text: responseText }] : []),
@@ -232,6 +237,8 @@ export default function ProfessionalEnquiryCard({
             <Icon name="briefcase" size={14} color="#fff" /> Initiate Project
           </button>
         </div>
+      ) : professionalDeclined ? (
+        <Status color={colors.muted} bg={colors.card} text={kind === "job" ? "You ignored this enquiry" : "You declined this enquiry"} />
       ) : hasResponded ? (
         <Status color={colors.primary} bg={colors.primarySoft} text="Awaiting customer decision" />
       ) : (
