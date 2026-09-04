@@ -234,6 +234,25 @@ export const API_ENDPOINTS = {
     // codepath there, used whenever isScreenUserOrProfessional is false,
     // which it is for every regular user).
     REFER_A_FRIEND: "professional/invite-friend",
+    // Requires a stored auth token. Mirrors USERS_APIS.SELECTED_PROFESSSIONAL_DETAILED
+    // ("v1/professional/professional-details-auth/") — the genuine per-
+    // professional detail record (full bio, skills, rating, experience,
+    // rate, location, contact info, fav), fetched by slug when opening a
+    // professional's detail screen. Replaces the thin/synthesized fields
+    // toProfessionalRecord fills in from the list endpoint alone (see its
+    // own comment — this is the "real get professional detail endpoint"
+    // it was waiting on). Response is `data: [record]`, a single-element
+    // array, not the usual `data: [{ data: [] }]` list-page wrap.
+    DETAIL_AUTH: (slug: string) =>
+      `professional/professional-details-auth/${encodeURIComponent(slug)}`,
+    // Requires a stored auth token. Mirrors USERS_APIS.RATING
+    // ("v1/professional/get-ratings/") — keyed on the professional's userId
+    // (the same id TOGGLE_FAVORITE targets), not their slug. Response is a
+    // flat `data: [review]` array — confirmed against homedot-mobile-app's
+    // HomeProfessionalDetailedScreen, which reads res.data.data straight
+    // into its reviews list with no further unwrapping.
+    GET_RATINGS: (userId: string) =>
+      `professional/get-ratings/${encodeURIComponent(userId)}`,
   },
   BLOG: {
     // Guest-accessible — no auth required. Mirrors homedot-mobile-app's

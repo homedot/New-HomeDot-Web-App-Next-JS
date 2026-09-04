@@ -35,6 +35,7 @@ import LandingScreenService, {
 } from "@/services/LandingScreenService";
 import ProfessionalsScreenService, {
   toProfessionalRecord,
+  mergeProfessionalDetail,
   type ProfessionalsFilterQuery,
   type ProfessionalsFilterPayload,
 } from "@/services/ProfessionalsScreenService";
@@ -111,6 +112,7 @@ export default function ProfessionalsScreen() {
 
   const [detail, setDetail] = useState<ProfessionalRecord | null>(null);
   const initialSlugHandled = useRef(false);
+  const detailRequestId = useRef(0);
 
   useEffect(() => {
     LandingScreenService.getServiceCategories().then((res) => {
@@ -394,12 +396,29 @@ export default function ProfessionalsScreen() {
   const findBySlug = (slug: string | null) =>
     slug ? (apiProfessionals.find((p) => p.slug === slug) ?? null) : null;
 
+  // Layers the genuine professional-details-auth record (full bio, skills,
+  // rating, experience, rate, contact, fav) over whatever thin/synthesized
+  // record is already showing — called after both openDetail and the
+  // shared-link resolve below, guarded by a request id since a fast second
+  // click (or slug change) shouldn't let a slower, stale fetch clobber it.
+  const loadFullDetail = (slug: string) => {
+    const requestId = ++detailRequestId.current;
+    ProfessionalsScreenService.getProfessionalDetail(slug).then((res) => {
+      if (detailRequestId.current !== requestId) return;
+      const record = res.data?.data?.[0];
+      if (res.success && res.data?.status && record) {
+        setDetail((prev) => (prev ? mergeProfessionalDetail(prev, record) : prev));
+      }
+    });
+  };
+
   // Resolves a shared "?professional=<slug>" link once the first page of
-  // results has loaded — best-effort only: unlike properties, there's no
-  // confirmed guest "get professional by slug" endpoint yet, so this only
-  // finds a match if that professional happens to already be on the loaded
-  // page(s). Guests never auto-open it either — the detail screen is
-  // signed-in only, same as clicking a card (see openDetail below).
+  // results has loaded — best-effort match against the loaded page(s) for
+  // the base record (id/gallery/etc. — the detail-auth response below
+  // doesn't carry those), then the same full-detail fetch openDetail uses
+  // fills in the genuine data. Guests never auto-open it either — the
+  // detail screen is signed-in only, same as clicking a card (see
+  // openDetail below).
   useEffect(() => {
     const resolve = () => {
       if (initialSlugHandled.current || loading || !getAuthToken()) return;
@@ -409,6 +428,7 @@ export default function ProfessionalsScreen() {
       if (match) {
         initialSlugHandled.current = true;
         setDetail(match);
+        loadFullDetail(slug);
       }
     };
     resolve();
@@ -435,6 +455,7 @@ export default function ProfessionalsScreen() {
     setDetail(p);
     window.scrollTo(0, 0);
     setProfessionalQueryParam(p.slug);
+    loadFullDetail(p.slug);
   };
 
   // Real browser-history back rather than clearing the "professional" query

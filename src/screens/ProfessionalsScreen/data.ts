@@ -201,33 +201,6 @@ export const professionals: ProfessionalRecord[] = [
   },
 ];
 
-export const reviews: { by: string; when: string; stars: number; project: string; text: string; avatar: string }[] = [
-  {
-    by: "Meera S.",
-    when: "2 weeks ago",
-    stars: 5,
-    project: "3BHK Interior, Kakkanad",
-    text: "From the first moodboard to handover they were transparent and on schedule. The living room turned out better than the renders.",
-    avatar: unsplash("1534528741775-53994a69daeb", 120),
-  },
-  {
-    by: "Sanjay R.",
-    when: "1 month ago",
-    stars: 5,
-    project: "Full Home Renovation",
-    text: "Weekly updates with photos meant I never had to chase anyone. Budget held within 4%. Genuinely rare.",
-    avatar: unsplash("1507003211169-0a1dd7228f2d", 120),
-  },
-  {
-    by: "Fathima A.",
-    when: "2 months ago",
-    stars: 4,
-    project: "Kitchen Remodel",
-    text: "Beautiful work and great communication. Minor delay on countertop delivery but they kept me informed throughout.",
-    avatar: unsplash("1544005313-94ddf0286df2", 120),
-  },
-];
-
 // Filter buckets sent straight through to the real filter-professional API
 // (confirmed against staging) — this endpoint takes an exact star rating
 // (not "and up"), fixed experience min/max brackets, and a ₹/sqft min/max

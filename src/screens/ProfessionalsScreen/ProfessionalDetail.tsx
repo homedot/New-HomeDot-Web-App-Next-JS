@@ -12,8 +12,19 @@ import {
   type GoogleMapsNamespace,
   type GoogleMapsPlacePrediction,
 } from "@/utils/loadGoogleMapsScript";
-import ProfessionalsScreenService from "@/services/ProfessionalsScreenService";
-import { reviews, type ProfessionalRecord } from "./data";
+import ProfessionalsScreenService, { type ProfessionalReviewRecord } from "@/services/ProfessionalsScreenService";
+import { type ProfessionalRecord } from "./data";
+
+// `createdAt` isn't confirmed present on every review record (see
+// ProfessionalReviewRecord's comment) — returns undefined rather than a
+// bogus "Invalid Date" string when it's missing or unparsable, so callers
+// can just omit the line.
+function formatReviewDate(iso: string | undefined): string | undefined {
+  if (!iso) return undefined;
+  const d = new Date(iso);
+  if (Number.isNaN(d.getTime())) return undefined;
+  return d.toLocaleDateString("en-GB", { day: "2-digit", month: "short", year: "numeric" });
+}
 
 type Tab = "portfolio" | "services" | "reviews";
 const TABS: { key: Tab; label: string }[] = [
@@ -42,6 +53,14 @@ export default function ProfessionalDetail({
   const [sent, setSent] = useState(false);
   const [copied, setCopied] = useState(false);
   const contactCardRef = useRef<HTMLDivElement>(null);
+
+  // Real reviews for this professional — mirrors homedot-mobile-app's
+  // professionalRating call, replacing the previous hardcoded mock list
+  // (every professional showed the same 3 fake reviews and the same fake
+  // 78/16/4/1/1 star breakdown regardless of who was open).
+  const [reviewsData, setReviewsData] = useState<ProfessionalReviewRecord[]>([]);
+  const [reviewsLoading, setReviewsLoading] = useState(false);
+  const reviewsRequestId = useRef(0);
 
   // Sliding pill behind the active tab — measured from the actual button
   // layout (widths vary per label) rather than assumed, so it lines up
@@ -94,7 +113,25 @@ export default function ProfessionalDetail({
     setShowSuggestions(false);
     setLocationError(false);
     setSubmitError(null);
+    setReviewsData([]);
   }
+
+  useEffect(() => {
+    // reviewsData is already cleared for a new professional by the
+    // prevProId reset above — nothing more to do for one without a userId
+    // (the mock fallback professionals) beyond not fetching.
+    if (!pro.userId) return;
+    const requestId = ++reviewsRequestId.current;
+    // eslint-disable-next-line react-hooks/set-state-in-effect -- fetch triggered by a prop change (pro.userId), not derivable during render; mirrors MarketplaceScreen's openDetail fetch-in-progress flag
+    setReviewsLoading(true);
+    ProfessionalsScreenService.getProfessionalReviews(pro.userId).then((res) => {
+      if (reviewsRequestId.current !== requestId) return;
+      setReviewsLoading(false);
+      if (res.success && res.data?.status && res.data.data) {
+        setReviewsData(res.data.data);
+      }
+    });
+  }, [pro.userId]);
 
   useEffect(() => {
     let cancelled = false;
@@ -275,6 +312,17 @@ export default function ProfessionalDetail({
   }
 
   const ratingPct = Math.max(0, Math.min(100, (pro.rating / 5) * 100));
+
+  // Real review count + star breakdown, derived from the fetched list
+  // itself — replaces the previous fake 78/16/4/1/1 split that was
+  // hardcoded the same for every professional.
+  const reviewCount = reviewsData.length;
+  const starCounts = [0, 0, 0, 0, 0];
+  for (const r of reviewsData) {
+    const stars = Math.round(r.rating ?? 0);
+    if (stars >= 1 && stars <= 5) starCounts[stars - 1] += 1;
+  }
+  const starPct = (n: number) => (reviewCount > 0 ? Math.round((starCounts[n - 1] / reviewCount) * 100) : 0);
 
   return (
     <section style={{ padding: `${spacing.xl}px ${spacing.xl}px ${spacing.huge}px` }}>
@@ -480,7 +528,7 @@ export default function ProfessionalDetail({
               <span style={{ display: "inline-flex", alignItems: "center", gap: 5, fontWeight: 700, color: colors.ink }}>
                 <Icon name="star" size={15} filled color={colors.gold} /> {pro.rating.toFixed(1)}
               </span>
-              <span>({pro.reviews} reviews)</span>
+              <span>({reviewCount} review{reviewCount === 1 ? "" : "s"})</span>
               <span style={{ display: "inline-flex", alignItems: "center", gap: 5 }}>
                 <Icon name="location" size={15} /> {pro.location}
               </span>
@@ -724,39 +772,73 @@ export default function ProfessionalDetail({
                     </div>
                   </div>
                   <div style={{ flex: 1, display: "flex", flexDirection: "column", gap: 6 }}>
-                    <span style={{ fontSize: fontSize.xs, color: colors.muted, marginBottom: 2 }}>{pro.reviews} reviews</span>
-                    {[5, 4, 3, 2, 1].map((n) => {
-                      const pct = n === 5 ? 78 : n === 4 ? 16 : n === 3 ? 4 : n === 2 ? 1 : 1;
-                      return (
-                        <div key={n} style={{ display: "flex", alignItems: "center", gap: 10, fontSize: 12.5 }}>
-                          <span style={{ width: 10, color: colors.muted }}>{n}</span>
-                          <span style={{ flex: 1, height: 7, background: "#EFEFF2", borderRadius: radius.full, overflow: "hidden" }}>
-                            <span style={{ display: "block", width: `${pct}%`, height: "100%", background: colors.gold }} />
-                          </span>
-                          <span style={{ width: 32, color: colors.muted, textAlign: "right" }}>{pct}%</span>
-                        </div>
-                      );
-                    })}
+                    <span style={{ fontSize: fontSize.xs, color: colors.muted, marginBottom: 2 }}>
+                      {reviewCount} review{reviewCount === 1 ? "" : "s"}
+                    </span>
+                    {[5, 4, 3, 2, 1].map((n) => (
+                      <div key={n} style={{ display: "flex", alignItems: "center", gap: 10, fontSize: 12.5 }}>
+                        <span style={{ width: 10, color: colors.muted }}>{n}</span>
+                        <span style={{ flex: 1, height: 7, background: "#EFEFF2", borderRadius: radius.full, overflow: "hidden" }}>
+                          <span style={{ display: "block", width: `${starPct(n)}%`, height: "100%", background: colors.gold }} />
+                        </span>
+                        <span style={{ width: 32, color: colors.muted, textAlign: "right" }}>{starPct(n)}%</span>
+                      </div>
+                    ))}
                   </div>
                 </div>
-                {reviews.map((r, i) => (
-                  <div key={i} className="card-hover" style={{ background: colors.card, border: `1px solid ${colors.line}`, borderRadius: radius.md, padding: spacing.lg + 2, boxShadow: shadow.sm }}>
-                    <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center", marginBottom: spacing.sm }}>
-                      <div style={{ display: "flex", alignItems: "center", gap: 10 }}>
-                        {/* eslint-disable-next-line @next/next/no-img-element */}
-                        <img src={r.avatar} alt={r.by} style={{ width: 38, height: 38, borderRadius: "50%", objectFit: "cover" }} />
-                        <div>
-                          <div style={{ fontWeight: 700, fontSize: fontSize.base - 1 }}>{r.by}</div>
-                          <div style={{ fontSize: fontSize.xs, color: colors.muted }}>{r.when}</div>
-                        </div>
-                      </div>
-                      <span style={{ display: "inline-flex", alignItems: "center", gap: 4, fontSize: fontSize.sm, fontWeight: 700 }}>
-                        <Icon name="star" size={13} filled color={colors.gold} /> {r.stars}
-                      </span>
-                    </div>
-                    <p style={{ margin: 0, fontSize: fontSize.base - 1, lineHeight: 1.6, color: colors.ink2 }}>{r.text}</p>
+                {reviewsLoading ? (
+                  <div style={{ display: "flex", flexDirection: "column", gap: spacing.md }}>
+                    {[0, 1].map((i) => (
+                      <div key={i} className="skeleton-shimmer" style={{ height: 100, borderRadius: radius.md }} />
+                    ))}
                   </div>
-                ))}
+                ) : reviewsData.length === 0 ? (
+                  <div style={{ textAlign: "center", padding: "40px 20px", border: `1px dashed ${colors.line}`, borderRadius: radius.md, color: colors.muted, fontSize: fontSize.sm }}>
+                    No reviews yet for {pro.name}.
+                  </div>
+                ) : (
+                  reviewsData.map((r, i) => {
+                    const reviewer = r.userInfo?.[0];
+                    const name = reviewer?.name?.trim() || "HomeDot user";
+                    const date = formatReviewDate(r.createdAt);
+                    return (
+                      <div key={r._id ?? i} className="card-hover" style={{ background: colors.card, border: `1px solid ${colors.line}`, borderRadius: radius.md, padding: spacing.lg + 2, boxShadow: shadow.sm }}>
+                        <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center", marginBottom: spacing.sm }}>
+                          <div style={{ display: "flex", alignItems: "center", gap: 10 }}>
+                            {reviewer?.profileImage ? (
+                              // eslint-disable-next-line @next/next/no-img-element
+                              <img src={reviewer.profileImage} alt={name} style={{ width: 38, height: 38, borderRadius: "50%", objectFit: "cover" }} />
+                            ) : (
+                              <div
+                                style={{
+                                  width: 38,
+                                  height: 38,
+                                  borderRadius: "50%",
+                                  display: "grid",
+                                  placeItems: "center",
+                                  background: `linear-gradient(135deg, ${colors.primary}, ${colors.accent})`,
+                                  color: colors.white,
+                                  fontWeight: 700,
+                                  fontSize: fontSize.sm,
+                                }}
+                              >
+                                {name.charAt(0).toUpperCase()}
+                              </div>
+                            )}
+                            <div>
+                              <div style={{ fontWeight: 700, fontSize: fontSize.base - 1 }}>{name}</div>
+                              {date && <div style={{ fontSize: fontSize.xs, color: colors.muted }}>{date}</div>}
+                            </div>
+                          </div>
+                          <span style={{ display: "inline-flex", alignItems: "center", gap: 4, fontSize: fontSize.sm, fontWeight: 700 }}>
+                            <Icon name="star" size={13} filled color={colors.gold} /> {(r.rating ?? 0).toFixed(1)}
+                          </span>
+                        </div>
+                        <p style={{ margin: 0, fontSize: fontSize.base - 1, lineHeight: 1.6, color: colors.ink2 }}>{r.review || "No review text."}</p>
+                      </div>
+                    );
+                  })
+                )}
               </Reveal>
             )}
           </div>

@@ -148,6 +148,96 @@ export interface FavoriteProfessionalsBody {
   data: FavoriteProfessionalsPage[];
 }
 
+// A skill on the detail-auth response — reverse engineered from
+// homedot-mobile-app's HomeProfessionalDetailedScreen, which reads whichever
+// of these four levels is populated (levelFourName || levelThreeName ||
+// levelTwoName || levelOneName) as the display name; unlike the filter-list
+// endpoint's ProfessionalSkillRecord (levelThreeId/levelThreeName only),
+// the detail-auth response's skills aren't confirmed to be fixed at level
+// three, so all four are read defensively.
+export interface ProfessionalDetailSkill {
+  levelOneName?: string;
+  levelTwoName?: string;
+  levelThreeName?: string;
+  levelFourName?: string;
+}
+
+export interface ProfessionalDetailInfo {
+  userId?: string;
+  professionalSlug: string;
+  phoneNumber?: string;
+  rating?: number;
+  subCategoryName?: string | null;
+  professionalCategory?: string;
+  professionalCategoryName?: string;
+  experience?: number;
+  squareFeetRate?: number;
+  description?: string;
+  skills?: ProfessionalDetailSkill[];
+  verified?: boolean;
+  featured?: boolean;
+}
+
+// The genuine per-professional record from professional-details-auth/:slug
+// — reverse engineered from homedot-mobile-app's HomeProfessionalDetailedScreen
+// (selectedProfessionalDetails?.<field> reads throughout that screen). Far
+// richer than ProfessionalListRecord (full bio, skills, contact info, fav),
+// which is why this exists as a separate follow-up fetch rather than being
+// folded into the list endpoint.
+export interface ProfessionalDetailRecord {
+  name: string;
+  email?: string;
+  phone?: string;
+  location?: string;
+  city?: string;
+  profileImage?: string;
+  backgroundImage?: string;
+  fav?: boolean;
+  professionalInfo: ProfessionalDetailInfo[];
+}
+
+// Single-element array, not the `data: [{ data: [] }]` list-page wrap —
+// mirrors homedot-mobile-app's selectedProfDetaild, which reads
+// `res.data.data[0]` directly.
+export interface ProfessionalDetailBody {
+  status: boolean;
+  message: string;
+  data: ProfessionalDetailRecord[];
+}
+
+// The reviewer's own user record, embedded on each review — confirmed
+// against a live get-ratings/:userId response (only `name`/`profileImage`
+// are used here; the raw record carries much more, e.g. email/mobile/
+// devices, none of which belongs on a public review).
+export interface ProfessionalReviewUserInfo {
+  _id?: string;
+  name?: string;
+  profileImage?: string;
+}
+
+// A single review from get-ratings/:userId — confirmed against a live
+// response. Mobile's HomeProfessionalDetailedScreen reads different (wrong/
+// stale) field names for this same data (review?.reviewText,
+// review?.reviewerName) that don't actually exist on the real payload —
+// the genuine text is `review`, and the reviewer's name/photo live under
+// `userInfo[0]`, not flat top-level fields.
+export interface ProfessionalReviewRecord {
+  _id?: string;
+  rating?: number;
+  review?: string;
+  createdAt?: string;
+  userInfo?: ProfessionalReviewUserInfo[];
+}
+
+// Flat array under `data`, not the `data: [{ data: [] }]` list-page wrap —
+// mirrors homedot-mobile-app's professionalRating, which reads
+// `res.data.data` straight into its reviews state.
+export interface ProfessionalReviewsBody {
+  status: boolean;
+  message: string;
+  data: ProfessionalReviewRecord[];
+}
+
 // Mirrors homedot-mobile-app's inviteaFriend response — a single-element
 // array wrapping the raw link.
 export interface InviteFriendRecord {
@@ -201,6 +291,16 @@ export const ProfessionalsScreenService = {
   // Requires a stored auth token.
   getInviteLink: (): Promise<ApiResponse<InviteFriendBody>> =>
     ApiService.get<InviteFriendBody>(API_ENDPOINTS.PROFESSIONALS.REFER_A_FRIEND),
+
+  // Requires a stored auth token. The genuine per-professional detail record
+  // — see ApiConstants.PROFESSIONALS.DETAIL_AUTH's comment.
+  getProfessionalDetail: (slug: string): Promise<ApiResponse<ProfessionalDetailBody>> =>
+    ApiService.get<ProfessionalDetailBody>(API_ENDPOINTS.PROFESSIONALS.DETAIL_AUTH(slug)),
+
+  // Requires a stored auth token. Keyed on userId, not slug — see
+  // ApiConstants.PROFESSIONALS.GET_RATINGS's comment.
+  getProfessionalReviews: (userId: string): Promise<ApiResponse<ProfessionalReviewsBody>> =>
+    ApiService.get<ProfessionalReviewsBody>(API_ENDPOINTS.PROFESSIONALS.GET_RATINGS(userId)),
 };
 
 // The raw inviteLink the API returns embeds the referral code after a "="
@@ -307,6 +407,57 @@ export function toProfessionalRecord(record: ProfessionalListRecord): Profession
     gallery,
     about: info?.description || `${record.name.trim()} is a HomeDot professional based in ${record.city || "Kerala"}.`,
     services: skillNames.length > 0 ? skillNames : [info?.subCategoryName || "General consultation"],
+  };
+}
+
+// Picks a skill's display name the same way homedot-mobile-app's
+// HomeProfessionalDetailedScreen does — whichever of the four levels is
+// actually populated, deepest first.
+function skillDisplayName(skill: ProfessionalDetailSkill): string | undefined {
+  return skill.levelFourName || skill.levelThreeName || skill.levelTwoName || skill.levelOneName || undefined;
+}
+
+// Layers the genuine professional-details-auth record over an already-
+// rendered ProfessionalRecord (from the list, or the previous merge) —
+// replaces every field this detail response actually carries (bio, skills,
+// rating, experience, rate, location, photo, category, verified) and keeps
+// the base's own `id`/`gallery`/`reviews`/`projects`, which this endpoint
+// doesn't return at all (those come from the separate rating/portfolio
+// calls mobile makes alongside it — out of scope here, same as today).
+export function mergeProfessionalDetail(
+  base: ProfessionalRecord,
+  record: ProfessionalDetailRecord,
+): ProfessionalRecord {
+  const info = record.professionalInfo?.[0];
+  const skillNames = (info?.skills ?? []).map(skillDisplayName).filter((s): s is string => !!s);
+  const rate = info?.squareFeetRate;
+  const categoryName = info?.professionalCategoryName || base.categoryName;
+  const avatar = record.profileImage || base.avatar;
+  const cover = record.backgroundImage || record.profileImage || base.cover;
+
+  return {
+    ...base,
+    userId: info?.userId || base.userId,
+    slug: info?.professionalSlug || base.slug,
+    name: record.name?.trim() || base.name,
+    profession: info?.subCategoryName || info?.professionalCategoryName || base.profession,
+    category: info?.professionalCategory || base.category,
+    categoryName,
+    location: record.location?.trim() || record.city || base.location,
+    avatar,
+    cover,
+    rating: info?.rating ?? base.rating,
+    verified: info?.verified ?? base.verified,
+    experience: info?.experience ?? base.experience,
+    price: rate ? `₹${rate}` : base.price,
+    priceUnit: rate ? "sq.ft" : base.priceUnit,
+    tagline: info?.description ? truncate(info.description, 110) : base.tagline,
+    tags: skillNames.length > 0 ? skillNames.slice(0, 3) : base.tags,
+    about: info?.description || base.about,
+    services: skillNames.length > 0 ? skillNames : base.services,
+    // gallery keeps whatever the list/synthesis produced — this endpoint
+    // only ever returns the one profile/background photo, already folded
+    // into avatar/cover above, not a real project gallery.
   };
 }
 
