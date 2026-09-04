@@ -1,7 +1,7 @@
 "use client";
 
 import { useEffect, useRef, useState, type CSSProperties } from "react";
-import { useRouter } from "next/navigation";
+import { useSearchParams, useRouter, usePathname } from "next/navigation";
 import { colors } from "@/constants/colors";
 import { spacing, radius, fontSize, shadow, maxWidth } from "@/utils/size";
 import Icon, { type IconName } from "@/components/Icon";
@@ -23,7 +23,9 @@ import ProfessionalBlogCardItem from "@/components/ProfessionalBlog/Card";
 import BlogFormModal from "@/components/ProfessionalBlog/FormModal";
 import AllBlogsPanel from "@/components/ProfessionalBlog/AllBlogsPanel";
 import { useProfessionalBlogs, type BlogTab } from "@/components/ProfessionalBlog/useProfessionalBlogs";
-import { toProfessionalBlogCard } from "@/services/ProfessionalBlogService";
+import ProfessionalBlogService, { toProfessionalBlogCard } from "@/services/ProfessionalBlogService";
+import BlogScreenService, { toBlogArticle, type BlogArticle } from "@/services/BlogScreenService";
+import BlogDetail from "@/screens/BlogScreen/BlogDetail";
 import { getAuthToken } from "@/utils/authStorage";
 import ProfileService from "@/services/ProfileService";
 import { useAuthStore } from "@/store/useAuthStore";
@@ -56,7 +58,9 @@ const MODES: { key: ViewMode; label: string; icon: IconName }[] = [
  * ProfessionalWorkfolioScreen: ProDashboardHero + ProDashboardSidebar + a
  * single card. */
 export default function ProfessionalBlogScreen() {
+  const searchParams = useSearchParams();
   const router = useRouter();
+  const pathname = usePathname();
   const loginModalRef = useRef<LoginModalHandle>(null);
 
   const [signedIn, setSignedIn] = useState<boolean | null>(null);
@@ -64,6 +68,64 @@ export default function ProfessionalBlogScreen() {
   const [mode, setMode] = useState<ViewMode>("mine");
 
   const blog = useProfessionalBlogs();
+
+  // "View" on a My Blogs card opens the post inline (same self-contained-
+  // dashboard pattern as AllBlogsPanel/ProfessionalFavoritesScreen) instead
+  // of linking out to the public /blog page — that used to bounce a
+  // professional-mode account straight back to the dashboard, since RoleGate
+  // (localStorage-backed active role, shared across tabs) redirects any
+  // non-/professional route for them.
+  const [detail, setDetail] = useState<BlogArticle | null>(null);
+  const [detailLoading, setDetailLoading] = useState(false);
+  const autoOpenHandled = useRef(false);
+  // Seeds the heart button in the inline detail view below — a professional
+  // can favorite their own post same as any other, so this isn't a no-op.
+  const [savedIds, setSavedIds] = useState<string[]>([]);
+
+  // Own query param ("myBlog", not "post") — AllBlogsPanel reads/writes
+  // "post" for its own inline detail view, and both panels live under this
+  // same route (behind the mine/all mode switch), so sharing one param name
+  // would make switching modes with a detail open re-trigger AllBlogsPanel's
+  // auto-open effect for whatever slug this one had set.
+  const setMyBlogQueryParam = (slug: string | null) => {
+    const params = new URLSearchParams(searchParams.toString());
+    if (slug) params.set("myBlog", slug);
+    else params.delete("myBlog");
+    const qs = params.toString();
+    router.push(qs ? `${pathname}?${qs}` : pathname, { scroll: false });
+  };
+
+  const openDetail = (slug: string) => {
+    autoOpenHandled.current = true;
+    setDetailLoading(true);
+    setDetail(null);
+    setMyBlogQueryParam(slug);
+    BlogScreenService.getBlogDetail(slug).then((res) => {
+      setDetailLoading(false);
+      if (res.success && res.data?.status && res.data.data) {
+        setDetail(toBlogArticle(res.data.data));
+      }
+    });
+  };
+
+  const closeDetail = () => {
+    setDetail(null);
+    setDetailLoading(false);
+    setMyBlogQueryParam(null);
+  };
+
+  // Resolves a shared "?myBlog=<slug>" link once — same best-effort-once
+  // pattern as AllBlogsPanel/BlogScreen's identical effect.
+  useEffect(() => {
+    if (autoOpenHandled.current) return;
+    const slug = searchParams.get("myBlog");
+    if (!slug) return;
+    autoOpenHandled.current = true;
+    // `mode` already defaults to "mine" — no need to set it explicitly.
+    const timer = setTimeout(() => openDetail(slug), 0);
+    return () => clearTimeout(timer);
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, []);
 
   const modeRefs = useRef<Partial<Record<ViewMode, HTMLButtonElement | null>>>({});
   const [modeIndicator, setModeIndicator] = useState({ left: 0, width: 0 });
@@ -93,7 +155,24 @@ export default function ProfessionalBlogScreen() {
   useEffect(() => {
     // eslint-disable-next-line react-hooks/set-state-in-effect -- token lives in localStorage, a client-only system; see LoginModal's identical pattern
     setSignedIn(!!getAuthToken());
+    if (!getAuthToken()) return;
+    ProfessionalBlogService.getFavoriteBlogs().then((res) => {
+      if (res.success && res.data?.status && res.data.data) {
+        setSavedIds(res.data.data.map((b) => b.blogId || b._id || ""));
+      }
+    });
   }, []);
+
+  const toggleDetailSave = () => {
+    if (!detail) return;
+    const wasSaved = savedIds.includes(detail.id);
+    setSavedIds((s) => (wasSaved ? s.filter((x) => x !== detail.id) : [...s, detail.id]));
+    BlogScreenService.toggleFavoriteBlog(detail.id).then((res) => {
+      if (!res.success) {
+        setSavedIds((s) => (wasSaved ? [...s, detail.id] : s.filter((x) => x !== detail.id)));
+      }
+    });
+  };
 
   const logout = async () => {
     setLoggingOut(true);
@@ -254,6 +333,17 @@ export default function ProfessionalBlogScreen() {
                   <div style={{ marginTop: spacing.lg }}>
                     <AllBlogsPanel />
                   </div>
+                ) : detail || detailLoading ? (
+                  <div style={{ marginTop: spacing.lg }}>
+                    <BlogDetail
+                      article={detail}
+                      loading={detailLoading}
+                      saved={!!detail && savedIds.includes(detail.id)}
+                      onSave={toggleDetailSave}
+                      onBack={closeDetail}
+                      onOpenRelated={openDetail}
+                    />
+                  </div>
                 ) : (
                   <>
                     <div style={{ marginTop: spacing.lg, marginBottom: spacing.lg }}>
@@ -326,6 +416,7 @@ export default function ProfessionalBlogScreen() {
                               blog={card}
                               onEdit={() => blog.openEdit(activeRecords[i])}
                               onDelete={() => blog.requestDelete(card.id)}
+                              onView={() => card.slug && openDetail(card.slug)}
                             />
                           ))}
                         </Reveal>

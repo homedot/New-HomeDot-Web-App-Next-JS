@@ -13,10 +13,12 @@ export default function ProfessionalBlogCardItem({
   blog,
   onEdit,
   onDelete,
+  onView,
 }: {
   blog: ProfessionalBlogCard;
   onEdit: () => void;
   onDelete: () => void;
+  onView: () => void;
 }) {
   return (
     <article
@@ -115,10 +117,8 @@ export default function ProfessionalBlogCardItem({
           <Icon name="edit" size={13} color={colors.ink2} /> Edit
         </button>
         {!blog.draft && (
-          <a
-            href={`/blog?post=${encodeURIComponent(blog.slug)}`}
-            target="_blank"
-            rel="noopener noreferrer"
+          <button
+            onClick={onView}
             style={{
               flex: 1,
               display: "inline-flex",
@@ -132,8 +132,8 @@ export default function ProfessionalBlogCardItem({
               borderRight: `1px solid ${colors.line}`,
             }}
           >
-            <Icon name="share" size={13} color={colors.primary} /> View
-          </a>
+            <Icon name="book" size={13} color={colors.primary} /> View
+          </button>
         )}
         <button
           onClick={onDelete}
