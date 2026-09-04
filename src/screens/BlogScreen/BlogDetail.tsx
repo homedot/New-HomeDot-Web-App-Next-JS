@@ -1,6 +1,6 @@
 "use client";
 
-import { useState, type CSSProperties } from "react";
+import { useEffect, useState, type CSSProperties } from "react";
 import { colors } from "@/constants/colors";
 import { spacing, radius, fontSize, shadow, maxWidth } from "@/utils/size";
 import Icon from "@/components/Icon";
@@ -36,6 +36,32 @@ export default function BlogDetail({
   onOpenRelated: (slug: string) => void;
 }) {
   const [copied, setCopied] = useState(false);
+  const [heroIndex, setHeroIndex] = useState(0);
+  const [lightboxIndex, setLightboxIndex] = useState<number | null>(null);
+  const images = article?.images?.length ? article.images : article ? [article.image] : [];
+
+  // A different article can load into the same mounted BlogDetail (openDetail
+  // re-fetches in place rather than remounting) — reset which image is
+  // featured/open so the previous article's selection doesn't linger. Reset
+  // during render (not an effect) — same convention as ProfessionalDetail's
+  // identical prevProId guard.
+  const [prevArticleId, setPrevArticleId] = useState(article?.id);
+  if (article?.id !== prevArticleId) {
+    setPrevArticleId(article?.id);
+    setHeroIndex(0);
+    setLightboxIndex(null);
+  }
+
+  useEffect(() => {
+    if (lightboxIndex === null) return;
+    const onKey = (e: KeyboardEvent) => {
+      if (e.key === "Escape") setLightboxIndex(null);
+      if (e.key === "ArrowRight") setLightboxIndex((i) => (i === null ? i : (i + 1) % images.length));
+      if (e.key === "ArrowLeft") setLightboxIndex((i) => (i === null ? i : (i - 1 + images.length) % images.length));
+    };
+    window.addEventListener("keydown", onKey);
+    return () => window.removeEventListener("keydown", onKey);
+  }, [lightboxIndex, images.length]);
 
   const handleShare = () => {
     if (typeof window === "undefined") return;
@@ -115,23 +141,109 @@ export default function BlogDetail({
         <>
           <div style={wrap}>
             {/* hero image */}
-            <div
-              className="bl-hero"
+            <button
+              type="button"
+              onClick={() => setLightboxIndex(heroIndex)}
+              aria-label="View full-size image"
+              className="bl-hero avatar-photo-btn"
               style={{
                 position: "relative",
+                display: "block",
+                width: "100%",
                 borderRadius: radius.lg,
                 overflow: "hidden",
                 height: "clamp(220px, 32vw, 380px)",
                 boxShadow: shadow.md,
+                cursor: "zoom-in",
               }}
             >
               {/* eslint-disable-next-line @next/next/no-img-element */}
               <img
-                src={article.image}
+                src={images[heroIndex] ?? article.image}
                 alt={article.title}
                 style={{ width: "100%", height: "100%", objectFit: "cover" }}
               />
-            </div>
+              <span
+                className="avatar-photo-hint"
+                style={{
+                  position: "absolute",
+                  inset: 0,
+                  display: "grid",
+                  placeItems: "center",
+                  background: "rgba(10,20,34,0.35)",
+                }}
+              >
+                <span
+                  style={{
+                    width: 46,
+                    height: 46,
+                    borderRadius: "50%",
+                    background: "rgba(255,255,255,0.16)",
+                    display: "grid",
+                    placeItems: "center",
+                  }}
+                >
+                  <Icon name="search" size={19} color={colors.white} />
+                </span>
+              </span>
+              {images.length > 1 && (
+                <span
+                  style={{
+                    position: "absolute",
+                    right: 14,
+                    bottom: 14,
+                    display: "inline-flex",
+                    alignItems: "center",
+                    gap: 5,
+                    background: "rgba(10,20,34,0.55)",
+                    color: colors.white,
+                    fontSize: fontSize.xs,
+                    fontWeight: 600,
+                    padding: "6px 12px",
+                    borderRadius: radius.full,
+                  }}
+                >
+                  <Icon name="grid" size={12} color={colors.white} /> {heroIndex + 1} / {images.length}
+                </span>
+              )}
+            </button>
+
+            {/* thumbnail strip — only when the blog has more than one image */}
+            {images.length > 1 && (
+              <div
+                style={{
+                  display: "flex",
+                  gap: 8,
+                  marginTop: spacing.sm,
+                  overflowX: "auto",
+                  paddingBottom: 2,
+                }}
+              >
+                {images.map((img, i) => (
+                  <button
+                    key={i}
+                    type="button"
+                    onClick={() => {
+                      setHeroIndex(i);
+                      setLightboxIndex(i);
+                    }}
+                    aria-label={`View image ${i + 1}`}
+                    style={{
+                      flexShrink: 0,
+                      width: 76,
+                      height: 56,
+                      borderRadius: radius.md,
+                      overflow: "hidden",
+                      cursor: "zoom-in",
+                      boxShadow: i === heroIndex ? `0 0 0 2px ${colors.primary}` : `0 0 0 1px ${colors.line}`,
+                    }}
+                  >
+                    {/* eslint-disable-next-line @next/next/no-img-element */}
+                    <img src={img} alt="" style={{ width: "100%", height: "100%", objectFit: "cover" }} />
+                  </button>
+                ))}
+              </div>
+            )}
 
             {/* title + meta */}
             <div className="bl-meta" style={{ marginTop: spacing.xl }}>
@@ -452,6 +564,134 @@ export default function BlogDetail({
             </div>
           )}
         </>
+      )}
+
+      {lightboxIndex !== null && article && (
+        <div
+          onClick={() => setLightboxIndex(null)}
+          className="pd-lightbox-overlay"
+          style={{
+            position: "fixed",
+            inset: 0,
+            zIndex: 1000,
+            background: "rgba(10,20,34,0.92)",
+            backdropFilter: "blur(4px)",
+            display: "grid",
+            placeItems: "center",
+            padding: 40,
+            cursor: "zoom-out",
+          }}
+        >
+          <button
+            onClick={() => setLightboxIndex(null)}
+            aria-label="Close"
+            className="pd-lightbox-arrow"
+            style={{
+              position: "absolute",
+              zIndex: 2,
+              top: 24,
+              right: 28,
+              width: 46,
+              height: 46,
+              borderRadius: "50%",
+              background: "rgba(255,255,255,0.14)",
+              color: colors.white,
+              display: "grid",
+              placeItems: "center",
+            }}
+          >
+            <Icon name="close" size={22} color={colors.white} />
+          </button>
+
+          {images.length > 1 && (
+            <span
+              style={{
+                position: "absolute",
+                zIndex: 2,
+                top: 30,
+                left: 28,
+                color: colors.white,
+                fontWeight: 600,
+                fontSize: fontSize.sm,
+                background: "rgba(255,255,255,0.14)",
+                padding: "7px 14px",
+                borderRadius: radius.full,
+              }}
+            >
+              {lightboxIndex + 1} / {images.length}
+            </span>
+          )}
+
+          {images.length > 1 && (
+            <>
+              <button
+                onClick={(e) => {
+                  e.stopPropagation();
+                  setLightboxIndex((i) => (i === null ? i : (i - 1 + images.length) % images.length));
+                }}
+                aria-label="Previous photo"
+                className="pd-lightbox-arrow"
+                style={{
+                  position: "absolute",
+                  zIndex: 2,
+                  left: 18,
+                  top: "50%",
+                  transform: "translateY(-50%)",
+                  width: 50,
+                  height: 50,
+                  borderRadius: "50%",
+                  background: "rgba(255,255,255,0.14)",
+                  color: colors.white,
+                  display: "grid",
+                  placeItems: "center",
+                }}
+              >
+                <Icon name="arrowLeft" size={22} color={colors.white} />
+              </button>
+              <button
+                onClick={(e) => {
+                  e.stopPropagation();
+                  setLightboxIndex((i) => (i === null ? i : (i + 1) % images.length));
+                }}
+                aria-label="Next photo"
+                className="pd-lightbox-arrow"
+                style={{
+                  position: "absolute",
+                  zIndex: 2,
+                  right: 18,
+                  top: "50%",
+                  transform: "translateY(-50%)",
+                  width: 50,
+                  height: 50,
+                  borderRadius: "50%",
+                  background: "rgba(255,255,255,0.14)",
+                  color: colors.white,
+                  display: "grid",
+                  placeItems: "center",
+                }}
+              >
+                <Icon name="arrow" size={22} color={colors.white} />
+              </button>
+            </>
+          )}
+
+          {/* eslint-disable-next-line @next/next/no-img-element */}
+          <img
+            key={lightboxIndex}
+            src={images[lightboxIndex] ?? article.image}
+            alt={article.title}
+            onClick={(e) => e.stopPropagation()}
+            className="pd-lightbox-img"
+            style={{
+              position: "relative",
+              zIndex: 1,
+              maxWidth: "90vw",
+              maxHeight: "78vh",
+              borderRadius: radius.md,
+              boxShadow: shadow.lg,
+            }}
+          />
+        </div>
       )}
     </div>
   );

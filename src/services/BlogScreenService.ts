@@ -145,6 +145,19 @@ export function normalizeBlogImage(raw: RawBlogImage): string {
   return FALLBACK_BLOG_IMAGE;
 }
 
+// Same shape-collapsing as normalizeBlogImage, but keeps every image in a
+// multi-image blogImage array — the detail endpoint (get-single-blog) can
+// return several, and the detail screen's gallery needs all of them, not
+// just the first (normalizeBlogImage's use everywhere else — cards/list
+// thumbnails — only ever needs one).
+export function normalizeBlogImages(raw: RawBlogImage): string[] {
+  const items = Array.isArray(raw) ? raw : raw ? [raw] : [];
+  const urls = items
+    .map((item) => (typeof item === "string" ? item : item?.imageFile))
+    .filter((url): url is string => !!url);
+  return urls.length > 0 ? urls : [FALLBACK_BLOG_IMAGE];
+}
+
 function truncate(text: string, max: number): string {
   const clean = text.trim().replace(/\s+/g, " ");
   return clean.length > max ? `${clean.slice(0, max - 1).trimEnd()}…` : clean;
@@ -202,6 +215,7 @@ export interface BlogArticle {
   title: string;
   description: string;
   image: string;
+  images: string[];
   date: string;
   authorName: string;
   authorAvatar?: string;
@@ -221,6 +235,7 @@ export function toBlogArticle(data: BlogDetailData): BlogArticle {
     title: (blog.title || "").trim(),
     description: blog.description?.trim() || "",
     image: normalizeBlogImage(blog.blogImage),
+    images: normalizeBlogImages(blog.blogImage),
     date: formatBlogDate(blog.publishDate),
     authorName: user?.userId?.name?.trim() || "HomeDot",
     authorAvatar: user?.userId?.profileImage,
