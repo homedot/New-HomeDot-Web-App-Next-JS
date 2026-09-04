@@ -12,6 +12,11 @@ const wrap: CSSProperties = {
   padding: `0 ${spacing.xl}px`,
 };
 
+// Mirrors ProfessionalSupportScreen's identical local constant (not
+// cross-imported — a plain public support address, same convention as that
+// screen's own copy).
+const SUPPORT_EMAIL = "mail@homedotapp.com";
+
 // Every link below points at a real, working route — no placeholder/dead
 // stubs. Split into "For Homeowners" / "My Account" / "For Professionals"
 // rather than the old generic Properties/Professionals/Company/Support
@@ -23,10 +28,18 @@ const wrap: CSSProperties = {
 // MarketplaceScreen's requestedPropertyTypeId / ProfessionalsScreen's
 // requestedCategoryId) — nothing static to link to — so those go to the
 // screen itself rather than a specific tab/filter.
-const COLS: { h: string; icon: IconName; links: { label: string; href: string }[] }[] = [
+//
+// `userOnly` marks the two columns that only make sense — and only stay
+// reachable — for a User-mode account: RoleGate bounces a Professional-mode
+// account straight back to /professional/dashboard from any route outside
+// /professional/* (and a small exempt list), so showing live links into
+// /marketplace, /favorites etc. on the professional-side footer would just
+// be dead clicks. variant="professional" (see below) filters them out.
+const COLS: { h: string; icon: IconName; userOnly?: boolean; links: { label: string; href: string }[] }[] = [
   {
     h: "For Homeowners",
     icon: "house",
+    userOnly: true,
     links: [
       { label: "Browse properties", href: "/marketplace" },
       { label: "Find professionals", href: "/professionals" },
@@ -37,6 +50,7 @@ const COLS: { h: string; icon: IconName; links: { label: string; href: string }[
   {
     h: "My Account",
     icon: "user",
+    userOnly: true,
     links: [
       { label: "My favorites", href: "/favorites" },
       { label: "My enquiries", href: "/enquiries" },
@@ -60,7 +74,7 @@ const COLS: { h: string; icon: IconName; links: { label: string; href: string }[
     h: "Company & Support",
     icon: "shield",
     links: [
-      { label: "Contact us", href: "/#contact" },
+      { label: "Contact us", href: `mailto:${SUPPORT_EMAIL}` },
       { label: "Professional support", href: "/professional/support" },
       { label: "Terms & conditions", href: "/termsandconditions" },
       { label: "Privacy policy", href: "/privacy" },
@@ -83,7 +97,18 @@ const linkStyle: CSSProperties = {
   display: "block",
 };
 
-export default function SiteFooter({ flush = false }: { flush?: boolean } = {}) {
+export default function SiteFooter({
+  flush = false,
+  variant = "user",
+}: {
+  flush?: boolean;
+  // "professional" drops the two User-mode-only columns (see COLS' comment)
+  // and points the brand logo at the dashboard instead of "/" — both would
+  // otherwise be dead links RoleGate immediately bounces back.
+  variant?: "user" | "professional";
+} = {}) {
+  const cols = variant === "professional" ? COLS.filter((c) => !c.userOnly) : COLS;
+  const homeHref = variant === "professional" ? "/professional/dashboard" : "/";
   return (
     <footer
       style={{
@@ -106,7 +131,7 @@ export default function SiteFooter({ flush = false }: { flush?: boolean } = {}) 
         }}
       >
         <div className="col-span-2 md:col-span-3 lg:col-span-1">
-          <Link href="/">
+          <Link href={homeHref}>
             <Brand light />
           </Link>
           <p
@@ -146,7 +171,7 @@ export default function SiteFooter({ flush = false }: { flush?: boolean } = {}) 
             ))}
           </div>
         </div>
-        {COLS.map((c) => (
+        {cols.map((c) => (
           <div key={c.h}>
             <h4
               style={{
@@ -165,11 +190,17 @@ export default function SiteFooter({ flush = false }: { flush?: boolean } = {}) 
               {c.h}
             </h4>
             <div style={{ display: "flex", flexDirection: "column" }}>
-              {c.links.map((l) => (
-                <Link key={l.label} href={l.href} style={linkStyle}>
-                  {l.label}
-                </Link>
-              ))}
+              {c.links.map((l) =>
+                l.href.startsWith("mailto:") ? (
+                  <a key={l.label} href={l.href} style={linkStyle}>
+                    {l.label}
+                  </a>
+                ) : (
+                  <Link key={l.label} href={l.href} style={linkStyle}>
+                    {l.label}
+                  </Link>
+                ),
+              )}
             </div>
           </div>
         ))}

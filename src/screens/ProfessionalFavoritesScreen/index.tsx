@@ -12,6 +12,7 @@ import ProDashboardHero from "@/components/ProDashboardHero";
 import ScrollProgress from "@/components/ScrollProgress";
 import Cursor from "@/components/Cursor";
 import Reveal from "@/components/Reveal";
+import SiteFooter from "@/components/SiteFooter";
 import LoginModal, { type LoginModalHandle } from "@/components/LoginModal";
 import EmptyState from "@/components/EmptyState";
 import SkeletonGrid from "@/components/SkeletonGrid";
@@ -160,8 +161,9 @@ export default function ProfessionalFavoritesScreen() {
       <AmbientBackground />
       <ScrollProgress />
       <Cursor />
-      {/* No SiteNav/SiteFooter — same self-contained professional area as
-          ProfessionalDashboardScreen (see its own comment on this). */}
+      {/* No SiteNav — same self-contained professional area as
+          ProfessionalDashboardScreen (see its own comment on this).
+          SiteFooter is still shown, variant="professional". */}
       <LoginModal ref={loginModalRef} hideTrigger />
 
       {signedIn && (
@@ -279,7 +281,6 @@ export default function ProfessionalFavoritesScreen() {
                       </span>
                     )}
                   </div>
-
                   {loading ? (
                     <SkeletonGrid />
                   ) : blogs.length === 0 ? (
@@ -328,6 +329,8 @@ export default function ProfessionalFavoritesScreen() {
           </div>
         )}
       </section>
+
+      <SiteFooter variant="professional" />
     </div>
   );
 }

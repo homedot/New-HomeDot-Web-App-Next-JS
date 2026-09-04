@@ -12,6 +12,7 @@ import ProDashboardHero from "@/components/ProDashboardHero";
 import ScrollProgress from "@/components/ScrollProgress";
 import Cursor from "@/components/Cursor";
 import Reveal from "@/components/Reveal";
+import SiteFooter from "@/components/SiteFooter";
 import LoginModal, { type LoginModalHandle } from "@/components/LoginModal";
 import EmptyState from "@/components/EmptyState";
 import ProDashboardSidebar from "@/components/ProDashboardSidebar";
@@ -308,6 +309,8 @@ export default function ProfessionalReferEarnScreen() {
           {toast}
         </div>
       )}
+
+      <SiteFooter variant="professional" />
     </div>
   );
 }

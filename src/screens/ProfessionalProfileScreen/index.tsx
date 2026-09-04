@@ -11,6 +11,7 @@ import ProDashboardHero from "@/components/ProDashboardHero";
 import ScrollProgress from "@/components/ScrollProgress";
 import Cursor from "@/components/Cursor";
 import Reveal from "@/components/Reveal";
+import SiteFooter from "@/components/SiteFooter";
 import LoginModal, { type LoginModalHandle } from "@/components/LoginModal";
 import AvatarLightbox from "@/components/AvatarLightbox";
 import EmptyState from "@/components/EmptyState";
@@ -394,8 +395,9 @@ export default function ProfessionalProfileScreen() {
       <AmbientBackground />
       <ScrollProgress />
       <Cursor />
-      {/* No SiteNav/SiteFooter — same self-contained professional area as
-          ProfessionalDashboardScreen (see its own comment on this). */}
+      {/* No SiteNav — same self-contained professional area as
+          ProfessionalDashboardScreen (see its own comment on this).
+          SiteFooter is still shown, variant="professional". */}
       <LoginModal ref={loginModalRef} hideTrigger />
       {avatarExpanded && home?.profileImage && (
         <AvatarLightbox
@@ -1103,6 +1105,8 @@ export default function ProfessionalProfileScreen() {
           {toast.text}
         </div>
       )}
+
+      <SiteFooter variant="professional" />
     </div>
   );
 }

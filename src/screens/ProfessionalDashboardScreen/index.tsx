@@ -13,6 +13,7 @@ import ProDashboardHero from "@/components/ProDashboardHero";
 import ScrollProgress from "@/components/ScrollProgress";
 import Cursor from "@/components/Cursor";
 import Reveal from "@/components/Reveal";
+import SiteFooter from "@/components/SiteFooter";
 import LoginModal, { type LoginModalHandle } from "@/components/LoginModal";
 import AvatarLightbox from "@/components/AvatarLightbox";
 import EmptyState from "@/components/EmptyState";
@@ -334,13 +335,16 @@ export default function ProfessionalDashboardScreen() {
       <DashboardMargins />
       <ScrollProgress />
       <Cursor />
-      {/* No SiteNav/SiteFooter here — Professional mode is a self-contained
-          area (mirrors homedot-mobile-app's separate Professional stack, with
-          its own tab bar rather than the User side's chrome); RoleGate keeps
-          the rest of the site unreachable while this mode is active, so a
-          shared header pointing back into it would just create a bounce.
-          Brand/switch-role/logout live inside the sidebar and profile rail
-          below instead of a top bar — see reference screen-pro-dashboard.jsx. */}
+      {/* No SiteNav here — Professional mode is a self-contained area
+          (mirrors homedot-mobile-app's separate Professional stack, with its
+          own tab bar rather than the User side's chrome); RoleGate keeps the
+          rest of the site unreachable while this mode is active, so a shared
+          header pointing back into it would just create a bounce. Brand/
+          switch-role/logout live inside the sidebar and profile rail below
+          instead of a top bar — see reference screen-pro-dashboard.jsx.
+          SiteFooter is still shown (variant="professional" drops the two
+          User-mode-only columns and points its own logo at the dashboard
+          instead of "/" — see its own comment on why). */}
       <LoginModal ref={loginModalRef} hideTrigger />
       {/* Rendered at the screen root, not inside ProfileRailCard's Reveal —
           the dashboard's "single unified container" Reveal (below) sets both
@@ -708,6 +712,8 @@ export default function ProfessionalDashboardScreen() {
           {enq.toast}
         </div>
       )}
+
+      <SiteFooter variant="professional" />
     </div>
   );
 }
