@@ -437,10 +437,15 @@ export default function ProfessionalsScreen() {
     setProfessionalQueryParam(p.slug);
   };
 
+  // Real browser-history back rather than clearing the "professional" query
+  // param in place — the latter always landed on this screen's own listing,
+  // even when the detail was reached via a `router.push` from somewhere else
+  // entirely (e.g. FavoritesScreen), which should return there instead. See
+  // MarketplaceScreen's closeDetail for the identical reasoning.
   const closeDetail = () => {
     setDetail(null);
     window.scrollTo(0, 0);
-    setProfessionalQueryParam(null);
+    router.back();
   };
 
   // Mirrors MarketplaceScreen's toggleSave: gate behind login, then flip

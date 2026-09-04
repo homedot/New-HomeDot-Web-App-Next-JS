@@ -589,11 +589,18 @@ export default function MarketplaceScreen() {
     });
   };
 
+  // Real browser-history back rather than clearing the "property" query
+  // param in place — the latter always landed on this screen's own listing,
+  // even when the detail was reached via a `router.push` from somewhere
+  // else entirely (e.g. FavoritesScreen), which should return there instead.
+  // router.push'ing the detail's URL (openDetail/the shared-link effect
+  // below) put it on top of wherever the user actually came from, so
+  // history.back() naturally resolves to the right place either way.
   const closeDetail = () => {
     setDetail(null);
     setDetailSimilar(null);
     window.scrollTo(0, 0);
-    setPropertyQueryParam(null);
+    router.back();
   };
 
   // Resolves a shared "?property=<slug>" link on first load — the normal

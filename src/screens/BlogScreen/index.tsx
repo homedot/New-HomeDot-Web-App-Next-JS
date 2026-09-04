@@ -138,11 +138,16 @@ export default function BlogScreen() {
     });
   };
 
+  // Real browser-history back rather than clearing the "post" query param in
+  // place — the latter always landed on this screen's own feed, even when
+  // the detail was reached via a `router.push` from somewhere else entirely
+  // (e.g. FavoritesScreen), which should return there instead. See
+  // MarketplaceScreen's closeDetail for the identical reasoning.
   const closeDetail = () => {
     setDetail(null);
     setDetailLoading(false);
     window.scrollTo(0, 0);
-    setPostQueryParam(null);
+    router.back();
   };
 
   // Resolves a shared "?post=<slug>" link once, for signed-in visitors —

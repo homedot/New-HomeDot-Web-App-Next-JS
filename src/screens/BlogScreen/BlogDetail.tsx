@@ -39,7 +39,9 @@ export default function BlogDetail({
 
   const handleShare = () => {
     if (typeof window === "undefined") return;
-    const url = article ? `${window.location.origin}/blog?post=${article.slug}` : window.location.href;
+    const url = article
+      ? `${window.location.origin}/blog?post=${article.slug}`
+      : window.location.href;
     navigator.clipboard?.writeText(url).then(() => {
       setCopied(true);
       setTimeout(() => setCopied(false), 1800);
@@ -72,13 +74,41 @@ export default function BlogDetail({
 
       {loading || !article ? (
         <div style={wrap}>
-          <div className="skeleton-shimmer" style={{ height: "clamp(220px, 32vw, 380px)", borderRadius: radius.lg }} />
-          <div style={{ marginTop: spacing.xl, display: "flex", flexDirection: "column", gap: spacing.md }}>
-            <div className="skeleton-shimmer" style={{ height: 14, width: "30%", borderRadius: 6 }} />
-            <div className="skeleton-shimmer" style={{ height: 30, width: "85%", borderRadius: 8 }} />
-            <div className="skeleton-shimmer" style={{ height: 16, width: "100%", borderRadius: 6 }} />
-            <div className="skeleton-shimmer" style={{ height: 16, width: "92%", borderRadius: 6 }} />
-            <div className="skeleton-shimmer" style={{ height: 16, width: "78%", borderRadius: 6 }} />
+          <div
+            className="skeleton-shimmer"
+            style={{
+              height: "clamp(220px, 32vw, 380px)",
+              borderRadius: radius.lg,
+            }}
+          />
+          <div
+            style={{
+              marginTop: spacing.xl,
+              display: "flex",
+              flexDirection: "column",
+              gap: spacing.md,
+            }}
+          >
+            <div
+              className="skeleton-shimmer"
+              style={{ height: 14, width: "30%", borderRadius: 6 }}
+            />
+            <div
+              className="skeleton-shimmer"
+              style={{ height: 30, width: "85%", borderRadius: 8 }}
+            />
+            <div
+              className="skeleton-shimmer"
+              style={{ height: 16, width: "100%", borderRadius: 6 }}
+            />
+            <div
+              className="skeleton-shimmer"
+              style={{ height: 16, width: "92%", borderRadius: 6 }}
+            />
+            <div
+              className="skeleton-shimmer"
+              style={{ height: 16, width: "78%", borderRadius: 6 }}
+            />
           </div>
         </div>
       ) : (
@@ -96,7 +126,11 @@ export default function BlogDetail({
               }}
             >
               {/* eslint-disable-next-line @next/next/no-img-element */}
-              <img src={article.image} alt={article.title} style={{ width: "100%", height: "100%", objectFit: "cover" }} />
+              <img
+                src={article.image}
+                alt={article.title}
+                style={{ width: "100%", height: "100%", objectFit: "cover" }}
+              />
             </div>
 
             {/* title + meta */}
@@ -151,7 +185,14 @@ export default function BlogDetail({
                     <img
                       src={article.authorAvatar}
                       alt=""
-                      style={{ width: 40, height: 40, borderRadius: "50%", objectFit: "cover", border: `2px solid ${colors.white}`, boxShadow: `0 0 0 1px ${colors.line}` }}
+                      style={{
+                        width: 40,
+                        height: 40,
+                        borderRadius: "50%",
+                        objectFit: "cover",
+                        border: `2px solid ${colors.white}`,
+                        boxShadow: `0 0 0 1px ${colors.line}`,
+                      }}
                     />
                   ) : (
                     <div
@@ -170,15 +211,30 @@ export default function BlogDetail({
                     </div>
                   )}
                   <div>
-                    <p style={{ fontSize: fontSize.sm + 0.5, fontWeight: 700 }}>{article.authorName}</p>
-                    <p style={{ fontSize: fontSize.xs, color: colors.muted, marginTop: 1 }}>
+                    <p style={{ fontSize: fontSize.sm + 0.5, fontWeight: 700 }}>
+                      {article.authorName}
+                    </p>
+                    <p
+                      style={{
+                        fontSize: fontSize.xs,
+                        color: colors.muted,
+                        marginTop: 1,
+                      }}
+                    >
                       {article.authorRole ? `${article.authorRole} · ` : ""}
                       {article.date}
                     </p>
                   </div>
                 </div>
 
-                <div style={{ display: "flex", alignItems: "center", gap: 8, position: "relative" }}>
+                <div
+                  style={{
+                    display: "flex",
+                    alignItems: "center",
+                    gap: 8,
+                    position: "relative",
+                  }}
+                >
                   <button
                     key={saved ? "saved" : "unsaved"}
                     onClick={onSave}
@@ -274,7 +330,14 @@ export default function BlogDetail({
                     <img
                       src={article.authorAvatar}
                       alt=""
-                      style={{ width: 56, height: 56, borderRadius: "50%", objectFit: "cover", border: `2px solid ${colors.white}`, boxShadow: `0 0 0 1px ${colors.line}` }}
+                      style={{
+                        width: 56,
+                        height: 56,
+                        borderRadius: "50%",
+                        objectFit: "cover",
+                        border: `2px solid ${colors.white}`,
+                        boxShadow: `0 0 0 1px ${colors.line}`,
+                      }}
                     />
                   ) : (
                     <div
@@ -295,15 +358,49 @@ export default function BlogDetail({
                   )}
                 </div>
                 <div>
-                  <p style={{ fontSize: fontSize.xs, fontWeight: 700, letterSpacing: 0.6, color: colors.muted, textTransform: "uppercase" }}>
+                  <p
+                    style={{
+                      fontSize: fontSize.xs,
+                      fontWeight: 700,
+                      letterSpacing: 0.6,
+                      color: colors.muted,
+                      textTransform: "uppercase",
+                    }}
+                  >
                     About the author
                   </p>
-                  <h4 style={{ fontSize: fontSize.lg - 1, fontWeight: 700, marginTop: 4 }}>{article.authorName}</h4>
+                  <h4
+                    style={{
+                      fontSize: fontSize.lg - 1,
+                      fontWeight: 700,
+                      marginTop: 4,
+                    }}
+                  >
+                    {article.authorName}
+                  </h4>
                   {article.authorRole && (
-                    <p style={{ fontSize: fontSize.sm, color: colors.primary, fontWeight: 600, marginTop: 2 }}>{article.authorRole}</p>
+                    <p
+                      style={{
+                        fontSize: fontSize.sm,
+                        color: colors.primary,
+                        fontWeight: 600,
+                        marginTop: 2,
+                      }}
+                    >
+                      {article.authorRole}
+                    </p>
                   )}
                   {article.authorBio && (
-                    <p style={{ fontSize: fontSize.sm + 0.5, color: colors.muted, lineHeight: 1.6, marginTop: 8 }}>{article.authorBio}</p>
+                    <p
+                      style={{
+                        fontSize: fontSize.sm + 0.5,
+                        color: colors.muted,
+                        lineHeight: 1.6,
+                        marginTop: 8,
+                      }}
+                    >
+                      {article.authorBio}
+                    </p>
                   )}
                 </div>
               </Reveal>
@@ -313,13 +410,43 @@ export default function BlogDetail({
           {/* related articles */}
           {article.related.length > 0 && (
             <div style={{ ...wideWrap, marginTop: spacing.huge }}>
-              <div style={{ display: "flex", alignItems: "center", gap: 10, marginBottom: spacing.lg }}>
-                <span style={{ width: 4, height: 22, borderRadius: 2, background: colors.primary }} />
-                <h3 style={{ fontFamily: "var(--font-display)", fontSize: fontSize.xxl - 4, fontWeight: 600 }}>Related Articles</h3>
+              <div
+                style={{
+                  display: "flex",
+                  alignItems: "center",
+                  gap: 10,
+                  marginBottom: spacing.lg,
+                }}
+              >
+                <span
+                  style={{
+                    width: 4,
+                    height: 22,
+                    borderRadius: 2,
+                    background: colors.primary,
+                  }}
+                />
+                <h3
+                  style={{
+                    fontFamily: "var(--font-display)",
+                    fontSize: fontSize.xxl - 4,
+                    fontWeight: 600,
+                  }}
+                >
+                  Related Articles
+                </h3>
               </div>
-              <Reveal stagger className="grid grid-cols-1 sm:grid-cols-2 xl:grid-cols-3" style={{ gap: spacing.xl }}>
+              <Reveal
+                stagger
+                className="grid grid-cols-1 sm:grid-cols-2 xl:grid-cols-3"
+                style={{ gap: spacing.xl }}
+              >
                 {article.related.map((r) => (
-                  <BlogCard key={r.slug} post={r} onOpen={() => onOpenRelated(r.slug)} />
+                  <BlogCard
+                    key={r.slug}
+                    post={r}
+                    onOpen={() => onOpenRelated(r.slug)}
+                  />
                 ))}
               </Reveal>
             </div>
