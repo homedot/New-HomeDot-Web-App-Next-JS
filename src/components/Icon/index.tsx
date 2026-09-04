@@ -50,6 +50,7 @@ type IconName =
   | "instagram"
   | "linkedin"
   | "whatsapp"
+  | "youtube"
   | "alertTriangle";
 
 const PATHS: Record<IconName, React.ReactNode> = {
@@ -314,6 +315,12 @@ const PATHS: Record<IconName, React.ReactNode> = {
     <>
       <path d="M12 3.5a8.5 8.5 0 0 0-7.3 12.8L3.5 20.5l4.3-1.1A8.5 8.5 0 1 0 12 3.5Z" />
       <path d="M8.7 8.9c.2-.4.4-.4.6-.4h.5c.2 0 .4 0 .5.3.2.4.6 1.3.7 1.4.1.2.1.3 0 .5-.1.2-.2.3-.3.4-.1.2-.3.3-.1.6.2.4.9 1.3 1.9 1.8.3.2.5.1.7-.1.2-.2.4-.5.6-.7.2-.2.3-.2.5-.1.2.1 1.3.6 1.5.7.2.1.3.1.4.2.1.2.1.9-.2 1.3-.3.5-1.2.9-1.7.9-.4 0-.9 0-2.9-1.2-2-1.1-3.1-3.3-3.2-3.5-.1-.1-.9-1.2-.9-2.4 0-1.1.6-1.7.8-1.9Z" />
+    </>
+  ),
+  youtube: (
+    <>
+      <rect x="3" y="6" width="18" height="12" rx="4" />
+      <path d="M10.3 9.6v4.8l4.4-2.4-4.4-2.4Z" fill="currentColor" stroke="none" />
     </>
   ),
   alertTriangle: (

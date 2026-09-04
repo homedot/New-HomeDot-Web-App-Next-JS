@@ -2377,6 +2377,7 @@ function ContactSection() {
 
   return (
     <section
+      id="contact"
       style={{ ...wrap, padding: `0 ${spacing.xl}px ${spacing.huge}px` }}
     >
       <ScrollScrub className="scrub-rise">
