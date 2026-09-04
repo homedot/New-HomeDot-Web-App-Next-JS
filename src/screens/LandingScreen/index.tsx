@@ -29,7 +29,11 @@ import Parallax from "@/components/Parallax";
 import SiteNav from "@/components/SiteNav";
 import SiteFooter from "@/components/SiteFooter";
 import LoginModal, { type LoginModalHandle } from "@/components/LoginModal";
-import { getAuthToken } from "@/utils/authStorage";
+import { getAuthToken, setActiveRole } from "@/utils/authStorage";
+import { useProfileStore } from "@/store/useProfileStore";
+import { useAuthStore } from "@/store/useAuthStore";
+import { useRoleSwitchStore } from "@/store/useRoleSwitchStore";
+import SwitchProfessionalService from "@/services/SwitchProfessionalService";
 import LandingScreenService, {
   toProCardProfessional,
   pickTestimonials,
@@ -136,7 +140,7 @@ export default function LandingScreen() {
       <TopProfessionals loginModalRef={loginModalRef} />
       <HowItWorks />
       <StoryShowcase />
-      <ProCta />
+      <ProCta loginModalRef={loginModalRef} />
       <LatestInsights loginModalRef={loginModalRef} />
       <Testimonials />
       <ContactSection />
@@ -1850,7 +1854,62 @@ function StoryShowcase() {
   );
 }
 
-function ProCta() {
+function ProCta({
+  loginModalRef,
+}: {
+  loginModalRef: RefObject<LoginModalHandle | null>;
+}) {
+  const router = useRouter();
+  const profile = useProfileStore((s) => s.profile);
+  // Deferred to an effect (not read directly during render) so the button
+  // doesn't render one label during SSR and flip to another right after
+  // hydration — same convention as every other localStorage-derived read in
+  // this codebase (see LoginModal's identical comment).
+  const [signedIn, setSignedIn] = useState(false);
+  const [switching, setSwitching] = useState(false);
+  const [error, setError] = useState<string | null>(null);
+
+  useEffect(() => {
+    const token = !!getAuthToken();
+    // eslint-disable-next-line react-hooks/set-state-in-effect -- token lives in localStorage, a client-only system; see LoginModal's identical pattern
+    setSignedIn(token);
+    if (token) useProfileStore.getState().fetch();
+  }, []);
+
+  // Mirrors ProfileScreen's hasProfessionalRole/switchRole exactly — an
+  // account with a professional profile already set up switches straight
+  // into it; one that doesn't goes to Profile to start that flow (its full
+  // form — trade, category, skills — belongs there, not duplicated here).
+  const hasProfessionalRole = (profile?.userType?.length ?? 0) >= 2;
+
+  const handleClick = async () => {
+    if (!signedIn) {
+      loginModalRef.current?.open();
+      return;
+    }
+    if (!hasProfessionalRole) {
+      router.push("/profile");
+      return;
+    }
+    setSwitching(true);
+    setError(null);
+    await useRoleSwitchStore.getState().runSwitch("professional", async () => {
+      const res = await SwitchProfessionalService.switchRole();
+      if (!res.success || res.data?.status === false) {
+        setError(res.data?.message || res.message || "Couldn't switch modes. Please try again.");
+        return false;
+      }
+      const pair = res.data?.data?.[0];
+      if (pair) useAuthStore.getState().setTokens({ token: pair.token, refreshToken: pair.reToken });
+      setActiveRole("professional");
+      router.push("/professional/dashboard");
+      return true;
+    });
+    setSwitching(false);
+  };
+
+  const label = switching ? "Switching…" : signedIn && hasProfessionalRole ? "Switch to Professional" : "Become a Professional";
+
   return (
     <section
       style={{ ...wrap, padding: `0 ${spacing.xl}px ${spacing.huge}px` }}
@@ -1890,9 +1949,12 @@ function ProCta() {
             List your services, showcase your portfolio and reach thousands of
             homeowners across Kerala.
           </p>
+          {error && (
+            <p style={{ color: "#DC2626", fontSize: fontSize.xs, marginTop: spacing.sm }}>{error}</p>
+          )}
         </div>
-        <Button variant="dark" size="lg" icon={<Icon name="arrow" size={18} />}>
-          List your business — free
+        <Button variant="dark" size="lg" icon={<Icon name="arrow" size={18} />} onClick={handleClick} disabled={switching}>
+          {label}
         </Button>
       </ScrollScrub>
     </section>
