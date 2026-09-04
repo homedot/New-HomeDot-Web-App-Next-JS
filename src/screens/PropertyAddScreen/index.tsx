@@ -127,6 +127,9 @@ export default function PropertyAddScreen() {
                 purpose={purpose}
                 onBack={() => setStep("purpose")}
                 onSelect={(t) => {
+                  if (propertyType && propertyType._id !== t._id) {
+                    setForm(initialFormState);
+                  }
                   setPropertyType(t);
                   setStep("details");
                 }}
