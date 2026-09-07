@@ -239,7 +239,7 @@ export default function ProjectDetail({ slug, onBack }: { slug: string; onBack: 
                 Project Completed?
               </Button>
             )}
-            <Button variant="outline" size="lg" full onClick={() => router.push("/profile")}>
+            <Button variant="outline" size="lg" full onClick={() => router.push("/profile?tab=help")}>
               Facing any issue about this project?
             </Button>
           </div>

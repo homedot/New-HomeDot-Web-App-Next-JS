@@ -1,7 +1,7 @@
 "use client";
 
 import { useEffect, useRef, useState, type CSSProperties } from "react";
-import { useRouter } from "next/navigation";
+import { useRouter, useSearchParams } from "next/navigation";
 import { colors } from "@/constants/colors";
 import { spacing, radius, fontSize, shadow, maxWidth } from "@/utils/size";
 import Icon, { type IconName } from "@/components/Icon";
@@ -56,6 +56,7 @@ const fieldStyle: CSSProperties = {
 
 export default function ProfileScreen() {
   const router = useRouter();
+  const searchParams = useSearchParams();
   const loginModalRef = useRef<LoginModalHandle>(null);
   const avatarInputRef = useRef<HTMLInputElement>(null);
 
@@ -63,7 +64,12 @@ export default function ProfileScreen() {
   const profile = useProfileStore((s) => s.profile);
   const loaded = useProfileStore((s) => s.loaded);
 
-  const [tab, setTab] = useState<MainTab>("profile");
+  // Opens straight to a given tab via "?tab=help" (e.g. ProjectDetail's
+  // "Facing any issue?" button) instead of always landing on "profile".
+  const [tab, setTab] = useState<MainTab>(() => {
+    const t = searchParams.get("tab");
+    return t === "help" || t === "invite" ? t : "profile";
+  });
   const [uploadingAvatar, setUploadingAvatar] = useState(false);
   const [avatarExpanded, setAvatarExpanded] = useState(false);
   const [removingAvatar, setRemovingAvatar] = useState(false);
