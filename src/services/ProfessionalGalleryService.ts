@@ -31,13 +31,14 @@ export interface ProfessionalGalleryActionBody {
   message: string;
 }
 
-// UI-facing, flattened shape — one entry per photo, not per project. Mirrors
-// ProfessionalGalleryScreen.js:387-397 exactly: photos from `projectList`
+// UI-facing, flattened shape — one entry per photo, not per project. Based
+// on ProfessionalGalleryScreen.js:387-397: photos from `projectList`
 // (active) are tagged `historyType: false`, photos from `projectHistoryList`
 // (past) are tagged `historyType: true`, and the final list is
-// `past.concat(active)` — history first, then active. `historyType` also
-// decides the delete request's `type` field ("outside" for true, "inside"
-// for false — see ProfessionalGalleryService.deleteImage).
+// `past.concat(active)` — history first, then active (each bucket newest-
+// project-first — see flattenGallery). `historyType` also decides the
+// delete request's `type` field ("outside" for true, "inside" for false —
+// see ProfessionalGalleryService.deleteImage).
 export interface GalleryImage extends GalleryImageRecord {
   historyType: boolean;
   projectName?: string;
@@ -45,12 +46,19 @@ export interface GalleryImage extends GalleryImageRecord {
 }
 
 export function flattenGallery(record: GalleryListRecord): GalleryImage[] {
-  const active = (record.projectList ?? []).flatMap((p) =>
-    (p.projectImageList ?? []).map((img) => ({ ...img, historyType: false, projectName: p.projectName, location: p.location })),
-  );
-  const past = (record.projectHistoryList ?? []).flatMap((p) =>
-    (p.projectImageList ?? []).map((img) => ({ ...img, historyType: true, projectName: p.projectName, location: p.location })),
-  );
+  // Both buckets come back oldest-first (Mongo's natural insertion order) —
+  // reversed here so the project a professional just added (always appended
+  // to the end of its bucket) shows up first instead of last.
+  const active = [...(record.projectList ?? [])]
+    .reverse()
+    .flatMap((p) =>
+      (p.projectImageList ?? []).map((img) => ({ ...img, historyType: false, projectName: p.projectName, location: p.location })),
+    );
+  const past = [...(record.projectHistoryList ?? [])]
+    .reverse()
+    .flatMap((p) =>
+      (p.projectImageList ?? []).map((img) => ({ ...img, historyType: true, projectName: p.projectName, location: p.location })),
+    );
   return [...past, ...active];
 }
 

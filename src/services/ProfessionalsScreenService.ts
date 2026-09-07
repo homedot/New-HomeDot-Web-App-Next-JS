@@ -393,7 +393,11 @@ export function toProfessionalRecord(record: ProfessionalListRecord): Profession
     categoryName,
     location: record.location?.trim() || record.city || "Kerala, India",
     avatar: record.profileImage || undefined,
-    cover: record.backgroundImage || record.profileImage || pickFallbackCover(categoryName, record.inviteId),
+    // profileImage is framed for a small square/circular avatar, not this
+    // wide hero banner — stretching it there via object-fit: cover produces
+    // an unrecognizable, "broken"-looking crop, so an absent backgroundImage
+    // falls straight to the curated (wide-friendly) pool instead.
+    cover: record.backgroundImage || pickFallbackCover(categoryName, record.inviteId),
     rating: info?.rating ?? 0,
     reviews: 0,
     verified: info?.verified ?? false,
@@ -433,7 +437,9 @@ export function mergeProfessionalDetail(
   const rate = info?.squareFeetRate;
   const categoryName = info?.professionalCategoryName || base.categoryName;
   const avatar = record.profileImage || base.avatar;
-  const cover = record.backgroundImage || record.profileImage || base.cover;
+  // See toProfessionalRecord's cover comment — profileImage isn't a fallback
+  // for this wide banner, it just stretches into an unrecognizable crop.
+  const cover = record.backgroundImage || base.cover;
 
   return {
     ...base,
@@ -498,7 +504,8 @@ export function toProfessionalRecordFromDetail(
     categoryName,
     location: record.location?.trim() || record.city || "Kerala, India",
     avatar: record.profileImage || undefined,
-    cover: record.backgroundImage || record.profileImage || pickFallbackCover(categoryName, slug),
+    // See toProfessionalRecord's cover comment.
+    cover: record.backgroundImage || pickFallbackCover(categoryName, slug),
     rating: info?.rating ?? 0,
     reviews: 0,
     verified: info?.verified ?? false,

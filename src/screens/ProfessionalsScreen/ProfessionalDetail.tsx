@@ -468,20 +468,40 @@ export default function ProfessionalDetail({
                   zIndex: -1,
                 }}
               />
-              {/* eslint-disable-next-line @next/next/no-img-element */}
-              <img
-                src={pro.avatar}
-                alt={pro.name}
-                style={{
-                  width: "100%",
-                  height: "100%",
-                  borderRadius: "50%",
-                  objectFit: "cover",
-                  border: `5px solid ${colors.card}`,
-                  boxShadow: shadow.lg,
-                  display: "block",
-                }}
-              />
+              {pro.avatar ? (
+                // eslint-disable-next-line @next/next/no-img-element
+                <img
+                  src={pro.avatar}
+                  alt={pro.name}
+                  style={{
+                    width: "100%",
+                    height: "100%",
+                    borderRadius: "50%",
+                    objectFit: "cover",
+                    border: `5px solid ${colors.card}`,
+                    boxShadow: shadow.lg,
+                    display: "block",
+                  }}
+                />
+              ) : (
+                <div
+                  style={{
+                    width: "100%",
+                    height: "100%",
+                    borderRadius: "50%",
+                    display: "grid",
+                    placeItems: "center",
+                    background: `linear-gradient(135deg, ${colors.primary}, ${colors.accent})`,
+                    color: colors.white,
+                    fontWeight: 700,
+                    fontSize: "clamp(28px, 4vw, 40px)",
+                    border: `5px solid ${colors.card}`,
+                    boxShadow: shadow.lg,
+                  }}
+                >
+                  {pro.name.trim().charAt(0).toUpperCase() || "?"}
+                </div>
+              )}
             </div>
           </div>
         </Reveal>
