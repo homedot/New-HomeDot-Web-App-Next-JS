@@ -195,8 +195,12 @@ export const inputWrap: CSSProperties = {
 
 // All numeric fields in this form (price, bathrooms, balcony, areas, etc.)
 // are whole-number counts server-side (buildPropertyPayload parses them with
-// parseInt) — but a bare <input type="number"> still lets the browser accept
-// "-5", ".4" or "00.5" as valid intermediate values. Stripping everything but
+// parseInt). They use type="text" (inputMode="numeric" for the mobile
+// keypad) rather than type="number" — a native number input lets the
+// browser's own value-sanitization silently swallow "e"/"+"/"-"/"." as valid
+// intermediate characters (they're part of exponential/decimal syntax) with
+// no reliable onChange to strip them back out, which is exactly the
+// behavior a plain text input doesn't have. Stripping everything but
 // digits on every keystroke, plus collapsing leading zeros, keeps what's on
 // screen always a clean non-negative integer instead of relying on
 // after-the-fact validation.

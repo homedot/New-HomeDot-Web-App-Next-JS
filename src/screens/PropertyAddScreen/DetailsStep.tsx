@@ -42,10 +42,9 @@ function NumberField({
   return (
     <div style={inputWrap}>
       <input
-        type="number"
-        min={0}
-        max={max}
+        type="text"
         inputMode="numeric"
+        pattern="[0-9]*"
         placeholder={placeholder}
         value={value}
         onChange={(e) => {
@@ -238,9 +237,9 @@ export default function DetailsStep({
           <div style={inputWrap}>
             <span style={{ color: colors.muted, fontWeight: 600 }}>₹</span>
             <input
-              type="number"
-              min={0}
+              type="text"
               inputMode="numeric"
+              pattern="[0-9]*"
               placeholder={pricePlaceholder}
               value={form.price}
               onChange={(e) => setPrice(e.target.value)}
