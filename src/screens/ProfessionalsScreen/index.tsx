@@ -120,9 +120,20 @@ export default function ProfessionalsScreen() {
   // while that link resolves, so a landing-page card click doesn't flash the
   // list screen before landing on the detail it was actually headed for.
   // Cleared by resolve() once it knows the outcome, match or not.
-  const [pendingSlug, setPendingSlug] = useState<string | null>(() =>
-    getAuthToken() ? searchParams.get("professional") : null,
-  );
+  // Starts null on both server and client so the initial render always
+  // matches the SSR HTML — getAuthToken() reads localStorage, which is
+  // unavailable on the server and would otherwise mismatch the client's
+  // first render for signed-in users (hydration error). The mount effect
+  // below fills it in once we're safely client-side.
+  const [pendingSlug, setPendingSlug] = useState<string | null>(null);
+
+  useEffect(() => {
+    // Syncing from localStorage, which only exists client-side — can't be
+    // read during render without reintroducing the hydration mismatch above.
+    // eslint-disable-next-line react-hooks/set-state-in-effect
+    if (getAuthToken()) setPendingSlug(searchParams.get("professional"));
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, []);
 
   useEffect(() => {
     LandingScreenService.getServiceCategories().then((res) => {
