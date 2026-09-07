@@ -1294,16 +1294,14 @@ function TopProfessionals({
 
   // The professional detail screen is signed-in only (same convention as
   // ProfessionalsScreen.openDetail) — guests get the login popup instead of
-  // navigating. Featured-professional records from /data/get-featured-professionals
-  // don't include a slug (unlike the full filter-professional list), so even
-  // a signed-in click can't deep-link to that specific person yet; it opens
-  // the professionals list instead.
-  const openProfessional = () => {
+  // navigating. Deep-links straight to that professional via the same
+  // "?professional=<slug>" convention ProfessionalsScreen/FavoritesScreen use.
+  const openProfessional = (p: Professional) => {
     if (!getAuthToken()) {
       loginModalRef.current?.open();
       return;
     }
-    router.push("/professionals");
+    router.push(`/professionals?professional=${p.slug || p.id}`);
   };
 
   return (
@@ -1366,7 +1364,7 @@ function TopProfessionals({
           style={{ gap: spacing.xl }}
         >
           {pros.map((p) => (
-            <ProCard key={p.id} pro={p} onOpen={openProfessional} />
+            <ProCard key={p.id} pro={p} onOpen={() => openProfessional(p)} />
           ))}
         </Reveal>
       </div>

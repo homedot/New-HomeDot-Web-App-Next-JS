@@ -78,6 +78,7 @@ export interface ReviewsBody {
 }
 
 export interface FeaturedProfessionalInfo {
+  professionalSlug?: string;
   professionalCategoryName: string;
   subCategoryName: string | null;
   professionalType: string;
@@ -201,6 +202,7 @@ export function toProCardProfessional(record: FeaturedProfessionalRecord): Profe
   const rate = info?.squareFeetRate;
   return {
     id: record.inviteId,
+    slug: info?.professionalSlug || record.inviteId,
     name: record.name.trim(),
     profession: info?.subCategoryName || info?.professionalCategoryName || "Professional",
     location: record.location?.trim() || record.city || "Kerala, India",

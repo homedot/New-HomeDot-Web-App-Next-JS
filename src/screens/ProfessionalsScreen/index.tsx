@@ -35,6 +35,7 @@ import LandingScreenService, {
 } from "@/services/LandingScreenService";
 import ProfessionalsScreenService, {
   toProfessionalRecord,
+  toProfessionalRecordFromDetail,
   mergeProfessionalDetail,
   type ProfessionalsFilterQuery,
   type ProfessionalsFilterPayload,
@@ -113,6 +114,15 @@ export default function ProfessionalsScreen() {
   const [detail, setDetail] = useState<ProfessionalRecord | null>(null);
   const initialSlugHandled = useRef(false);
   const detailRequestId = useRef(0);
+  // Set once, from whatever "?professional=<slug>" is in the URL on first
+  // render (signed-in only — guests never auto-open a detail, see resolve()
+  // below) — shows a loading placeholder instead of the search/filter UI
+  // while that link resolves, so a landing-page card click doesn't flash the
+  // list screen before landing on the detail it was actually headed for.
+  // Cleared by resolve() once it knows the outcome, match or not.
+  const [pendingSlug, setPendingSlug] = useState<string | null>(() =>
+    getAuthToken() ? searchParams.get("professional") : null,
+  );
 
   useEffect(() => {
     LandingScreenService.getServiceCategories().then((res) => {
@@ -416,20 +426,36 @@ export default function ProfessionalsScreen() {
   // results has loaded — best-effort match against the loaded page(s) for
   // the base record (id/gallery/etc. — the detail-auth response below
   // doesn't carry those), then the same full-detail fetch openDetail uses
-  // fills in the genuine data. Guests never auto-open it either — the
-  // detail screen is signed-in only, same as clicking a card (see
-  // openDetail below).
+  // fills in the genuine data. If the slug isn't in whatever page of the
+  // (location-filtered) list happens to be loaded — e.g. a link from the
+  // landing page's unfiltered "Top rated near you" cards — falls back to
+  // building a standalone record straight from the detail-auth response via
+  // toProfessionalRecordFromDetail instead of silently giving up. Guests
+  // never auto-open it either — the detail screen is signed-in only, same
+  // as clicking a card (see openDetail below).
   useEffect(() => {
     const resolve = () => {
       if (initialSlugHandled.current || loading || !getAuthToken()) return;
       const slug = searchParams.get("professional");
       if (!slug) return;
+      initialSlugHandled.current = true;
       const match = findBySlug(slug);
       if (match) {
-        initialSlugHandled.current = true;
         setDetail(match);
         loadFullDetail(slug);
+        setPendingSlug(null);
+        return;
       }
+      const requestId = ++detailRequestId.current;
+      ProfessionalsScreenService.getProfessionalDetail(slug).then((res) => {
+        if (detailRequestId.current !== requestId) return;
+        const record = res.data?.data?.[0];
+        if (res.success && res.data?.status && record) {
+          setDetail(toProfessionalRecordFromDetail(slug, record));
+          window.scrollTo(0, 0);
+        }
+        setPendingSlug(null);
+      });
     };
     resolve();
     // eslint-disable-next-line react-hooks/exhaustive-deps
@@ -569,6 +595,18 @@ export default function ProfessionalsScreen() {
           onBack={closeDetail}
           onOpen={openDetail}
         />
+      ) : pendingSlug ? (
+        <div
+          style={{
+            minHeight: "70vh",
+            display: "grid",
+            placeItems: "center",
+            color: colors.muted,
+            fontSize: fontSize.md,
+          }}
+        >
+          Loading profile…
+        </div>
       ) : (
         <>
           {/* compact hero + search */}

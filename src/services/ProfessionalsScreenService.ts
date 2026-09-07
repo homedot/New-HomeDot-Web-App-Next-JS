@@ -461,6 +461,60 @@ export function mergeProfessionalDetail(
   };
 }
 
+// Builds a standalone ProfessionalRecord straight from the professional-
+// details-auth response, with no pre-existing list/favorite record to layer
+// onto (unlike mergeProfessionalDetail). Needed for deep links that land on
+// this screen for a professional who isn't in whatever page of the
+// filtered/paginated list happens to be loaded — e.g. the landing page's
+// "Top rated near you" cards, which draw from the unfiltered featured-
+// professionals endpoint rather than this screen's own (location-filtered)
+// list. This endpoint returns no inviteId, so `id`/`userId` fall back to the
+// professional-info sub-document's userId, or the slug itself as a last resort.
+export function toProfessionalRecordFromDetail(
+  slug: string,
+  record: ProfessionalDetailRecord,
+): ProfessionalRecord {
+  const info = record.professionalInfo?.[0];
+  const skillNames = (info?.skills ?? []).map(skillDisplayName).filter((s): s is string => !!s);
+  const rate = info?.squareFeetRate;
+  const categoryName = info?.professionalCategoryName || "Professional";
+  const name = record.name?.trim() || "";
+  const gallery = [record.backgroundImage, record.profileImage].filter(
+    (g): g is string => !!g,
+  );
+  if (gallery.length === 0) {
+    const first = pickFallbackCover(categoryName, slug);
+    const second = FALLBACK_POOL[(FALLBACK_POOL.indexOf(first) + 1) % FALLBACK_POOL.length];
+    gallery.push(first, second);
+  }
+
+  return {
+    id: info?.userId || slug,
+    userId: info?.userId,
+    slug: info?.professionalSlug || slug,
+    name,
+    profession: info?.subCategoryName || info?.professionalCategoryName || "Professional",
+    category: info?.professionalCategory || "",
+    categoryName,
+    location: record.location?.trim() || record.city || "Kerala, India",
+    avatar: record.profileImage || undefined,
+    cover: record.backgroundImage || record.profileImage || pickFallbackCover(categoryName, slug),
+    rating: info?.rating ?? 0,
+    reviews: 0,
+    verified: info?.verified ?? false,
+    experience: info?.experience ?? 0,
+    projects: 0,
+    price: rate ? `₹${rate}` : "Contact",
+    priceUnit: rate ? "sq.ft" : "",
+    responds: "within a day",
+    tagline: info?.description ? truncate(info.description, 110) : "",
+    tags: skillNames.slice(0, 3),
+    gallery,
+    about: info?.description || `${name || "This professional"} is a HomeDot professional based in ${record.city || "Kerala"}.`,
+    services: skillNames.length > 0 ? skillNames : [info?.subCategoryName || "General consultation"],
+  };
+}
+
 // Maps a favorites-list record (thin, flat) onto the same ProfessionalRecord
 // shape toProfessionalRecord produces, so FavoritesScreen can reuse ProCard
 // and the detail screen unmodified. Far less is known about a favorited

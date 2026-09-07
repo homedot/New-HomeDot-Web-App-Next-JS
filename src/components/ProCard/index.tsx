@@ -4,6 +4,7 @@ import Icon from "@/components/Icon";
 
 export type Professional = {
   id: string;
+  slug?: string;
   name: string;
   profession: string;
   location: string;
