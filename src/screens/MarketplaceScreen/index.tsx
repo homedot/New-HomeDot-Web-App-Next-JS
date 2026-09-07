@@ -736,7 +736,7 @@ export default function MarketplaceScreen() {
                 >
                   <span>Home</span>
                   <Icon name="arrow" size={13} />
-                  <span style={{ color: colors.white }}>Marketplace</span>
+                  <span style={{ color: colors.white }}>Reality</span>
                 </div>
                 <h1
                   style={{

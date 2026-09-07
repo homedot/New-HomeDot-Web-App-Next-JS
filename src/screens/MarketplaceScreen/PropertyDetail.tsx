@@ -446,7 +446,7 @@ export default function PropertyDetail({
                 onClick={onBack}
                 style={{ color: colors.muted, cursor: "pointer" }}
               >
-                Marketplace
+                Reality
               </button>
               <Icon name="arrow" size={13} />
               <span style={{ color: colors.ink, fontWeight: 600 }}>
