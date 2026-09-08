@@ -124,6 +124,20 @@ export const steps: { n: string; title: string; text: string }[] = [
   { n: "03", title: "Book with confidence", text: "Chat, request a quote and schedule a visit. Track everything in one place." },
 ];
 
+export const constructionStages: { id: string; n: string; title: string; icon: IconName; image: string; text: string }[] = [
+  { id: "planning", n: "01", title: "Planning", icon: "compass", image: unsplash("1454165804606-c3d57bc86b40", 800), text: "Site survey, budgeting and approvals — your blueprint gets finalised before a single brick moves." },
+  { id: "foundation", n: "02", title: "Foundation", icon: "foundation", image: unsplash("1541888946425-d81bb19240f5", 800), text: "Excavation, footing and RCC casting lay a solid base built for local soil and load conditions." },
+  { id: "structure", n: "03", title: "Structure", icon: "structure", image: unsplash("1587582423116-ec07293f0395", 800), text: "Columns, beams and slabs rise floor by floor, forming the skeleton that holds everything up." },
+  { id: "brickwork", n: "04", title: "Brick Work", icon: "brick", image: unsplash("1704005445445-2747074be8ac", 800), text: "Walls are laid course by course, shaping every room and opening exactly to plan." },
+  { id: "plastering", n: "05", title: "Plastering", icon: "trowel", image: unsplash("1779971685817-77e596abd71a", 800), text: "Interior and exterior surfaces are rendered smooth, ready for wiring, tiling and paint." },
+  { id: "electrical", n: "06", title: "Electrical", icon: "bolt", image: unsplash("1621905251189-08b45d6a269e", 800), text: "Wiring, conduits and switchboards are routed safely through walls and slabs before finishing." },
+  { id: "plumbing", n: "07", title: "Plumbing", icon: "drop", image: unsplash("1695002817411-203c7f19dfa3", 800), text: "Water supply, drainage and fittings are laid out to code, tested and sealed before flooring." },
+  { id: "flooring", n: "08", title: "Flooring", icon: "grid", image: unsplash("1560185008-b033106af5c3", 800), text: "Tiles, wood or stone go down room by room, finished level and ready to live on." },
+  { id: "painting", n: "09", title: "Painting", icon: "brush", image: unsplash("1516962080544-eac695c93791", 800), text: "Primer and coats bring the walls to life — inside and out — in the palette you chose." },
+  { id: "interior", n: "10", title: "Interior", icon: "sofa", image: unsplash("1583847268964-b28dc8f51f92", 800), text: "Furnishing, lighting and decor turn finished rooms into a home that feels like yours." },
+  { id: "handover", n: "11", title: "Handover", icon: "key", image: unsplash("1560518883-ce09059eeffa", 800), text: "A final walkthrough, snag-list sign-off, and the keys are yours — move-in ready." },
+];
+
 export const heroImage = unsplash("1600585154340-be6161a56a0c", 1200);
 export const trustImage = unsplash("1600585154340-be6161a56a0c", 900);
 export const exploreImage = unsplash("1580587771525-78b9dba3b914", 1800);

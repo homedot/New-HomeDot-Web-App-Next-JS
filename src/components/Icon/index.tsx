@@ -11,6 +11,11 @@ type IconName =
   | "compass"
   | "sofa"
   | "ruler"
+  | "foundation"
+  | "structure"
+  | "brick"
+  | "trowel"
+  | "key"
   | "chef"
   | "leaf"
   | "cube"
@@ -115,6 +120,42 @@ const PATHS: Record<IconName, React.ReactNode> = {
     <>
       <rect x="3" y="8" width="18" height="8" rx="1.5" />
       <path d="M7 8v3M11 8v4M15 8v3M19 8v4" />
+    </>
+  ),
+  foundation: (
+    <>
+      <path d="M4 19h16" />
+      <path d="M5 19v-5.5a1 1 0 0 1 1-1h12a1 1 0 0 1 1 1V19" />
+      <path d="M8.5 12.5V9M12 12.5V8.5M15.5 12.5V9" />
+    </>
+  ),
+  structure: (
+    <>
+      <path d="M4 6h16" />
+      <path d="M6 6v13M12 6v13M18 6v13" />
+      <path d="M4 19h16" />
+    </>
+  ),
+  brick: (
+    <>
+      <rect x="3" y="6" width="7" height="5" rx="1" />
+      <rect x="13" y="6" width="8" height="5" rx="1" />
+      <rect x="3" y="13" width="4" height="5" rx="1" />
+      <rect x="10" y="13" width="8" height="5" rx="1" />
+      <rect x="19" y="13" width="2" height="5" rx="1" />
+    </>
+  ),
+  trowel: (
+    <>
+      <path d="M15 4l5 5-9.5 9.5-5-5z" />
+      <path d="M6 18l-2.5 3" />
+    </>
+  ),
+  key: (
+    <>
+      <circle cx="8" cy="8" r="4" />
+      <path d="M11 11l9.5 9.5" />
+      <path d="M16 16l2.2-2.2M18.8 18.8l2.2-2.2" />
     </>
   ),
   chef: (

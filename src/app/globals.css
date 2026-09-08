@@ -2118,3 +2118,32 @@ body.has-cursor * {
     transition: none;
   }
 }
+
+/* Construction Stages (LandingScreen) background: a faint dotted grid (a
+   nod to site plans/blueprints) plus a top-to-bottom accent-to-gold tint,
+   so the long scroll through this section reads as textured, not blank. */
+.road-bg-grid {
+  background-image:
+    radial-gradient(circle, rgba(16, 28, 48, 0.07) 1px, transparent 1px),
+    linear-gradient(180deg, rgba(41, 151, 255, 0.05), transparent 22%, transparent 78%, rgba(245, 166, 35, 0.05));
+  background-size: 28px 28px, 100% 100%;
+}
+
+/* Construction Stages (LandingScreen): a winding road drawn down the section,
+   one bulge per stage. The node currently at the scroll frontier pulses
+   gently so "where am I on this road" reads at a glance, distinct from
+   completed (solid, no pulse) and upcoming (muted) nodes. */
+.road-node-current {
+  animation: roadNodePulse 2s ease-in-out infinite;
+}
+
+@keyframes roadNodePulse {
+  0%, 100% { box-shadow: 0 0 0 0 rgba(41, 151, 255, 0.35); }
+  50% { box-shadow: 0 0 0 10px rgba(41, 151, 255, 0); }
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .road-node-current {
+    animation: none;
+  }
+}

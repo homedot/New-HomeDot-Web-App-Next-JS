@@ -52,6 +52,7 @@ import {
   properties,
   professionals,
   steps,
+  constructionStages,
   exploreImage,
   blogPosts,
   testimonials,
@@ -139,6 +140,7 @@ export default function LandingScreen() {
       <PosterShowcase />
       <TopProfessionals loginModalRef={loginModalRef} />
       <HowItWorks />
+      <ConstructionStages />
       <StoryShowcase />
       <ProCta loginModalRef={loginModalRef} />
       <LatestInsights loginModalRef={loginModalRef} />
@@ -1430,6 +1432,355 @@ function HowItWorks() {
         ))}
       </Reveal>
     </section>
+  );
+}
+
+type RoadPoint = { x: number; y: number };
+
+// Builds a vertical "road" that always crosses x=100 (the centerline, where
+// every stage node sits) but bulges left/right between consecutive nodes —
+// alternating sides down the page — so it reads as a single winding route
+// without needing the nodes themselves to move off-center.
+function buildRoadPath(points: RoadPoint[], bulge: number): string {
+  if (points.length === 0) return "";
+  let d = `M ${points[0].x} ${points[0].y}`;
+  for (let i = 1; i < points.length; i++) {
+    const prev = points[i - 1];
+    const cur = points[i];
+    const midY = (prev.y + cur.y) / 2;
+    const cx = cur.x + (i % 2 === 1 ? -bulge : bulge);
+    d += ` C ${cx} ${midY}, ${cx} ${midY}, ${cur.x} ${cur.y}`;
+  }
+  return d;
+}
+
+const ROAD_ROW_H = 300;
+
+// A winding road runs down the section, one bulge per stage, and draws
+// itself in as the page scrolls — via real scroll position, not ScrollScrub,
+// since this section is many viewports tall and ScrollScrub is built for a
+// single pass through the viewport. A pin rides the drawn edge of the road
+// using the path's own getPointAtLength, so it always sits exactly on the
+// curve rather than approximating it.
+function ConstructionStages() {
+  const roadRef = useRef<HTMLDivElement>(null);
+  const pathRef = useRef<SVGPathElement>(null);
+  const pinRef = useRef<SVGCircleElement>(null);
+  const [activeIndex, setActiveIndex] = useState(-1);
+  // The road's viewBox is sized to the container's real pixel width (not a
+  // fixed abstract unit stretched with preserveAspectRatio="none") so the
+  // SVG scales 1:1 on both axes. A non-uniform scale made the drawn
+  // gradient stroke render inconsistently across browsers — Safari in
+  // particular doesn't handle vector-effect="non-scaling-stroke" well once
+  // x and y are scaled by different factors.
+  const [roadWidth, setRoadWidth] = useState(960);
+
+  const totalHeight = constructionStages.length * ROAD_ROW_H;
+  const roadCenterX = roadWidth / 2;
+  const roadD = buildRoadPath(
+    constructionStages.map((_, i) => ({ x: roadCenterX, y: ROAD_ROW_H * (i + 0.5) })),
+    Math.min(roadWidth * 0.3, 240)
+  );
+
+  useEffect(() => {
+    const el = roadRef.current;
+    if (!el) return;
+    const ro = new ResizeObserver((entries) => {
+      const w = entries[0]?.contentRect.width;
+      if (w) setRoadWidth(w);
+    });
+    ro.observe(el);
+    return () => ro.disconnect();
+  }, []);
+
+  useEffect(() => {
+    const el = roadRef.current;
+    const path = pathRef.current;
+    if (!el || !path) return;
+
+    if (window.matchMedia("(prefers-reduced-motion: reduce)").matches) {
+      path.style.strokeDasharray = "none";
+      requestAnimationFrame(() => setActiveIndex(constructionStages.length - 1));
+      return;
+    }
+
+    let raf = 0;
+    const onScroll = () => {
+      raf = requestAnimationFrame(() => {
+        const rect = el.getBoundingClientRect();
+        const vh = window.innerHeight;
+        const progress = Math.min(
+          Math.max((vh * 0.85 - rect.top) / (rect.height + vh * 0.3), 0),
+          1
+        );
+        // Dash the path using its own real total length rather than the
+        // pathLength="1" normalization trick — WebKit/Safari mis-renders
+        // that normalization on curved (bezier) paths, drawing straight
+        // segments between nodes instead of following the actual curve.
+        // Re-measured every tick (cheap, native, rAF-throttled) rather than
+        // cached once — the length changes whenever roadWidth does, and a
+        // cached value would go stale on resize.
+        const len = path.getTotalLength();
+        path.style.strokeDasharray = String(len);
+        path.style.strokeDashoffset = String(len * (1 - progress));
+        const pt = path.getPointAtLength(progress * len);
+        pinRef.current?.setAttribute("cx", String(pt.x));
+        pinRef.current?.setAttribute("cy", String(pt.y));
+        pinRef.current?.style.setProperty(
+          "opacity",
+          progress > 0.01 && progress < 0.999 ? "1" : "0"
+        );
+        const idx = Math.min(
+          constructionStages.length - 1,
+          Math.floor(progress * constructionStages.length)
+        );
+        setActiveIndex((prev) => (prev !== idx ? idx : prev));
+      });
+    };
+    onScroll();
+    window.addEventListener("scroll", onScroll, { passive: true });
+    window.addEventListener("resize", onScroll);
+    return () => {
+      cancelAnimationFrame(raf);
+      window.removeEventListener("scroll", onScroll);
+      window.removeEventListener("resize", onScroll);
+    };
+  }, []);
+
+  return (
+    <section style={{ padding: `${spacing.huge}px 0`, background: colors.bg, position: "relative", overflow: "hidden" }}>
+      {/* Faint blueprint grid + a few ambient glow blobs so the long scroll through
+          this section reads as "on a job site", not a blank page — the ruled dots
+          echo a site plan, the blobs give it warmth without competing with cards. */}
+      <div aria-hidden="true" className="road-bg-grid" style={{ position: "absolute", inset: 0, zIndex: 0 }} />
+      <div aria-hidden="true" className="animate-glow-pulse" style={{ position: "absolute", top: "6%", left: "4%", width: 300, height: 300, borderRadius: "50%", background: colors.accent, filter: "blur(80px)", opacity: 0.16, zIndex: 0 }} />
+      <div aria-hidden="true" className="animate-glow-pulse" style={{ position: "absolute", top: "42%", right: "2%", width: 340, height: 340, borderRadius: "50%", background: colors.gold, filter: "blur(90px)", opacity: 0.14, zIndex: 0, animationDelay: "1.4s" }} />
+      <div aria-hidden="true" className="animate-glow-pulse" style={{ position: "absolute", top: "78%", left: "6%", width: 280, height: 280, borderRadius: "50%", background: colors.accent, filter: "blur(80px)", opacity: 0.14, zIndex: 0, animationDelay: "2.6s" }} />
+
+      <div style={{ ...wrap, position: "relative", zIndex: 1 }}>
+        <SectionHead
+          center
+          eyebrow="Our process"
+          title="Every stage of your build, mapped out"
+          subtitle="Follow the road from the first sketch to the final walkthrough — see exactly what happens on site, and when."
+        />
+      </div>
+
+      {/* Desktop: winding road with alternating cards either side */}
+      <div className="hidden md:block" style={{ ...wrap, position: "relative", zIndex: 1 }}>
+        <div ref={roadRef} style={{ position: "relative" }}>
+          <svg
+            aria-hidden="true"
+            style={{ position: "absolute", inset: 0, width: "100%", height: "100%" }}
+            viewBox={`0 0 ${roadWidth} ${totalHeight}`}
+          >
+            <defs>
+              <linearGradient id="roadGradient" x1="0" y1="0" x2="0" y2="1">
+                <stop offset="0%" stopColor={colors.accent} />
+                <stop offset="100%" stopColor={colors.gold} />
+              </linearGradient>
+            </defs>
+            <path
+              d={roadD}
+              fill="none"
+              stroke={colors.line}
+              strokeWidth={3}
+              strokeLinecap="round"
+            />
+            <path
+              ref={pathRef}
+              d={roadD}
+              fill="none"
+              stroke="url(#roadGradient)"
+              strokeWidth={3}
+              strokeLinecap="round"
+              strokeDasharray="0 1"
+            />
+            <circle
+              ref={pinRef}
+              r={7}
+              fill={colors.accent}
+              stroke={colors.white}
+              strokeWidth={3}
+              style={{ opacity: 0, transition: "opacity 0.2s ease" }}
+            />
+          </svg>
+
+          {constructionStages.map((s, i) => {
+            const onLeft = i % 2 === 0;
+            const status = i < activeIndex ? "done" : i === activeIndex ? "current" : "upcoming";
+            return (
+              <div
+                key={s.id}
+                style={{
+                  position: "relative",
+                  zIndex: 1,
+                  height: ROAD_ROW_H,
+                  display: "flex",
+                  alignItems: "center",
+                }}
+              >
+                <div style={{ width: "42%", display: "flex", justifyContent: "flex-end", alignItems: "center" }}>
+                  {onLeft ? <StageCard stage={s} /> : <StageWatermark icon={s.icon} side="right" />}
+                </div>
+                <div style={{ width: "16%", display: "grid", placeItems: "center" }}>
+                  <StageNode stage={s} status={status} />
+                </div>
+                <div style={{ width: "42%", display: "flex", justifyContent: "flex-start", alignItems: "center" }}>
+                  {!onLeft ? <StageCard stage={s} /> : <StageWatermark icon={s.icon} side="left" />}
+                </div>
+              </div>
+            );
+          })}
+        </div>
+      </div>
+
+      {/* Mobile: simple stacked timeline — no room for the road's wiggle */}
+      <div className="md:hidden" style={{ ...wrap, position: "relative", zIndex: 1 }}>
+        <div
+          aria-hidden="true"
+          style={{
+            position: "absolute",
+            left: 27,
+            top: 8,
+            bottom: 8,
+            width: 3,
+            borderRadius: radius.full,
+            background: `linear-gradient(180deg, ${colors.accent}, ${colors.gold})`,
+          }}
+        />
+        <Reveal stagger style={{ display: "flex", flexDirection: "column", gap: spacing.xxl }}>
+          {constructionStages.map((s) => (
+            <div key={s.id} style={{ display: "flex", gap: spacing.lg }}>
+              <div style={{ flex: "0 0 auto", position: "relative", zIndex: 1 }}>
+                <StageNode stage={s} status="done" />
+              </div>
+              <div style={{ flex: 1, minWidth: 0 }}>
+                <StageCard stage={s} full />
+              </div>
+            </div>
+          ))}
+        </Reveal>
+      </div>
+    </section>
+  );
+}
+
+// Large, near-invisible outline of the stage's own icon, filling the empty
+// half of its row so the road doesn't scroll past bare background — a quiet
+// echo of the card opposite it rather than a second thing to read.
+function StageWatermark({ icon, side }: { icon: IconName; side: "left" | "right" }) {
+  return (
+    <div
+      aria-hidden="true"
+      style={{
+        opacity: 0.07,
+        transform: `rotate(${side === "left" ? -8 : 8}deg)`,
+      }}
+    >
+      <Icon name={icon} size={148} strokeWidth={1.1} color={colors.primary} />
+    </div>
+  );
+}
+
+function StageNode({
+  stage,
+  status,
+}: {
+  stage: (typeof constructionStages)[number];
+  status: "done" | "current" | "upcoming";
+}) {
+  const done = status === "done";
+  const current = status === "current";
+  return (
+    <div style={{ display: "flex", flexDirection: "column", alignItems: "center", gap: 6 }}>
+      <div
+        className={current ? "road-node-current" : undefined}
+        style={{
+          width: 56,
+          height: 56,
+          borderRadius: "50%",
+          display: "grid",
+          placeItems: "center",
+          background: done || current ? colors.primary : colors.card,
+          border: `2px solid ${done || current ? colors.accent : colors.line}`,
+          boxShadow: done || current ? shadow.md : shadow.sm,
+          transition: "background 0.3s ease, border-color 0.3s ease, box-shadow 0.3s ease",
+        }}
+      >
+        <Icon name={stage.icon} size={22} color={done || current ? colors.white : colors.muted} />
+      </div>
+      <span
+        style={{
+          fontFamily: "var(--font-display)",
+          fontSize: fontSize.xs,
+          fontWeight: 700,
+          letterSpacing: "0.04em",
+          color: done || current ? colors.accent : colors.muted,
+        }}
+      >
+        {stage.n}
+      </span>
+    </div>
+  );
+}
+
+function StageCard({
+  stage,
+  full,
+}: {
+  stage: (typeof constructionStages)[number];
+  full?: boolean;
+}) {
+  return (
+    <div
+      className="card-hover"
+      style={{
+        width: "100%",
+        maxWidth: full ? undefined : 360,
+        background: colors.card,
+        borderRadius: radius.lg,
+        overflow: "hidden",
+        border: `1px solid ${colors.line}`,
+        boxShadow: shadow.sm,
+        textAlign: "left",
+      }}
+    >
+      <div style={{ position: "relative", height: 150, overflow: "hidden" }}>
+        {/* eslint-disable-next-line @next/next/no-img-element */}
+        <img
+          src={stage.image}
+          alt={stage.title}
+          className="card-hover-img"
+          style={{ width: "100%", height: "100%", objectFit: "cover" }}
+        />
+        <span
+          style={{
+            position: "absolute",
+            top: 10,
+            left: 10,
+            fontFamily: "var(--font-display)",
+            fontSize: fontSize.xs,
+            fontWeight: 700,
+            letterSpacing: "0.04em",
+            color: colors.white,
+            background: "rgba(16,28,48,0.55)",
+            padding: "3px 9px",
+            borderRadius: radius.full,
+          }}
+        >
+          STAGE {stage.n}
+        </span>
+      </div>
+      <div style={{ padding: spacing.lg }}>
+        <h3 style={{ fontSize: fontSize.md + 1, fontWeight: 700, marginBottom: 6 }}>
+          {stage.title}
+        </h3>
+        <p style={{ color: colors.muted, fontSize: fontSize.base - 1, lineHeight: 1.5 }}>
+          {stage.text}
+        </p>
+      </div>
+    </div>
   );
 }
 
