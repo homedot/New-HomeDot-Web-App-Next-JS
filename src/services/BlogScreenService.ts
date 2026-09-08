@@ -198,6 +198,13 @@ export function toBlogCard(record: BlogRecord): BlogCard {
   const description = record.description || record.blogdesctription;
   return {
     id: record.blogId || record._id || "",
+    // No id-based fallback here on purpose — confirmed against the live API
+    // that `blog/get-single-blog/:slug` only matches a real slug, not the
+    // blog's Mongo id (404s: {"status":false,"message":"Blog information
+    // not found"}). Falling back to the id when slug/blogslug is missing
+    // used to build a URL that looked like it navigated correctly but
+    // silently 404'd on the detail fetch — worse than FavoritesScreen's own
+    // `b.slug ? ... : "/blog"` guard, which at least lands somewhere useful.
     slug: record.slug || record.blogslug || "",
     image: normalizeBlogImage(record.blogImage ?? record.blogimage),
     author: record.authorData?.[0]?.name?.trim() || "HomeDot",

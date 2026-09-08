@@ -50,7 +50,13 @@ export default function BlogScreen() {
   const [saved, setSaved] = useState<string[]>([]);
   const [detail, setDetail] = useState<BlogArticle | null>(null);
   const [detailLoading, setDetailLoading] = useState(false);
-  const autoOpenHandled = useRef(false);
+  // Tracks the last "post" slug this screen auto-opened, not just a
+  // one-time boolean — the effect below needs to re-fire whenever the query
+  // param changes to a *new* slug (e.g. arriving here again from Favorites
+  // with a different article), which a mount-only `[]`-deps effect misses
+  // whenever this route segment's component instance is reused across
+  // client-side navigations instead of being freshly remounted.
+  const autoOpenedSlug = useRef<string | null>(null);
 
   // Seeds the saved/favorited set from the backend for signed-in visitors,
   // same pattern as ProfessionalsScreen/MarketplaceScreen. FAVORITE_BLOG
@@ -125,7 +131,7 @@ export default function BlogScreen() {
       loginModalRef.current?.open();
       return;
     }
-    autoOpenHandled.current = true;
+    autoOpenedSlug.current = slug;
     setDetailLoading(true);
     setDetail(null);
     window.scrollTo(0, 0);
@@ -150,19 +156,29 @@ export default function BlogScreen() {
     router.back();
   };
 
-  // Resolves a shared "?post=<slug>" link once, for signed-in visitors —
-  // same best-effort-once pattern as ProfessionalsScreen's slug resolution.
+  // Resolves a shared "?post=<slug>" link for signed-in visitors — keyed off
+  // `searchParams` (not a mount-only `[]`) and a last-opened-slug ref (not a
+  // one-time boolean) so arriving here from Favorites with a *new* slug
+  // still opens it even when this route segment's component instance is
+  // reused across client-side navigations instead of being freshly
+  // remounted.
   useEffect(() => {
-    if (autoOpenHandled.current || !getAuthToken()) return;
     const slug = searchParams.get("post");
-    if (!slug) return;
-    autoOpenHandled.current = true;
-    // Deferred a tick so the state updates inside openDetail don't run
-    // synchronously within this effect's body (react-hooks/set-state-in-effect).
-    const timer = setTimeout(() => openDetail(slug), 0);
+    if (!slug || autoOpenedSlug.current === slug || !getAuthToken()) return;
+    // The ref is only committed once the timer actually fires, not here —
+    // React Strict Mode's dev-only mount→cleanup→mount replay would
+    // otherwise cancel this timer (cleanup) while leaving the ref already
+    // marked "handled" for the replayed run, so the detail silently never
+    // opened. Deferred a tick so the state updates inside openDetail don't
+    // run synchronously within this effect's body
+    // (react-hooks/set-state-in-effect).
+    const timer = setTimeout(() => {
+      autoOpenedSlug.current = slug;
+      openDetail(slug);
+    }, 0);
     return () => clearTimeout(timer);
     // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, []);
+  }, [searchParams]);
 
   const toggleSave = (id: string) => {
     if (!getAuthToken()) {

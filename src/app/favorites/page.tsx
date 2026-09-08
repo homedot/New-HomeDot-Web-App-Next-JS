@@ -1,4 +1,5 @@
 import type { Metadata } from "next";
+import { Suspense } from "react";
 import FavoritesScreen from "@/screens/FavoritesScreen";
 
 export const metadata: Metadata = {
@@ -7,5 +8,9 @@ export const metadata: Metadata = {
 };
 
 export default function FavoritesPage() {
-  return <FavoritesScreen />;
+  return (
+    <Suspense fallback={null}>
+      <FavoritesScreen />
+    </Suspense>
+  );
 }

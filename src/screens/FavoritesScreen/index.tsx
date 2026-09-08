@@ -1,7 +1,7 @@
 "use client";
 
 import { useEffect, useRef, useState, type CSSProperties, type ReactNode } from "react";
-import { useRouter } from "next/navigation";
+import { useRouter, usePathname, useSearchParams } from "next/navigation";
 import { colors } from "@/constants/colors";
 import { spacing, radius, fontSize, shadow, maxWidth } from "@/utils/size";
 import Icon from "@/components/Icon";
@@ -35,9 +35,26 @@ type Tab = "properties" | "professionals" | "blogs";
 // homedot-mobile-app's favorites screen also has a portfolio photos tab
 // (FavoriteScreenTabNavigator's "Photos" route) — still scoped out until
 // that gets its turn. Properties, professionals and blogs are covered here.
+const TABS: Tab[] = ["properties", "professionals", "blogs"];
+
 export default function FavoritesScreen() {
   const router = useRouter();
-  const [tab, setTab] = useState<Tab>("properties");
+  const pathname = usePathname();
+  const searchParams = useSearchParams();
+  // Mirrored into the URL (?tab=) rather than kept as plain useState so that
+  // navigating to a favorited card's detail screen and pressing back restores
+  // the tab the user was on, instead of remounting this screen back to its
+  // "properties" default.
+  const initialTab = searchParams.get("tab");
+  const [tab, setTabState] = useState<Tab>(
+    TABS.includes(initialTab as Tab) ? (initialTab as Tab) : "properties",
+  );
+  const setTab = (next: Tab) => {
+    setTabState(next);
+    const params = new URLSearchParams(searchParams.toString());
+    params.set("tab", next);
+    router.replace(`${pathname}?${params.toString()}`, { scroll: false });
+  };
   // Always starts at "loading" — getAuthToken() reads localStorage, which
   // doesn't exist during SSR, so seeding this from it directly would render
   // "signed-out" on the server but "loading" (or "ready") on the client and
