@@ -1456,6 +1456,24 @@ function buildRoadPath(points: RoadPoint[], bulge: number): string {
 
 const ROAD_ROW_H = 300;
 
+// Same 11 stages as HowTo/HowToStep structured data — the machine-readable
+// counterpart to the on-page copy in data.ts, so answer/generative engines
+// (Google AI Overviews, ChatGPT, Perplexity, etc.) can parse the sequence
+// directly rather than inferring it from the rendered cards.
+const constructionHowToSchema = {
+  "@context": "https://schema.org",
+  "@type": "HowTo",
+  name: "Stages of Home Construction",
+  description:
+    "The 11 sequential stages of building a home, from planning to handover.",
+  step: constructionStages.map((s) => ({
+    "@type": "HowToStep",
+    position: Number(s.n),
+    name: s.title,
+    text: s.text,
+  })),
+};
+
 // A winding road runs down the section, one bulge per stage, and draws
 // itself in as the page scrolls — via real scroll position, not ScrollScrub,
 // since this section is many viewports tall and ScrollScrub is built for a
@@ -1549,6 +1567,10 @@ function ConstructionStages() {
 
   return (
     <section style={{ padding: `${spacing.huge}px 0`, background: colors.bg, position: "relative", overflow: "hidden" }}>
+      <script
+        type="application/ld+json"
+        dangerouslySetInnerHTML={{ __html: JSON.stringify(constructionHowToSchema) }}
+      />
       {/* Faint blueprint grid + a few ambient glow blobs so the long scroll through
           this section reads as "on a job site", not a blank page — the ruled dots
           echo a site plan, the blobs give it warmth without competing with cards. */}
@@ -1560,9 +1582,9 @@ function ConstructionStages() {
       <div style={{ ...wrap, position: "relative", zIndex: 1 }}>
         <SectionHead
           center
-          eyebrow="Our process"
-          title="Every stage of your build, mapped out"
-          subtitle="Follow the road from the first sketch to the final walkthrough — see exactly what happens on site, and when."
+          eyebrow="Home construction process"
+          title="The 11 stages of home construction, in order"
+          subtitle="Every home is built in the same 11 stages, completed one after another: Planning, Foundation, Structure, Brick Work, Plastering, Electrical, Plumbing, Flooring, Painting, Interior and Handover."
         />
       </div>
 
@@ -1621,13 +1643,25 @@ function ConstructionStages() {
                 }}
               >
                 <div style={{ width: "42%", display: "flex", justifyContent: "flex-end", alignItems: "center" }}>
-                  {onLeft ? <StageCard stage={s} /> : <StageWatermark icon={s.icon} side="right" />}
+                  {onLeft ? (
+                    <Reveal style={{ width: "100%", maxWidth: 360 }} delay={(i % 3) * 90}>
+                      <StageCard stage={s} />
+                    </Reveal>
+                  ) : (
+                    <StageWatermark icon={s.icon} n={s.n} side="right" />
+                  )}
                 </div>
                 <div style={{ width: "16%", display: "grid", placeItems: "center" }}>
                   <StageNode stage={s} status={status} />
                 </div>
                 <div style={{ width: "42%", display: "flex", justifyContent: "flex-start", alignItems: "center" }}>
-                  {!onLeft ? <StageCard stage={s} /> : <StageWatermark icon={s.icon} side="left" />}
+                  {!onLeft ? (
+                    <Reveal style={{ width: "100%", maxWidth: 360 }} delay={(i % 3) * 90}>
+                      <StageCard stage={s} />
+                    </Reveal>
+                  ) : (
+                    <StageWatermark icon={s.icon} n={s.n} side="left" />
+                  )}
                 </div>
               </div>
             );
@@ -1669,16 +1703,48 @@ function ConstructionStages() {
 // Large, near-invisible outline of the stage's own icon, filling the empty
 // half of its row so the road doesn't scroll past bare background — a quiet
 // echo of the card opposite it rather than a second thing to read.
-function StageWatermark({ icon, side }: { icon: IconName; side: "left" | "right" }) {
+function StageWatermark({
+  icon,
+  n,
+  side,
+}: {
+  icon: IconName;
+  n: string;
+  side: "left" | "right";
+}) {
   return (
-    <div
-      aria-hidden="true"
-      style={{
-        opacity: 0.07,
-        transform: `rotate(${side === "left" ? -8 : 8}deg)`,
-      }}
-    >
-      <Icon name={icon} size={148} strokeWidth={1.1} color={colors.primary} />
+    <div aria-hidden="true" style={{ position: "relative", width: 210, height: 210 }}>
+      <span
+        style={{
+          position: "absolute",
+          inset: 0,
+          display: "flex",
+          alignItems: "center",
+          justifyContent: "center",
+          fontFamily: "var(--font-display)",
+          fontWeight: 800,
+          fontSize: 168,
+          lineHeight: 1,
+          color: colors.primary,
+          opacity: 0.05,
+          letterSpacing: "-0.03em",
+        }}
+      >
+        {n}
+      </span>
+      <div
+        style={{
+          position: "absolute",
+          inset: 0,
+          display: "flex",
+          alignItems: "center",
+          justifyContent: "center",
+          opacity: 0.09,
+          transform: `rotate(${side === "left" ? -8 : 8}deg)`,
+        }}
+      >
+        <Icon name={icon} size={132} strokeWidth={1.1} color={colors.primary} />
+      </div>
     </div>
   );
 }

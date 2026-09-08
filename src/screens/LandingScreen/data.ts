@@ -124,18 +124,27 @@ export const steps: { n: string; title: string; text: string }[] = [
   { n: "03", title: "Book with confidence", text: "Chat, request a quote and schedule a visit. Track everything in one place." },
 ];
 
+// Each `text` leads with a self-contained "[Stage] is the stage where…"
+// definition — deliberately consistent across all 11 so any single card can
+// be lifted out of context as a standalone answer. This is written for AEO
+// (Answer Engine Optimization, e.g. Google's featured snippets/AI Overviews)
+// and GEO (Generative Engine Optimization, e.g. ChatGPT/Perplexity citing the
+// page): both favour clear, specific, extractable definitions over marketing
+// copy that only makes sense read in sequence. See the HowTo JSON-LD emitted
+// alongside this data in ConstructionStages for the same content exposed as
+// structured data.
 export const constructionStages: { id: string; n: string; title: string; icon: IconName; image: string; text: string }[] = [
-  { id: "planning", n: "01", title: "Planning", icon: "compass", image: unsplash("1454165804606-c3d57bc86b40", 800), text: "Site survey, budgeting and approvals — your blueprint gets finalised before a single brick moves." },
-  { id: "foundation", n: "02", title: "Foundation", icon: "foundation", image: unsplash("1541888946425-d81bb19240f5", 800), text: "Excavation, footing and RCC casting lay a solid base built for local soil and load conditions." },
-  { id: "structure", n: "03", title: "Structure", icon: "structure", image: unsplash("1587582423116-ec07293f0395", 800), text: "Columns, beams and slabs rise floor by floor, forming the skeleton that holds everything up." },
-  { id: "brickwork", n: "04", title: "Brick Work", icon: "brick", image: unsplash("1704005445445-2747074be8ac", 800), text: "Walls are laid course by course, shaping every room and opening exactly to plan." },
-  { id: "plastering", n: "05", title: "Plastering", icon: "trowel", image: unsplash("1779971685817-77e596abd71a", 800), text: "Interior and exterior surfaces are rendered smooth, ready for wiring, tiling and paint." },
-  { id: "electrical", n: "06", title: "Electrical", icon: "bolt", image: unsplash("1621905251189-08b45d6a269e", 800), text: "Wiring, conduits and switchboards are routed safely through walls and slabs before finishing." },
-  { id: "plumbing", n: "07", title: "Plumbing", icon: "drop", image: unsplash("1695002817411-203c7f19dfa3", 800), text: "Water supply, drainage and fittings are laid out to code, tested and sealed before flooring." },
-  { id: "flooring", n: "08", title: "Flooring", icon: "grid", image: unsplash("1560185008-b033106af5c3", 800), text: "Tiles, wood or stone go down room by room, finished level and ready to live on." },
-  { id: "painting", n: "09", title: "Painting", icon: "brush", image: unsplash("1516962080544-eac695c93791", 800), text: "Primer and coats bring the walls to life — inside and out — in the palette you chose." },
-  { id: "interior", n: "10", title: "Interior", icon: "sofa", image: unsplash("1583847268964-b28dc8f51f92", 800), text: "Furnishing, lighting and decor turn finished rooms into a home that feels like yours." },
-  { id: "handover", n: "11", title: "Handover", icon: "key", image: unsplash("1560518883-ce09059eeffa", 800), text: "A final walkthrough, snag-list sign-off, and the keys are yours — move-in ready." },
+  { id: "planning", n: "01", title: "Planning", icon: "compass", image: unsplash("1454165804606-c3d57bc86b40", 800), text: "Planning is the first stage of home construction: a site survey, architectural design, budgeting and municipal approvals are all finalised before any work starts." },
+  { id: "foundation", n: "02", title: "Foundation", icon: "foundation", image: unsplash("1541888946425-d81bb19240f5", 800), text: "Foundation is the stage where the site is excavated and RCC (reinforced concrete) footings are cast, sized to the soil and load conditions found during the site survey." },
+  { id: "structure", n: "03", title: "Structure", icon: "structure", image: unsplash("1587582423116-ec07293f0395", 800), text: "Structure is the stage where RCC columns, beams and floor slabs are cast level by level, forming the skeleton that carries every floor above it." },
+  { id: "brickwork", n: "04", title: "Brick Work", icon: "brick", image: unsplash("1704005445445-2747074be8ac", 800), text: "Brick Work is the stage where masons lay brick or block walls course by course inside the structural frame, shaping every room and door or window opening." },
+  { id: "plastering", n: "05", title: "Plastering", icon: "trowel", image: unsplash("1779971685817-77e596abd71a", 800), text: "Plastering is the stage where cement or gypsum plaster is applied to interior and exterior walls, creating the smooth surface that wiring, tiling and paint go on next." },
+  { id: "electrical", n: "06", title: "Electrical", icon: "bolt", image: unsplash("1621905251189-08b45d6a269e", 800), text: "Electrical is the stage where wiring, conduits and switchboards are routed through the walls and slabs — it has to happen before flooring and painting close up the surfaces." },
+  { id: "plumbing", n: "07", title: "Plumbing", icon: "drop", image: unsplash("1695002817411-203c7f19dfa3", 800), text: "Plumbing is the stage where water supply lines, drainage pipes and fittings are laid to code, then pressure-tested and sealed before the floor goes over them." },
+  { id: "flooring", n: "08", title: "Flooring", icon: "grid", image: unsplash("1560185008-b033106af5c3", 800), text: "Flooring is the stage where tiles, wood or stone are laid room by room over the completed plumbing and electrical work, then levelled and finished." },
+  { id: "painting", n: "09", title: "Painting", icon: "brush", image: unsplash("1516962080544-eac695c93791", 800), text: "Painting is the stage where primer and finish coats are applied to every interior and exterior wall, in the colours and finish chosen during planning." },
+  { id: "interior", n: "10", title: "Interior", icon: "sofa", image: unsplash("1583847268964-b28dc8f51f92", 800), text: "Interior is the stage where modular kitchens, wardrobes, lighting and furnishing are fitted, turning the finished shell into a livable home." },
+  { id: "handover", n: "11", title: "Handover", icon: "key", image: unsplash("1560518883-ce09059eeffa", 800), text: "Handover is the final stage: a joint walkthrough with the builder, a snag list of any defects to fix, then the keys and completion documents are handed to the owner." },
 ];
 
 export const heroImage = unsplash("1600585154340-be6161a56a0c", 1200);
