@@ -109,6 +109,35 @@ const contactSocialIconStyle: CSSProperties = {
   placeItems: "center",
 };
 
+// Same accounts as SiteFooter's SOCIALS.
+const CONTACT_SOCIALS: { icon: IconName; href: string; label: string }[] = [
+  {
+    icon: "facebook",
+    href: "https://www.facebook.com/homedotapps/",
+    label: "HomeDot on Facebook",
+  },
+  {
+    icon: "instagram",
+    href: "https://www.instagram.com/homedotapp/",
+    label: "HomeDot on Instagram",
+  },
+  {
+    icon: "linkedin",
+    href: "https://in.linkedin.com/company/homedotapp",
+    label: "HomeDot on LinkedIn",
+  },
+  {
+    icon: "youtube",
+    href: "https://www.youtube.com/@Hometechmalayalam",
+    label: "HomeDot on YouTube",
+  },
+  {
+    icon: "whatsapp",
+    href: `https://wa.me/91${CONTACT_PHONE}`,
+    label: "Chat with HomeDot on WhatsApp",
+  },
+];
+
 export default function LandingScreen() {
   const loginModalRef = useRef<LoginModalHandle>(null);
 
@@ -2964,13 +2993,18 @@ function ContactSection() {
             </div>
           </div>
           <div style={{ display: "flex", gap: spacing.md }}>
-            {(["facebook", "twitter", "instagram", "linkedin"] as const).map(
-              (icon) => (
-                <span key={icon} style={contactSocialIconStyle}>
-                  <Icon name={icon} size={18} color={colors.white} />
-                </span>
-              ),
-            )}
+            {CONTACT_SOCIALS.map((s) => (
+              <a
+                key={s.icon}
+                href={s.href}
+                target="_blank"
+                rel="noopener noreferrer"
+                aria-label={s.label}
+                style={contactSocialIconStyle}
+              >
+                <Icon name={s.icon} size={18} color={colors.white} />
+              </a>
+            ))}
           </div>
         </div>
       </Reveal>

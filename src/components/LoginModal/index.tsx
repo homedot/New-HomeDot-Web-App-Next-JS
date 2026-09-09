@@ -8,6 +8,7 @@ import {
   useRef,
   useState,
 } from "react";
+import { createPortal } from "react-dom";
 import { useRouter } from "next/navigation";
 import { getRecaptchaToken } from "@/utils/recaptcha";
 import { colors } from "@/constants/colors";
@@ -98,10 +99,19 @@ const LoginModal = forwardRef<LoginModalHandle, LoginModalProps>(
     const [proLocation, setProLocation] = useState<LocationValue | null>(null);
     const otpRefs = useRef<(HTMLInputElement | null)[]>([]);
     const emailFieldRef = useRef<EmailFieldHandle>(null);
+    // Portal target guard: `document` doesn't exist during SSR, and even on
+    // the client the very first render must match the server's markup to
+    // avoid a hydration mismatch — so this flips true only after mount.
+    const [mounted, setMounted] = useState(false);
 
     useImperativeHandle(ref, () => ({
       open: () => setOpen(true),
     }));
+
+    useEffect(() => {
+      // eslint-disable-next-line react-hooks/set-state-in-effect -- mount-detection guard for the portal target (document.body), which doesn't exist during SSR
+      setMounted(true);
+    }, []);
 
     // `loggedIn` otherwise only ever gets set true by finishSuccess() at the
     // end of a live login flow in this modal — a returning visitor who
@@ -474,212 +484,219 @@ const LoginModal = forwardRef<LoginModalHandle, LoginModalProps>(
             </Button>
           ))}
 
-        {open && (
-          <div
-            className="login-overlay"
-            onClick={close}
-            style={{
-              position: "fixed",
-              inset: 0,
-              zIndex: 1000,
-              background: colors.overlay,
-              backdropFilter: "blur(7px)",
-              display: "flex",
-              justifyContent: "center",
-              alignItems: isWideStep ? "flex-start" : "center",
-              overflowY: "auto",
-              padding: isWideStep ? "40px 20px" : 20,
-            }}
-          >
+        {mounted &&
+          open &&
+          createPortal(
             <div
-              className="login-modal"
-              onClick={(e) => e.stopPropagation()}
+              className="login-overlay"
+              onClick={close}
               style={{
-                position: "relative",
-                width: isWideStep ? "min(640px, 100%)" : "min(880px, 100%)",
-                maxHeight: isWideStep ? undefined : "94vh",
-                overflow: isWideStep ? "visible" : "hidden",
-                display: "grid",
-                gridTemplateColumns: isWideStep ? "1fr" : "1fr 1.05fr",
-                background: colors.card,
-                borderRadius: 24,
-                boxShadow: "0 40px 90px -30px rgba(10,20,34,0.6)",
-                flexShrink: 0,
+                position: "fixed",
+                inset: 0,
+                zIndex: 1000,
+                background: colors.overlay,
+                backdropFilter: "blur(7px)",
+                display: "flex",
+                justifyContent: "center",
+                alignItems: isWideStep ? "flex-start" : "center",
+                overflowY: "auto",
+                padding: isWideStep ? "40px 20px" : 20,
               }}
             >
-              <button
-                onClick={close}
-                aria-label="Close"
+              <div
+                className="login-modal"
+                onClick={(e) => e.stopPropagation()}
                 style={{
-                  position: "absolute",
-                  right: 16,
-                  top: 16,
-                  zIndex: 5,
-                  width: 38,
-                  height: 38,
+                  position: "relative",
+                  width: isWideStep ? "min(640px, 100%)" : "min(880px, 100%)",
+                  maxHeight: isWideStep ? undefined : "94vh",
+                  overflow: isWideStep ? "visible" : "hidden",
+                  display: "grid",
+                  gridTemplateColumns: isWideStep ? "1fr" : "1fr 1.05fr",
+                  background: colors.card,
+                  borderRadius: 24,
+                  boxShadow: "0 40px 90px -30px rgba(10,20,34,0.6)",
+                  flexShrink: 0,
+                }}
+              >
+                <button
+                  onClick={close}
+                  aria-label="Close"
+                  style={{
+                    position: "absolute",
+                    right: 16,
+                    top: 16,
+                    zIndex: 5,
+                    width: 38,
+                    height: 38,
+                    borderRadius: "50%",
+                    background: isWideStep
+                      ? "rgba(16,28,48,0.08)"
+                      : "rgba(255,255,255,0.16)",
+                    color: isWideStep ? colors.ink : colors.white,
+                    display: "grid",
+                    placeItems: "center",
+                  }}
+                >
+                  <Icon
+                    name="close"
+                    size={20}
+                    color={isWideStep ? colors.ink : colors.white}
+                  />
+                </button>
+
+                {!isWideStep && <BrandPanel />}
+
+                <div
+                  style={{
+                    padding: "38px 36px",
+                    display: "flex",
+                    flexDirection: "column",
+                    justifyContent: isWideStep ? "flex-start" : "center",
+                    overflowY: isWideStep ? "visible" : "auto",
+                    minHeight: isWideStep ? undefined : 0,
+                    minWidth: 0,
+                  }}
+                >
+                  {step === "method" && (
+                    <MethodStep
+                      method={method}
+                      setMethod={(m) => {
+                        setMethod(m);
+                        setValue("");
+                      }}
+                      value={value}
+                      setValue={setValue}
+                      cc={cc}
+                      setCc={setCc}
+                      digitLimit={digitLimit}
+                      valid={valid}
+                      shake={shake}
+                      checking={checking}
+                      error={checkError}
+                      onSubmit={sendOtp}
+                      emailFieldRef={emailFieldRef}
+                    />
+                  )}
+
+                  {step === "otp" && (
+                    <OtpStep
+                      masked={masked}
+                      otp={otp}
+                      otpRefs={otpRefs}
+                      setDigit={setDigit}
+                      onOtpKey={onOtpKey}
+                      onOtpPaste={onOtpPaste}
+                      shake={shake}
+                      otpFull={otpFull}
+                      secs={secs}
+                      verifying={verifying}
+                      error={otpError}
+                      onBack={goBackToMethod}
+                      onVerify={verify}
+                      onResend={resendOtp}
+                    />
+                  )}
+
+                  {step === "role" && (
+                    <RoleStep
+                      onSelect={(r) =>
+                        setStep(r === "user" ? "userForm" : "proLocation")
+                      }
+                    />
+                  )}
+
+                  {step === "userForm" && (
+                    <UserFormStep
+                      method={method}
+                      contactValue={value}
+                      countryCode={cc}
+                      onBack={() => setStep("role")}
+                      onSubmit={submitUserForm}
+                    />
+                  )}
+
+                  {step === "proLocation" && (
+                    <ProLocationStep
+                      initialLocation={proLocation}
+                      onBack={() => setStep("role")}
+                      onContinue={(loc) => {
+                        setProLocation(loc);
+                        setStep("proForm");
+                      }}
+                    />
+                  )}
+
+                  {step === "proForm" && proLocation && (
+                    <ProFormStep
+                      method={method}
+                      contactValue={value}
+                      countryCode={cc}
+                      location={proLocation}
+                      onChangeLocation={() => setStep("proLocation")}
+                      onBack={() => setStep("proLocation")}
+                      onSubmit={submitProForm}
+                    />
+                  )}
+
+                  {step === "success" && (
+                    <SuccessStep
+                      title={isNewUser ? "Account created!" : undefined}
+                      subtitle={
+                        isNewUser
+                          ? "Welcome to HomeDot. Taking you in…"
+                          : undefined
+                      }
+                    />
+                  )}
+                </div>
+              </div>
+            </div>,
+            document.body,
+          )}
+
+        {mounted &&
+          toast &&
+          createPortal(
+            <div
+              style={{
+                position: "fixed",
+                bottom: 24,
+                left: "50%",
+                transform: "translateX(-50%)",
+                zIndex: 1100,
+                display: "flex",
+                alignItems: "center",
+                gap: 10,
+                background: colors.ink,
+                color: colors.white,
+                padding: "10px 20px 10px 12px",
+                borderRadius: radius.full,
+                fontSize: fontSize.sm,
+                fontWeight: 600,
+                boxShadow: shadow.lg,
+                animation:
+                  "pdToastIn 0.25s cubic-bezier(0.2, 0.8, 0.3, 1.2) both",
+              }}
+            >
+              <span
+                style={{
+                  width: 22,
+                  height: 22,
                   borderRadius: "50%",
-                  background: isWideStep
-                    ? "rgba(16,28,48,0.08)"
-                    : "rgba(255,255,255,0.16)",
-                  color: isWideStep ? colors.ink : colors.white,
+                  background: "rgba(52,211,153,0.2)",
+                  color: "#34D399",
                   display: "grid",
                   placeItems: "center",
+                  flexShrink: 0,
                 }}
               >
-                <Icon
-                  name="close"
-                  size={20}
-                  color={isWideStep ? colors.ink : colors.white}
-                />
-              </button>
-
-              {!isWideStep && <BrandPanel />}
-
-              <div
-                style={{
-                  padding: "38px 36px",
-                  display: "flex",
-                  flexDirection: "column",
-                  justifyContent: isWideStep ? "flex-start" : "center",
-                  overflowY: isWideStep ? "visible" : "auto",
-                  minHeight: isWideStep ? undefined : 0,
-                  minWidth: 0,
-                }}
-              >
-                {step === "method" && (
-                  <MethodStep
-                    method={method}
-                    setMethod={(m) => {
-                      setMethod(m);
-                      setValue("");
-                    }}
-                    value={value}
-                    setValue={setValue}
-                    cc={cc}
-                    setCc={setCc}
-                    digitLimit={digitLimit}
-                    valid={valid}
-                    shake={shake}
-                    checking={checking}
-                    error={checkError}
-                    onSubmit={sendOtp}
-                    emailFieldRef={emailFieldRef}
-                  />
-                )}
-
-                {step === "otp" && (
-                  <OtpStep
-                    masked={masked}
-                    otp={otp}
-                    otpRefs={otpRefs}
-                    setDigit={setDigit}
-                    onOtpKey={onOtpKey}
-                    onOtpPaste={onOtpPaste}
-                    shake={shake}
-                    otpFull={otpFull}
-                    secs={secs}
-                    verifying={verifying}
-                    error={otpError}
-                    onBack={goBackToMethod}
-                    onVerify={verify}
-                    onResend={resendOtp}
-                  />
-                )}
-
-                {step === "role" && (
-                  <RoleStep
-                    onSelect={(r) =>
-                      setStep(r === "user" ? "userForm" : "proLocation")
-                    }
-                  />
-                )}
-
-                {step === "userForm" && (
-                  <UserFormStep
-                    method={method}
-                    contactValue={value}
-                    countryCode={cc}
-                    onBack={() => setStep("role")}
-                    onSubmit={submitUserForm}
-                  />
-                )}
-
-                {step === "proLocation" && (
-                  <ProLocationStep
-                    initialLocation={proLocation}
-                    onBack={() => setStep("role")}
-                    onContinue={(loc) => {
-                      setProLocation(loc);
-                      setStep("proForm");
-                    }}
-                  />
-                )}
-
-                {step === "proForm" && proLocation && (
-                  <ProFormStep
-                    method={method}
-                    contactValue={value}
-                    countryCode={cc}
-                    location={proLocation}
-                    onChangeLocation={() => setStep("proLocation")}
-                    onBack={() => setStep("proLocation")}
-                    onSubmit={submitProForm}
-                  />
-                )}
-
-                {step === "success" && (
-                  <SuccessStep
-                    title={isNewUser ? "Account created!" : undefined}
-                    subtitle={
-                      isNewUser
-                        ? "Welcome to HomeDot. Taking you in…"
-                        : undefined
-                    }
-                  />
-                )}
-              </div>
-            </div>
-          </div>
-        )}
-
-        {toast && (
-          <div
-            style={{
-              position: "fixed",
-              bottom: 24,
-              left: "50%",
-              transform: "translateX(-50%)",
-              zIndex: 1100,
-              display: "flex",
-              alignItems: "center",
-              gap: 10,
-              background: colors.ink,
-              color: colors.white,
-              padding: "10px 20px 10px 12px",
-              borderRadius: radius.full,
-              fontSize: fontSize.sm,
-              fontWeight: 600,
-              boxShadow: shadow.lg,
-              animation: "pdToastIn 0.25s cubic-bezier(0.2, 0.8, 0.3, 1.2) both",
-            }}
-          >
-            <span
-              style={{
-                width: 22,
-                height: 22,
-                borderRadius: "50%",
-                background: "rgba(52,211,153,0.2)",
-                color: "#34D399",
-                display: "grid",
-                placeItems: "center",
-                flexShrink: 0,
-              }}
-            >
-              <Icon name="check" size={13} strokeWidth={3} />
-            </span>
-            {toast}
-          </div>
-        )}
+                <Icon name="check" size={13} strokeWidth={3} />
+              </span>
+              {toast}
+            </div>,
+            document.body,
+          )}
       </>
     );
   },

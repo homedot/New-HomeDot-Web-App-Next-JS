@@ -8,6 +8,7 @@ import {
   useState,
   type CSSProperties,
 } from "react";
+import { createPortal } from "react-dom";
 import { colors } from "@/constants/colors";
 import { spacing, radius, fontSize, shadow } from "@/utils/size";
 import Icon from "@/components/Icon";
@@ -23,161 +24,170 @@ export interface ContactModalHandle {
 
 /** Popup shown when a visitor clicks "Contact" in the nav — a quick way to
  * reach HomeDot by phone or email without leaving the page. */
-const ContactModal = forwardRef<ContactModalHandle>(function ContactModal(
-  _props,
-  ref,
-) {
-  const [open, setOpen] = useState(false);
+const ContactModal = forwardRef<ContactModalHandle>(
+  function ContactModal(_props, ref) {
+    const [open, setOpen] = useState(false);
+    // Portal target guard: `document` doesn't exist during SSR, and even on
+    // the client the very first render must match the server's markup to
+    // avoid a hydration mismatch — so this flips true only after mount.
+    const [mounted, setMounted] = useState(false);
 
-  useImperativeHandle(ref, () => ({
-    open: () => setOpen(true),
-  }));
+    useImperativeHandle(ref, () => ({
+      open: () => setOpen(true),
+    }));
 
-  const close = useCallback(() => setOpen(false), []);
+    useEffect(() => {
+      // eslint-disable-next-line react-hooks/set-state-in-effect -- mount-detection guard for the portal target (document.body), which doesn't exist during SSR
+      setMounted(true);
+    }, []);
 
-  useEffect(() => {
-    if (!open) return;
-    const onKey = (e: KeyboardEvent) => {
-      if (e.key === "Escape") close();
-    };
-    window.addEventListener("keydown", onKey);
-    return () => window.removeEventListener("keydown", onKey);
-  }, [open, close]);
+    const close = useCallback(() => setOpen(false), []);
 
-  if (!open) return null;
+    useEffect(() => {
+      if (!open) return;
+      const onKey = (e: KeyboardEvent) => {
+        if (e.key === "Escape") close();
+      };
+      window.addEventListener("keydown", onKey);
+      return () => window.removeEventListener("keydown", onKey);
+    }, [open, close]);
 
-  return (
-    <div
-      onClick={close}
-      style={{
-        position: "fixed",
-        inset: 0,
-        zIndex: 1000,
-        background: colors.overlay,
-        backdropFilter: "blur(7px)",
-        display: "flex",
-        justifyContent: "center",
-        alignItems: "center",
-        overflowY: "auto",
-        padding: 20,
-      }}
-    >
+    if (!open || !mounted) return null;
+
+    return createPortal(
       <div
-        onClick={(e) => e.stopPropagation()}
+        onClick={close}
         style={{
-          position: "relative",
-          width: "min(420px, 100%)",
-          background: colors.card,
-          borderRadius: 24,
-          boxShadow: "0 40px 90px -30px rgba(10,20,34,0.6)",
-          padding: "34px 30px",
-          textAlign: "center",
+          position: "fixed",
+          inset: 0,
+          zIndex: 1000,
+          background: colors.overlay,
+          backdropFilter: "blur(7px)",
+          display: "flex",
+          justifyContent: "center",
+          alignItems: "center",
+          overflowY: "auto",
+          padding: 20,
         }}
       >
-        <button
-          onClick={close}
-          aria-label="Close"
-          style={{
-            position: "absolute",
-            right: 16,
-            top: 16,
-            width: 38,
-            height: 38,
-            borderRadius: "50%",
-            background: "rgba(16,28,48,0.08)",
-            color: colors.ink,
-            display: "grid",
-            placeItems: "center",
-          }}
-        >
-          <Icon name="close" size={20} color={colors.ink} />
-        </button>
-
-        <span
-          style={{
-            width: 64,
-            height: 64,
-            borderRadius: "50%",
-            background: colors.primarySoft,
-            color: colors.primary,
-            display: "grid",
-            placeItems: "center",
-            margin: "0 auto 18px",
-          }}
-        >
-          <Icon name="chat" size={26} />
-        </span>
-
-        <h2
-          style={{
-            fontFamily: "var(--font-display)",
-            fontSize: fontSize.xl,
-            fontWeight: 600,
-            marginBottom: 8,
-          }}
-        >
-          Get in touch
-        </h2>
-        <p
-          style={{
-            color: colors.muted,
-            fontSize: fontSize.base,
-            lineHeight: 1.6,
-            maxWidth: 320,
-            margin: "0 auto",
-          }}
-        >
-          Questions about a property or professional? We&apos;re happy to
-          help.
-        </p>
-
         <div
-          className="grid grid-cols-1 sm:grid-cols-2"
-          style={{ gap: 14, marginTop: 26, marginBottom: 20 }}
-        >
-          <ContactTile
-            icon="phone"
-            label="Call us"
-            value={`+91 ${PHONE.slice(0, 5)} ${PHONE.slice(5)}`}
-            href={`tel:${PHONE}`}
-          />
-          <ContactTile
-            icon="mail"
-            label="Email us"
-            value={EMAIL}
-            href={`mailto:${EMAIL}`}
-          />
-        </div>
-
-        <div
+          onClick={(e) => e.stopPropagation()}
           style={{
-            display: "flex",
-            alignItems: "flex-start",
-            gap: 10,
-            background: colors.primarySoft,
-            borderRadius: radius.md,
-            padding: 14,
-            textAlign: "left",
-            boxShadow: shadow.sm,
+            position: "relative",
+            width: "min(420px, 100%)",
+            background: colors.card,
+            borderRadius: 24,
+            boxShadow: "0 40px 90px -30px rgba(10,20,34,0.6)",
+            padding: "34px 30px",
+            textAlign: "center",
           }}
         >
-          <Icon name="clock" size={16} color={colors.primary} />
-          <p
+          <button
+            onClick={close}
+            aria-label="Close"
             style={{
-              fontSize: fontSize.sm - 0.5,
-              color: colors.ink2,
-              lineHeight: 1.6,
-              margin: 0,
+              position: "absolute",
+              right: 16,
+              top: 16,
+              width: 38,
+              height: 38,
+              borderRadius: "50%",
+              background: "rgba(16,28,48,0.08)",
+              color: colors.ink,
+              display: "grid",
+              placeItems: "center",
             }}
           >
-            Our support team typically responds within 24 hours on business
-            days.
+            <Icon name="close" size={20} color={colors.ink} />
+          </button>
+
+          <span
+            style={{
+              width: 64,
+              height: 64,
+              borderRadius: "50%",
+              background: colors.primarySoft,
+              color: colors.primary,
+              display: "grid",
+              placeItems: "center",
+              margin: "0 auto 18px",
+            }}
+          >
+            <Icon name="chat" size={26} />
+          </span>
+
+          <h2
+            style={{
+              fontFamily: "var(--font-display)",
+              fontSize: fontSize.xl,
+              fontWeight: 600,
+              marginBottom: 8,
+            }}
+          >
+            Get in touch
+          </h2>
+          <p
+            style={{
+              color: colors.muted,
+              fontSize: fontSize.base,
+              lineHeight: 1.6,
+              maxWidth: 320,
+              margin: "0 auto",
+            }}
+          >
+            Questions about a property or professional? We&apos;re happy to
+            help.
           </p>
+
+          <div
+            className="grid grid-cols-1 sm:grid-cols-2"
+            style={{ gap: 14, marginTop: 26, marginBottom: 20 }}
+          >
+            <ContactTile
+              icon="phone"
+              label="Call us"
+              value={`+91 ${PHONE.slice(0, 5)} ${PHONE.slice(5)}`}
+              href={`tel:${PHONE}`}
+            />
+            <ContactTile
+              icon="mail"
+              label="Email us"
+              value={EMAIL}
+              href={`mailto:${EMAIL}`}
+            />
+          </div>
+
+          <div
+            style={{
+              display: "flex",
+              alignItems: "flex-start",
+              gap: 10,
+              background: colors.primarySoft,
+              borderRadius: radius.md,
+              padding: 14,
+              textAlign: "left",
+              boxShadow: shadow.sm,
+            }}
+          >
+            <Icon name="clock" size={16} color={colors.primary} />
+            <p
+              style={{
+                fontSize: fontSize.sm - 0.5,
+                color: colors.ink2,
+                lineHeight: 1.6,
+                margin: 0,
+              }}
+            >
+              Our support team typically responds within 24 hours on business
+              days.
+            </p>
+          </div>
         </div>
-      </div>
-    </div>
-  );
-});
+      </div>,
+      document.body,
+    );
+  },
+);
 
 export default ContactModal;
 
