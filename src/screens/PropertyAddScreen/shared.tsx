@@ -72,6 +72,17 @@ export type AllFieldKey =
   | "state"
   | "country";
 
+// Listing title placeholder is an example, so it should read like a listing
+// of that kind — "3 BHK Villa…" makes no sense once the user has picked
+// Plot, which has no bedrooms/furnishing at all.
+export const TITLE_PLACEHOLDER: Record<PropertyKind, string> = {
+  villa: "e.g. 3 BHK Villa with private courtyard",
+  house: "e.g. 4 BHK Independent House near city center",
+  flat: "e.g. 2 BHK Flat with balcony in a gated community",
+  office: "e.g. Furnished office space in a prime commercial hub",
+  plot: "e.g. 5 Cent residential plot in a gated layout",
+};
+
 export const KIND_ICON: Record<PropertyKind, IconName> = {
   villa: "villa",
   house: "house",

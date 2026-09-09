@@ -12,6 +12,7 @@ import {
   Field,
   KIND_FIELDS,
   SelectField,
+  TITLE_PLACEHOLDER,
   fieldInputStyle,
   getMinPrice,
   getMissingFields,
@@ -202,7 +203,7 @@ export default function DetailsStep({
           <div style={inputWrap}>
             <input
               type="text"
-              placeholder="e.g. 3 BHK Villa with private courtyard"
+              placeholder={TITLE_PLACEHOLDER[kind]}
               value={form.title}
               onChange={(e) => set("title", e.target.value)}
               style={fieldInputStyle}
