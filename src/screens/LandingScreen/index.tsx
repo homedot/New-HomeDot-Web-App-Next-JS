@@ -1791,6 +1791,11 @@ function StageNode({
   );
 }
 
+// Clicking (or tapping) a card pins it open; hovering with a mouse previews
+// the same expanded state without needing a click, so a cursor "resting" on
+// a card reads as deliberate as a tap does on touch. Only one card expands
+// at a time via CSS :hover for the preview, but the pinned click state is
+// per-card local state so several can stay open together.
 function StageCard({
   stage,
   full,
@@ -1798,9 +1803,22 @@ function StageCard({
   stage: (typeof constructionStages)[number];
   full?: boolean;
 }) {
+  const [pinned, setPinned] = useState(false);
+  const toggle = () => setPinned((v) => !v);
+
   return (
     <div
-      className="card-hover"
+      className={`card-hover stage-card${pinned ? " stage-card-pinned" : ""}`}
+      role="button"
+      tabIndex={0}
+      aria-expanded={pinned}
+      onClick={toggle}
+      onKeyDown={(e) => {
+        if (e.key === "Enter" || e.key === " ") {
+          e.preventDefault();
+          toggle();
+        }
+      }}
       style={{
         width: "100%",
         maxWidth: full ? undefined : 360,
@@ -1810,17 +1828,19 @@ function StageCard({
         border: `1px solid ${colors.line}`,
         boxShadow: shadow.sm,
         textAlign: "left",
+        cursor: "pointer",
       }}
     >
-      <div style={{ position: "relative", height: 150, overflow: "hidden" }}>
+      <div className="stage-card-media" style={{ position: "relative", height: 150, overflow: "hidden" }}>
         {/* eslint-disable-next-line @next/next/no-img-element */}
         <img
           src={stage.image}
           alt={stage.title}
-          className="card-hover-img"
+          className="card-hover-img stage-card-img"
           style={{ width: "100%", height: "100%", objectFit: "cover" }}
         />
         <span
+          className="stage-card-badge"
           style={{
             position: "absolute",
             top: 10,
@@ -1839,12 +1859,17 @@ function StageCard({
         </span>
       </div>
       <div style={{ padding: spacing.lg }}>
-        <h3 style={{ fontSize: fontSize.md + 1, fontWeight: 700, marginBottom: 6 }}>
-          {stage.title}
-        </h3>
-        <p style={{ color: colors.muted, fontSize: fontSize.base - 1, lineHeight: 1.5 }}>
-          {stage.text}
-        </p>
+        <div style={{ display: "flex", alignItems: "center", justifyContent: "space-between", gap: spacing.sm }}>
+          <h3 className="stage-card-title" style={{ fontSize: fontSize.md + 1, fontWeight: 700, marginBottom: 6 }}>
+            {stage.title}
+          </h3>
+          <Icon name="chevronDown" size={16} color={colors.muted} className="stage-card-chevron" />
+        </div>
+        <div className="stage-card-desc-wrap">
+          <p className="stage-card-desc" style={{ color: colors.muted, fontSize: fontSize.base - 1, lineHeight: 1.5 }}>
+            {stage.text}
+          </p>
+        </div>
       </div>
     </div>
   );

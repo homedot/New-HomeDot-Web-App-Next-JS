@@ -2147,3 +2147,132 @@ body.has-cursor * {
     animation: none;
   }
 }
+
+/* Stage cards (ConstructionStages): clicking/tapping pins a card open
+   (.stage-card-pinned, toggled by React state so it works on touch); resting
+   the cursor on one previews the same expanded state without a click. Both
+   states lift + scale the card, tint its border/badge/title accent-blue, zoom
+   its photo further, unclamp its description, and flip the chevron — driven
+   entirely by CSS so the two triggers stay in sync with no extra JS. */
+.stage-card {
+  position: relative;
+  transition: transform 0.35s cubic-bezier(0.16, 1, 0.3, 1),
+    box-shadow 0.35s cubic-bezier(0.16, 1, 0.3, 1), border-color 0.3s ease;
+}
+
+.stage-card-title {
+  transition: color 0.3s ease;
+}
+
+.stage-card-badge {
+  transition: background 0.3s ease;
+}
+
+.stage-card-chevron {
+  transition: transform 0.35s cubic-bezier(0.16, 1, 0.3, 1);
+  flex-shrink: 0;
+}
+
+.stage-card-desc-wrap {
+  position: relative;
+  max-height: 44px;
+  overflow: hidden;
+  transition: max-height 0.45s cubic-bezier(0.16, 1, 0.3, 1);
+}
+
+.stage-card-desc-wrap::after {
+  content: "";
+  position: absolute;
+  inset: auto 0 0 0;
+  height: 20px;
+  background: linear-gradient(180deg, rgba(255, 255, 255, 0), #ffffff);
+  transition: opacity 0.3s ease;
+}
+
+.stage-card-desc {
+  margin: 0;
+}
+
+.stage-card-pinned,
+.stage-card-pinned .stage-card-desc-wrap,
+.stage-card-pinned .stage-card-chevron {
+  z-index: 3;
+}
+
+/* Compound selector (not bare .stage-card-pinned) so this outranks
+   .card-hover:hover's specificity — needed because some touch browsers
+   apply a sticky :hover after a tap, and that rule must not win over the
+   pinned-open state it's competing with here. */
+.stage-card.stage-card-pinned {
+  transform: translateY(-6px) scale(1.015);
+  box-shadow: 0 32px 64px -20px rgba(41, 151, 255, 0.3), 0 12px 28px -12px rgba(16, 28, 48, 0.16);
+  border-color: #2997ff; /* colors.accent */
+}
+
+.stage-card-pinned .stage-card-desc-wrap {
+  max-height: 260px;
+}
+
+.stage-card-pinned .stage-card-desc-wrap::after {
+  opacity: 0;
+}
+
+.stage-card-pinned .stage-card-chevron {
+  transform: rotate(180deg);
+}
+
+.stage-card-pinned .stage-card-title {
+  color: #2997ff; /* colors.accent */
+}
+
+.stage-card-pinned .stage-card-badge {
+  background: #2997ff; /* colors.accent */
+}
+
+.stage-card.stage-card-pinned .stage-card-img {
+  transform: scale(1.08);
+}
+
+/* Hover-only preview — gated behind (hover: hover) so a tap-triggered
+   :hover on touch devices doesn't get stuck open; touch users rely on the
+   click-driven .stage-card-pinned above instead. */
+@media (hover: hover) and (pointer: fine) {
+  .stage-card:hover {
+    transform: translateY(-6px) scale(1.015);
+    box-shadow: 0 32px 64px -20px rgba(41, 151, 255, 0.3), 0 12px 28px -12px rgba(16, 28, 48, 0.16);
+    border-color: #2997ff; /* colors.accent */
+    z-index: 3;
+  }
+  .stage-card:hover .stage-card-desc-wrap {
+    max-height: 260px;
+  }
+  .stage-card:hover .stage-card-desc-wrap::after {
+    opacity: 0;
+  }
+  .stage-card:hover .stage-card-chevron {
+    transform: rotate(180deg);
+  }
+  .stage-card:hover .stage-card-title {
+    color: #2997ff; /* colors.accent */
+  }
+  .stage-card:hover .stage-card-badge {
+    background: #2997ff; /* colors.accent */
+  }
+  .stage-card:hover .stage-card-img {
+    transform: scale(1.08);
+  }
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .stage-card,
+  .stage-card-chevron,
+  .stage-card-desc-wrap,
+  .stage-card-title,
+  .stage-card-badge {
+    transition: none;
+  }
+  .stage-card-pinned,
+  .stage-card:hover {
+    transform: none;
+  }
+}
