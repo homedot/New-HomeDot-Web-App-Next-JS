@@ -41,7 +41,8 @@ export default function ProDashboardSidebar({ onLogout, loggingOut, bare = false
     { icon: "heart", label: "Favourites", href: "/professional/favorites" },
   ];
   const more: SidebarNavEntry[] = [
-    { icon: "share", label: "Refer & earn", href: "/professional/refer" },
+    // Refer & earn (professional side) — temporarily disabled.
+    // { icon: "share", label: "Refer & earn", href: "/professional/refer" },
     { icon: "settings", label: "Settings", href: "/professional/settings" },
     { icon: "phone", label: "Support", href: "/professional/support" },
   ];

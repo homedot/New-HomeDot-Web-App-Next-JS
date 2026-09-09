@@ -20,7 +20,9 @@ import LoginModal, { type LoginModalHandle } from "@/components/LoginModal";
 import AvatarLightbox from "@/components/AvatarLightbox";
 import ContactUpdateModal from "./ContactUpdateModal";
 import BecomeProfessionalModal from "./BecomeProfessionalModal";
-import InviteFriendPanel from "./InviteFriendPanel";
+// Refer & earn (user side) — temporarily disabled, see the "invite" tab
+// branch and its RailItem below.
+// import InviteFriendPanel from "./InviteFriendPanel";
 import HelpPanel from "./HelpPanel";
 import ProfileService, { resolveLatLng } from "@/services/ProfileService";
 import SwitchProfessionalService from "@/services/SwitchProfessionalService";
@@ -870,7 +872,9 @@ export default function ProfileScreen() {
                   )}
                 </>
               ) : tab === "invite" ? (
-                <InviteFriendPanel />
+                // Refer & earn (user side) — temporarily disabled.
+                // <InviteFriendPanel />
+                null
               ) : (
                 <HelpPanel />
               )}
@@ -903,12 +907,13 @@ export default function ProfileScreen() {
                   active={false}
                   onClick={() => router.push("/favorites")}
                 />
+                {/* Refer & earn (user side) — temporarily disabled.
                 <RailItem
                   icon="user"
                   label="Invite a Friend"
                   active={tab === "invite"}
                   onClick={() => goToTab("invite")}
-                />
+                /> */}
                 <RailItem
                   icon="shield"
                   label="Help"

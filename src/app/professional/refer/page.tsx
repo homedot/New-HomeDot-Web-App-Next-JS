@@ -1,6 +1,8 @@
 import type { Metadata } from "next";
-import { Suspense } from "react";
-import ProfessionalReferEarnScreen from "@/screens/ProfessionalReferEarnScreen";
+// Refer & earn (professional side) — temporarily disabled, along with its
+// nav links in ProDashboardSidebar and SiteFooter.
+// import { Suspense } from "react";
+// import ProfessionalReferEarnScreen from "@/screens/ProfessionalReferEarnScreen";
 
 export const metadata: Metadata = {
   title: "Refer & Earn | HomeDot Professional",
@@ -8,9 +10,10 @@ export const metadata: Metadata = {
 };
 
 export default function ProfessionalReferPage() {
-  return (
-    <Suspense fallback={null}>
-      <ProfessionalReferEarnScreen />
-    </Suspense>
-  );
+  return null;
+  // return (
+  //   <Suspense fallback={null}>
+  //     <ProfessionalReferEarnScreen />
+  //   </Suspense>
+  // );
 }

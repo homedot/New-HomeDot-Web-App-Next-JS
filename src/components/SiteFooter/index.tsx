@@ -67,7 +67,8 @@ const COLS: { h: string; icon: IconName; userOnly?: boolean; links: { label: str
       { label: "Enquiries", href: "/professional/enquiries" },
       { label: "My blogs", href: "/professional/blogs" },
       { label: "Workfolio", href: "/professional/workfolio" },
-      { label: "Refer & earn", href: "/professional/refer" },
+      // Refer & earn (professional side) — temporarily disabled.
+      // { label: "Refer & earn", href: "/professional/refer" },
     ],
   },
   {
