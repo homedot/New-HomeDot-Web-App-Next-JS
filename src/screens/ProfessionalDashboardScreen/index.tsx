@@ -1,6 +1,7 @@
 "use client";
 
 import { useEffect, useRef, useState, type CSSProperties } from "react";
+import { createPortal } from "react-dom";
 import { useRouter } from "next/navigation";
 import { colors } from "@/constants/colors";
 import { spacing, radius, fontSize, shadow, maxWidth } from "@/utils/size";
@@ -136,6 +137,42 @@ export default function ProfessionalDashboardScreen() {
   });
   const [loadingProjects, setLoadingProjects] = useState(true);
   const [loadingMoreProject, setLoadingMoreProject] = useState(false);
+  // ALL_PROJECTS has no total-count field to compare against (unlike the
+  // enquiries endpoint's totalCount.total_rows — see
+  // ProfessionalEnquiriesScreen's `enq.enquiryCounts[tab] > ...` gate), so
+  // "no more pages for this tab" can only be discovered by trying: a page
+  // whose bucket for this status comes back empty, or comes back containing
+  // only records we already have (the shared-page-bucketed-by-status API
+  // legitimately does this once a status bucket runs dry), marks it
+  // exhausted and hides "Show more" instead of refetching the same page
+  // forever.
+  const [exhaustedProjectTabs, setExhaustedProjectTabs] = useState<
+    Record<ProjectTab, boolean>
+  >({ ongoing: false, completed: false, cancelled: false });
+  // Surfaced on the exact click that discovers a tab is exhausted (the
+  // button then hides itself right after) — without this, that click just
+  // silently does nothing, which reads as broken rather than "that's all".
+  // "info" = ran out of pages, "error" = the fetch itself failed.
+  const [projectToast, setProjectToast] = useState<{
+    message: string;
+    variant: "info" | "error";
+  } | null>(null);
+
+  useEffect(() => {
+    if (!projectToast) return;
+    const t = setTimeout(() => setProjectToast(null), 4000);
+    return () => clearTimeout(t);
+  }, [projectToast]);
+
+  // Portal target guard: `document` doesn't exist during SSR, and even on
+  // the client the very first render must match the server's markup to
+  // avoid a hydration mismatch — so this flips true only after mount.
+  const [mounted, setMounted] = useState(false);
+
+  useEffect(() => {
+    // eslint-disable-next-line react-hooks/set-state-in-effect -- mount-detection guard for the portal target (document.body), which doesn't exist during SSR
+    setMounted(true);
+  }, []);
 
   const refreshProjects = async () => {
     setLoadingProjects(true);
@@ -149,6 +186,11 @@ export default function ProfessionalDashboardScreen() {
       cancelled: groups.cancelled ?? [],
     });
     setProjectPages({ ongoing: 1, completed: 1, cancelled: 1 });
+    setExhaustedProjectTabs({
+      ongoing: false,
+      completed: false,
+      cancelled: false,
+    });
   };
 
   const enq = useProfessionalEnquiries(refreshProjects);
@@ -201,17 +243,47 @@ export default function ProfessionalDashboardScreen() {
   };
 
   const loadMoreProjects = async (t: ProjectTab) => {
-    if (loadingMoreProject) return;
+    if (loadingMoreProject || exhaustedProjectTabs[t]) return;
     setLoadingMoreProject(true);
     const nextPage = projectPages[t] + 1;
     const res = await ProfessionalDashboardService.getProjects(nextPage);
     setLoadingMoreProject(false);
     const groups = res.data?.data?.[0];
     const next = groups?.[t];
-    if (res.success && res.data?.status && next && next.length > 0) {
-      setProjects((prev) => ({ ...prev, [t]: [...prev[t], ...next] }));
-      setProjectPages((p) => ({ ...p, [t]: nextPage }));
+    const label = PROJECT_TABS.find((pt) => pt.key === t)?.label ?? t;
+    const noMore = () => {
+      setExhaustedProjectTabs((e) => ({ ...e, [t]: true }));
+      setProjectToast({
+        message: `You're all caught up — no more ${label.toLowerCase()} projects to show.`,
+        variant: "info",
+      });
+    };
+    if (!res.success || !res.data?.status) {
+      // A genuine fetch failure, not "ran out of pages" — leave the tab
+      // loadable so the next click can retry, rather than marking it
+      // exhausted over what might just be a network hiccup.
+      setProjectToast({
+        message: "Couldn't load more projects. Please try again.",
+        variant: "error",
+      });
+      return;
     }
+    if (!next || next.length === 0) {
+      noMore();
+      return;
+    }
+    // The next page can come back holding only records this tab already
+    // has (the API buckets one shared page by status, so a status that's
+    // run dry keeps echoing whatever page it last had data on) — without
+    // this filter those re-appear as duplicate React keys.
+    const existingIds = new Set(projects[t].map((p) => p._id));
+    const fresh = next.filter((p) => !existingIds.has(p._id));
+    if (fresh.length === 0) {
+      noMore();
+      return;
+    }
+    setProjects((prev) => ({ ...prev, [t]: [...prev[t], ...fresh] }));
+    setProjectPages((p) => ({ ...p, [t]: nextPage }));
   };
 
   const info = home?.professionalInfo?.[0];
@@ -312,11 +384,13 @@ export default function ProfessionalDashboardScreen() {
               <ProfessionalProjectCard key={p._id} project={p} />
             ))}
           </Reveal>
-          <LoadMoreButton
-            onClick={() => loadMoreProjects(tab as ProjectTab)}
-            loading={loadingMoreProject}
-            label="Show more projects"
-          />
+          {!exhaustedProjectTabs[tab as ProjectTab] && (
+            <LoadMoreButton
+              onClick={() => loadMoreProjects(tab as ProjectTab)}
+              loading={loadingMoreProject}
+              label="Show more projects"
+            />
+          )}
         </>
       )}
     </>
@@ -355,7 +429,11 @@ export default function ProfessionalDashboardScreen() {
           viewport — see AvatarLightbox usage in ProfileScreen for the
           same fix applied there. */}
       {avatarExpanded && home?.profileImage && (
-        <AvatarLightbox src={home.profileImage} alt={home.name || "Profile photo"} onClose={() => setAvatarExpanded(false)} />
+        <AvatarLightbox
+          src={home.profileImage}
+          alt={home.name || "Profile photo"}
+          onClose={() => setAvatarExpanded(false)}
+        />
       )}
 
       {signedIn && home && (
@@ -692,26 +770,103 @@ export default function ProfessionalDashboardScreen() {
         />
       )}
 
-      {enq.toast && (
-        <div
-          style={{
-            position: "fixed",
-            bottom: 24,
-            left: "50%",
-            transform: "translateX(-50%)",
-            zIndex: 1100,
-            background: colors.ink,
-            color: colors.white,
-            padding: "12px 20px",
-            borderRadius: radius.full,
-            fontSize: fontSize.sm,
-            fontWeight: 600,
-            boxShadow: "0 20px 40px -14px rgba(0,0,0,0.35)",
-          }}
-        >
-          {enq.toast}
-        </div>
-      )}
+      {mounted &&
+        (enq.toast || projectToast) &&
+        createPortal(
+          <div
+            style={{
+              position: "fixed",
+              top: 24,
+              left: "50%",
+              transform: "translateX(-50%)",
+              zIndex: 1100,
+              display: "flex",
+              flexDirection: "column",
+              alignItems: "center",
+              gap: 10,
+            }}
+          >
+            {enq.toast && (
+              <div
+                className="pd-toast"
+                style={{
+                  background: colors.ink,
+                  color: colors.white,
+                  padding: "12px 20px",
+                  borderRadius: radius.full,
+                  fontSize: fontSize.sm,
+                  fontWeight: 600,
+                  boxShadow: "0 20px 40px -14px rgba(0,0,0,0.35)",
+                }}
+              >
+                {enq.toast}
+              </div>
+            )}
+
+            {projectToast && (
+              <div
+                className="pd-toast"
+                style={{
+                  display: "flex",
+                  alignItems: "center",
+                  gap: 10,
+                  background: colors.ink,
+                  color: colors.white,
+                  padding: "10px 12px 10px 14px",
+                  borderRadius: radius.full,
+                  fontSize: fontSize.sm,
+                  fontWeight: 600,
+                  boxShadow: "0 20px 40px -14px rgba(0,0,0,0.35)",
+                  maxWidth: "min(420px, 90vw)",
+                }}
+              >
+                <span
+                  style={{
+                    width: 24,
+                    height: 24,
+                    borderRadius: "50%",
+                    flexShrink: 0,
+                    display: "grid",
+                    placeItems: "center",
+                    background:
+                      projectToast.variant === "error"
+                        ? "rgba(229,72,77,0.22)"
+                        : "rgba(52,211,153,0.2)",
+                    color:
+                      projectToast.variant === "error" ? "#E5484D" : "#34D399",
+                  }}
+                >
+                  <Icon
+                    name={
+                      projectToast.variant === "error"
+                        ? "alertTriangle"
+                        : "check"
+                    }
+                    size={13}
+                    strokeWidth={3}
+                  />
+                </span>
+                <span style={{ flex: 1 }}>{projectToast.message}</span>
+                <button
+                  onClick={() => setProjectToast(null)}
+                  aria-label="Dismiss"
+                  style={{
+                    width: 22,
+                    height: 22,
+                    flexShrink: 0,
+                    borderRadius: "50%",
+                    display: "grid",
+                    placeItems: "center",
+                    color: "rgba(255,255,255,0.6)",
+                  }}
+                >
+                  <Icon name="close" size={13} color="rgba(255,255,255,0.6)" />
+                </button>
+              </div>
+            )}
+          </div>,
+          document.body,
+        )}
 
       <SiteFooter variant="professional" />
     </div>
@@ -991,7 +1146,9 @@ function ProfileRailCard({
         <button
           type="button"
           className="avatar-photo-btn"
-          aria-label={home.profileImage ? "View profile photo" : "Profile photo"}
+          aria-label={
+            home.profileImage ? "View profile photo" : "Profile photo"
+          }
           onClick={() => home.profileImage && onAvatarClick()}
           disabled={!home.profileImage}
           style={{
@@ -1015,11 +1172,22 @@ function ProfileRailCard({
               <img
                 src={home.profileImage}
                 alt=""
-                style={{ width: "100%", height: "100%", objectFit: "cover", display: "block" }}
+                style={{
+                  width: "100%",
+                  height: "100%",
+                  objectFit: "cover",
+                  display: "block",
+                }}
               />
               <span
                 className="avatar-photo-hint"
-                style={{ position: "absolute", inset: 0, background: "rgba(16,28,48,0.35)", display: "grid", placeItems: "center" }}
+                style={{
+                  position: "absolute",
+                  inset: 0,
+                  background: "rgba(16,28,48,0.35)",
+                  display: "grid",
+                  placeItems: "center",
+                }}
               >
                 <Icon name="search" size={16} color={colors.white} />
               </span>
