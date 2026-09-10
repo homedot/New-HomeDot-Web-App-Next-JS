@@ -5,6 +5,7 @@ import { spacing, fontSize, radius, maxWidth } from "@/utils/size";
 import Icon, { type IconName } from "@/components/Icon";
 import Brand from "@/components/Brand";
 import StoreButtons from "@/components/StoreButtons";
+import ServiceCategoryLinks from "./ServiceCategoryLinks";
 
 const wrap: CSSProperties = {
   maxWidth,
@@ -23,19 +24,29 @@ const SUPPORT_EMAIL = "mail@homedotapp.com";
 // grouping, so the footer actually surveys both sides of the platform
 // (mirrors the split RoleGate enforces between the user site and
 // /professional/*) instead of just marketing categories. Property-type
-// (Buy/Rent) and professional-category deep-links aren't wired here since
-// both are resolved against dynamic ids fetched at runtime (see
-// MarketplaceScreen's requestedPropertyTypeId / ProfessionalsScreen's
-// requestedCategoryId) — nothing static to link to — so those go to the
-// screen itself rather than a specific tab/filter.
+// (Buy/Rent) deep-links aren't wired here since they're resolved against
+// dynamic ids fetched at runtime (see MarketplaceScreen's
+// requestedPropertyTypeId) — nothing static to link to — so that column
+// goes to the screen itself rather than a specific tab/filter.
 //
-// `userOnly` marks the two columns that only make sense — and only stay
+// `userOnly` marks the columns that only make sense — and only stay
 // reachable — for a User-mode account: RoleGate bounces a Professional-mode
 // account straight back to /professional/dashboard from any route outside
 // /professional/* (and a small exempt list), so showing live links into
 // /marketplace, /favorites etc. on the professional-side footer would just
-// be dead clicks. variant="professional" (see below) filters them out.
-const COLS: { h: string; icon: IconName; userOnly?: boolean; links: { label: string; href: string }[] }[] = [
+// be dead clicks. `proOnly` is the mirror image, for the one column that
+// only makes sense on the professional-side footer. variant (see below)
+// filters both.
+const COLS: {
+  h: string;
+  icon: IconName;
+  userOnly?: boolean;
+  proOnly?: boolean;
+  // "For Professionals" renders <ServiceCategoryLinks> instead — its links
+  // are professional-category ids fetched at runtime, so there's nothing
+  // static to list here (see the comment above).
+  links: { label: string; href: string }[] | "serviceCategories";
+}[] = [
   {
     h: "For Homeowners",
     icon: "house",
@@ -62,13 +73,24 @@ const COLS: { h: string; icon: IconName; userOnly?: boolean; links: { label: str
   {
     h: "For Professionals",
     icon: "hardhat",
+    userOnly: true,
+    links: "serviceCategories",
+  },
+  // The professional-mode counterpart of "My Account" above — same heading,
+  // but the two never render together since they're opposite `userOnly` /
+  // `proOnly`. Mirrors ProDashboardSidebar's own nav (the professional's
+  // primary way to reach these), so this is a convenience footer echo of it.
+  {
+    h: "My Account",
+    icon: "user",
+    proOnly: true,
     links: [
-      { label: "Professional dashboard", href: "/professional/dashboard" },
+      { label: "Dashboard", href: "/professional/dashboard" },
       { label: "Enquiries", href: "/professional/enquiries" },
       { label: "My blogs", href: "/professional/blogs" },
       { label: "Workfolio", href: "/professional/workfolio" },
-      // Refer & earn (professional side) — temporarily disabled.
-      // { label: "Refer & earn", href: "/professional/refer" },
+      { label: "Favourites", href: "/professional/favorites" },
+      { label: "Settings", href: "/professional/settings" },
     ],
   },
   {
@@ -108,7 +130,9 @@ export default function SiteFooter({
   // otherwise be dead links RoleGate immediately bounces back.
   variant?: "user" | "professional";
 } = {}) {
-  const cols = variant === "professional" ? COLS.filter((c) => !c.userOnly) : COLS;
+  const cols = COLS.filter((c) =>
+    variant === "professional" ? !c.userOnly : !c.proOnly,
+  );
   const homeHref = variant === "professional" ? "/professional/dashboard" : "/";
   return (
     <footer
@@ -191,16 +215,20 @@ export default function SiteFooter({
               {c.h}
             </h4>
             <div style={{ display: "flex", flexDirection: "column" }}>
-              {c.links.map((l) =>
-                l.href.startsWith("mailto:") ? (
-                  <a key={l.label} href={l.href} style={linkStyle}>
-                    {l.label}
-                  </a>
-                ) : (
-                  <Link key={l.label} href={l.href} style={linkStyle}>
-                    {l.label}
-                  </Link>
-                ),
+              {c.links === "serviceCategories" ? (
+                <ServiceCategoryLinks linkStyle={linkStyle} />
+              ) : (
+                c.links.map((l) =>
+                  l.href.startsWith("mailto:") ? (
+                    <a key={l.label} href={l.href} style={linkStyle}>
+                      {l.label}
+                    </a>
+                  ) : (
+                    <Link key={l.label} href={l.href} style={linkStyle}>
+                      {l.label}
+                    </Link>
+                  ),
+                )
               )}
             </div>
           </div>

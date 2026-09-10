@@ -269,9 +269,30 @@ export default function PropertyDetail({
     window.setTimeout(() => nameInputRef.current?.focus(), 450);
   }
 
-  function handleShare() {
+  async function handleShare() {
     if (typeof window === "undefined") return;
     const shareData = { title: prop.title, url: window.location.href };
+    const imageUrl = prop.gallery?.[0];
+
+    // Prefer sharing the cover photo alongside the text/link — wa.me and a
+    // bare navigator.share() call can't attach media, only the OS share
+    // sheet's file support can, so this mirrors the WhatsApp button below.
+    if (imageUrl && navigator.share && navigator.canShare) {
+      try {
+        const res = await fetch(imageUrl);
+        const blob = await res.blob();
+        const file = new File([blob], `${prop.id}.jpg`, {
+          type: blob.type || "image/jpeg",
+        });
+        if (navigator.canShare({ ...shareData, files: [file] })) {
+          await navigator.share({ ...shareData, files: [file] });
+          return;
+        }
+      } catch {
+        // fall through to the link-only share below
+      }
+    }
+
     if (navigator.share) {
       navigator.share(shareData).catch(() => {});
       return;

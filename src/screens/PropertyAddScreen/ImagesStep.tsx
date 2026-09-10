@@ -23,6 +23,7 @@ interface ImageItem {
 // dropped PDF or video would silently queue an "upload" that fails
 // obscurely. Same story for size: nothing today stops someone from
 // dragging in a 200MB RAW photo.
+const MIN_IMAGES = 4;
 const MAX_IMAGES = 20;
 const MAX_FILE_SIZE_MB = 10;
 const MAX_FILE_SIZE_BYTES = MAX_FILE_SIZE_MB * 1024 * 1024;
@@ -135,7 +136,8 @@ export default function ImagesStep({
   };
 
   const uploading = items.some((i) => i.status === "uploading");
-  const hasUploaded = items.some((i) => i.status === "done");
+  const doneCount = items.filter((i) => i.status === "done").length;
+  const hasEnough = doneCount >= MIN_IMAGES;
   const atMax = items.length >= MAX_IMAGES;
 
   return (
@@ -166,7 +168,7 @@ export default function ImagesStep({
         Add photos
       </h1>
       <p style={{ fontSize: fontSize.base, color: colors.muted, marginBottom: spacing.xl - 2 }}>
-        Add at least one photo to continue. Listings with real photos get far more enquiries.
+        Add at least {MIN_IMAGES} photos to continue. Listings with real photos get far more enquiries.
       </p>
 
       <input
@@ -320,16 +322,19 @@ export default function ImagesStep({
         </div>
       )}
 
+      {!uploading && !hasEnough && (
+        <p style={{ fontSize: fontSize.sm, color: colors.muted, marginTop: spacing.md }}>
+          {doneCount}/{MIN_IMAGES} photos added — add {MIN_IMAGES - doneCount} more to continue.
+        </p>
+      )}
+
       <button
         onClick={() => {
-          if (uploading) return;
-          if (!hasUploaded) {
-            setError("Please add at least one photo before continuing.");
-            return;
-          }
+          if (uploading || !hasEnough) return;
           onContinue();
         }}
-        className={`login-cta${!uploading && hasUploaded ? " is-ready" : ""}`}
+        disabled={uploading || !hasEnough}
+        className={`login-cta${!uploading && hasEnough ? " is-ready" : ""}`}
         style={{
           display: "inline-flex",
           alignItems: "center",
@@ -343,7 +348,8 @@ export default function ImagesStep({
           color: colors.white,
           fontWeight: 600,
           fontSize: fontSize.md - 1,
-          opacity: uploading || !hasUploaded ? 0.5 : 1,
+          opacity: uploading || !hasEnough ? 0.5 : 1,
+          cursor: uploading || !hasEnough ? "not-allowed" : "pointer",
         }}
       >
         {uploading ? "Uploading…" : "Continue"}

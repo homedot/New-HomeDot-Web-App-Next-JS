@@ -1,6 +1,7 @@
 "use client";
 
-import { useEffect, useRef, type CSSProperties } from "react";
+import { useEffect, useRef, useState, type CSSProperties } from "react";
+import { createPortal } from "react-dom";
 import { colors } from "@/constants/colors";
 
 const TRAIL_COUNT = 7;
@@ -11,8 +12,24 @@ export default function Cursor() {
   const coreRef = useRef<HTMLDivElement>(null);
   const ringRef = useRef<HTMLDivElement>(null);
   const trailRefs = useRef<Array<HTMLDivElement | null>>([]);
+  // Portal target guard: `document` doesn't exist during SSR, and even on
+  // the client the very first render must match the server's markup to
+  // avoid a hydration mismatch — so this flips true only after mount.
+  const [mounted, setMounted] = useState(false);
 
   useEffect(() => {
+    // eslint-disable-next-line react-hooks/set-state-in-effect -- mount-detection guard for the portal target (document.body), which doesn't exist during SSR
+    setMounted(true);
+  }, []);
+
+  useEffect(() => {
+    // Bails until the portal-gated render below has actually committed —
+    // before that, layerRef/coreRef/ringRef are still null since nothing
+    // was rendered yet. Depending on `mounted` (rather than `[]`) re-runs
+    // this once that render lands, instead of running only once against a
+    // still-null first render and never again.
+    if (!mounted) return;
+
     const fine = window.matchMedia("(hover: hover) and (pointer: fine)").matches;
     if (!fine) return;
 
@@ -100,9 +117,19 @@ export default function Cursor() {
       document.removeEventListener("mouseleave", onLeave);
       layer.classList.remove("on");
     };
-  }, []);
+  }, [mounted]);
 
-  return (
+  if (!mounted) return null;
+
+  // Portaled straight to <body>: every screen mounts <Cursor /> inside a
+  // `position: relative; zIndex: 0` root wrapper, which establishes its own
+  // stacking context. Rendered as a normal child, .cursor-layer's z-index
+  // (however large) only wins against siblings *inside* that context — a
+  // portaled overlay like LoginModal, appended straight to <body>, sits in
+  // a separate top-level stacking context and would paint over the cursor.
+  // Portaling here keeps the cursor a body-level sibling of those overlays
+  // too, so its z-index is compared where it's actually meant to win.
+  return createPortal(
     <div className="cursor-layer" ref={layerRef} aria-hidden="true" style={{ "--cursor-accent": colors.accent } as CSSProperties}>
       {Array.from({ length: TRAIL_COUNT }).map((_, i) => (
         <div
@@ -120,6 +147,7 @@ export default function Cursor() {
         </svg>
       </div>
       <div className="cursor-core" ref={coreRef} />
-    </div>
+    </div>,
+    document.body,
   );
 }
