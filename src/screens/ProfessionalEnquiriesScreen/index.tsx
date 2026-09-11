@@ -36,6 +36,8 @@ const TABS: { key: EnquiryKind; label: string; icon: IconName }[] = [
   { key: "job", label: "Job Enquiries", icon: "mail" },
   { key: "direct", label: "Direct Enquiries", icon: "chat" },
 ];
+                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                         
+
 
 /** Full, paginated Job/Direct Enquiry list — the counterpart of
  * homedot-mobile-app's JobEnquiryScreen/DirectEnquiryScreen (reached there

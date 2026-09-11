@@ -1,5 +1,25 @@
 export const BASE_URL = process.env.NEXT_PUBLIC_API_STAGING_BASE_URL;
 
+// Realtime notification/chat socket.io server — see SocketService.
+// Deliberately NOT a separate hardcoded host (homedot-mobile-app's
+// SocketServices.js hits a single hardcoded SERVER_URL, api.homedotapp.com,
+// in every build) — this app is actively run against different API
+// environments via BASE_URL (right now, staging: stg-api.homedotapp.com),
+// and the socket server lives on that same host, so this always follows
+// whichever one BASE_URL is currently pointed at instead of silently
+// talking to a different backend than every REST call on the page.
+//
+// Takes BASE_URL's *origin* only, not the full value — BASE_URL includes a
+// path ("https://stg-api.homedotapp.com/api/v1"), and socket.io-client
+// parses any path segment in this URL as the connection's *namespace*, not
+// an HTTP path prefix the way a REST client would treat it. A "/api/v1"
+// suffix here makes it try to join a namespace called "/api/v1", which the
+// server rejects with "Invalid namespace" (confirmed live: that exact
+// error is what passing BASE_URL directly here produces) — so this must
+// stay stripped to the bare origin no matter which environment BASE_URL
+// points at.
+export const SOCKET_URL = BASE_URL ? new URL(BASE_URL).origin : undefined;
+
 export const API_ENDPOINTS = {
   AUTH: {
     CHECK_USER_LOGIN: "auth/check-user",
@@ -58,6 +78,11 @@ export const API_ENDPOINTS = {
     // ("v1/user/user-email-update") — PUT { email } to send, PUT { email,
     // otp } to verify.
     EMAIL_UPDATE: "user/user-email-update",
+    // Requires a stored auth token. Mirrors USERS_APIS.NOTIFICATION_LIST
+    // ("v1/data/user-notification-list") — the Alerts feed
+    // NotificatinTabViewNavigator.js seeds on mount and grows from each
+    // socket "notification" push.
+    NOTIFICATION_LIST: "data/user-notification-list",
   },
   LANDING: {
     FEATURED_PROPERTIES: "/landing/featured-properties",
@@ -357,6 +382,11 @@ export const API_ENDPOINTS = {
     // ("v1/professional/get-professional") — the signed-in professional's own
     // summary (name, profileImage, professionalInfo[], totalProjects).
     HOME: "professional/get-professional",
+    // Requires a stored auth token. Mirrors PROFESSIONALS_API.NOTIFICATION_LIST
+    // ("v1/data/notification-list") — the Alerts feed
+    // ProfessionalNotificationTabViewNavigator.js seeds on mount and grows
+    // from each socket "notification" push.
+    NOTIFICATION_LIST: "data/notification-list",
     // Requires a stored auth token. Mirrors PROFESSIONALS_API.ENQUIRY_LIST
     // ("v1/enquiry/enquiries-professional") — a single call returns both Job
     // and Direct enquiries (data[0].jobEnquiries[0] / data[0].directEnquires[0]),

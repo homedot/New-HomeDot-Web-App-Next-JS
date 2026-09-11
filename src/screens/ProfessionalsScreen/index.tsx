@@ -110,7 +110,6 @@ export default function ProfessionalsScreen() {
   // (success or failure) — drives the skeleton grid below instead of
   // flashing mock data that then gets swapped for the real thing.
   const [initialLoad, setInitialLoad] = useState(true);
-
   const [detail, setDetail] = useState<ProfessionalRecord | null>(null);
   const initialSlugHandled = useRef(false);
   const detailRequestId = useRef(0);
@@ -317,6 +316,8 @@ export default function ProfessionalsScreen() {
   // Enter/Search picks the top suggestion if the dropdown is open;
   // otherwise geocodes whatever's typed as a fallback so search still
   // works if the user never triggered (or dismissed) the dropdown.
+
+
   const applyTypedLocation = () => {
     if (showSuggestions && suggestions[0]) {
       selectSuggestion(suggestions[0]);
@@ -345,6 +346,7 @@ export default function ProfessionalsScreen() {
     });
   };
 
+  
   const filterQuery = useMemo((): ProfessionalsFilterQuery => {
     const b = budget != null ? budgetBuckets[budget] : null;
     return {
@@ -428,7 +430,9 @@ export default function ProfessionalsScreen() {
       if (detailRequestId.current !== requestId) return;
       const record = res.data?.data?.[0];
       if (res.success && res.data?.status && record) {
-        setDetail((prev) => (prev ? mergeProfessionalDetail(prev, record) : prev));
+        setDetail((prev) =>
+          prev ? mergeProfessionalDetail(prev, record) : prev,
+        );
       }
     });
   };
@@ -730,7 +734,11 @@ export default function ProfessionalsScreen() {
                     type="button"
                     onClick={() => setQuery("")}
                     aria-label="Clear search"
-                    style={{ display: "flex", flexShrink: 0, color: colors.muted }}
+                    style={{
+                      display: "flex",
+                      flexShrink: 0,
+                      color: colors.muted,
+                    }}
                   >
                     <Icon name="close" size={14} />
                   </button>

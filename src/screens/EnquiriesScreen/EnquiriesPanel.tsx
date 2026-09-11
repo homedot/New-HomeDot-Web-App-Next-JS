@@ -7,6 +7,8 @@ import { spacing, radius, fontSize } from "@/utils/size";
 import Icon from "@/components/Icon";
 import Reveal from "@/components/Reveal";
 import EnquiryService, { type EnquiryRecord } from "@/services/EnquiryService";
+import { useNotificationSocket } from "@/hooks/useNotificationSocket";
+import { useProfileStore } from "@/store/useProfileStore";
 import EnquiryCard from "./EnquiryCard";
 import EnquiryEditModal from "./EnquiryEditModal";
 import EnquiryResponseModal from "./EnquiryResponseModal";
@@ -62,6 +64,16 @@ export default function EnquiriesPanel() {
     }
     if (message) setToast(message);
   };
+
+  // Live push from the backend (a professional responded, a new update on
+  // an enquiry, ...) — mirrors NotificatinTabViewNavigator.js re-fetching
+  // this same list on the "notification" socket event. `userId` here mirrors
+  // mobile's `userDetails._id` (the plain account id, not a nested
+  // professional-record field — see useNotificationSocket's own comment).
+  const userId = useProfileStore((s) => s.profile?._id);
+  useNotificationSocket(userId, (n) => {
+    refresh(n.message || "You have a new update.");
+  });
 
   const loadMore = async () => {
     if (loadingMore) return;

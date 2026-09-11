@@ -578,7 +578,6 @@ const LoginModal = forwardRef<LoginModalHandle, LoginModalProps>(
                       emailFieldRef={emailFieldRef}
                     />
                   )}
-
                   {step === "otp" && (
                     <OtpStep
                       masked={masked}

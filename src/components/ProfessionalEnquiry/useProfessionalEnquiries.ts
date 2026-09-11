@@ -2,6 +2,8 @@
 
 import { useEffect, useState } from "react";
 import { getAuthToken } from "@/utils/authStorage";
+import { useNotificationSocket } from "@/hooks/useNotificationSocket";
+import { useProfessionalHomeStore } from "@/store/useProfessionalHomeStore";
 import ProfessionalDashboardService, {
   type ProfessionalEnquiryRecord,
   type InitiateProjectPayload,
@@ -60,6 +62,13 @@ export function useProfessionalEnquiries(onProjectInitiated?: () => void) {
       return;
     }
     refresh();
+    // ProfessionalDashboardScreen already triggers this on its own mount,
+    // but ProfessionalEnquiriesScreen (the other consumer of this hook)
+    // doesn't — and professionalInfo[0].userId below, needed to identify
+    // the socket connection, only ever comes from this store. refresh()
+    // guards against a redundant concurrent fetch, so calling it
+    // unconditionally here is harmless when the dashboard already has.
+    useProfessionalHomeStore.getState().refresh();
   }, []);
 
   useEffect(() => {
@@ -67,6 +76,20 @@ export function useProfessionalEnquiries(onProjectInitiated?: () => void) {
     const t = setTimeout(() => setToast(null), 3000);
     return () => clearTimeout(t);
   }, [toast]);
+
+  // Live push from the backend (new enquiry, a customer's response, ...) —
+  // mirrors ProfessionalNotificationTabViewNavigator.js re-fetching the list
+  // on the same "notification" socket event. `userId` here mirrors mobile's
+  // `professionalDetails[0].professionalInfo[0].userId` — deliberately NOT
+  // the profile's own `_id` (see useNotificationSocket's comment on why the
+  // two aren't interchangeable).
+  const userId = useProfessionalHomeStore(
+    (s) => s.home?.professionalInfo?.[0]?.userId,
+  );
+  useNotificationSocket(userId, (n) => {
+    refresh();
+    setToast(n.message || "You have a new update.");
+  });
 
   const loadMore = async (kind: EnquiryKind) => {
     if (loadingMore) return;

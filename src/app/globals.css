@@ -2276,3 +2276,146 @@ body.has-cursor * {
     transform: none;
   }
 }
+
+/* Professional verification celebration (VerifiedCelebrationModal) —
+   confetti burst + a popping badge the moment a socket
+   "professionalVerification" push lands. See that component's own comment
+   for why this exists (mobile builds an equivalent Lottie modal but never
+   actually triggers it). */
+@keyframes pvOverlayIn {
+  from {
+    opacity: 0;
+  }
+}
+.pv-overlay {
+  animation: pvOverlayIn 0.25s ease both;
+}
+
+@keyframes pvCardIn {
+  from {
+    opacity: 0;
+    transform: scale(0.85) translateY(10px);
+  }
+}
+.pv-card {
+  animation: pvCardIn 0.45s cubic-bezier(0.16, 1, 0.3, 1) both;
+}
+
+.pv-confetti-layer {
+  position: absolute;
+  inset: 0;
+  overflow: hidden;
+  pointer-events: none;
+}
+
+@keyframes pvConfettiFall {
+  0% {
+    transform: translateY(-40px) translateX(0) rotate(0deg);
+    opacity: 0;
+  }
+  8% {
+    opacity: 1;
+  }
+  100% {
+    transform: translateY(110vh) translateX(var(--pv-drift)) rotate(var(--pv-rotate));
+    opacity: 0;
+  }
+}
+.pv-confetti {
+  position: absolute;
+  top: -20px;
+  border-radius: 2px;
+  animation-name: pvConfettiFall;
+  animation-timing-function: ease-in;
+  animation-fill-mode: both;
+}
+
+@keyframes pvRingBurst {
+  0% {
+    transform: translateX(-50%) scale(0.6);
+    opacity: 0.9;
+  }
+  100% {
+    transform: translateX(-50%) scale(1.9);
+    opacity: 0;
+  }
+}
+.pv-ring {
+  position: absolute;
+  top: 48px;
+  left: 50%;
+  width: 100px;
+  height: 100px;
+  border-radius: 50%;
+  border: 2px solid #f5a623;
+  pointer-events: none;
+  animation: pvRingBurst 1.1s cubic-bezier(0.2, 0.8, 0.3, 1) 0.15s both;
+}
+
+@keyframes pvBadgePop {
+  0% {
+    transform: scale(0.3) rotate(-15deg);
+    opacity: 0;
+  }
+  55% {
+    transform: scale(1.15) rotate(4deg);
+    opacity: 1;
+  }
+  75% {
+    transform: scale(0.95) rotate(-2deg);
+  }
+  100% {
+    transform: scale(1) rotate(0deg);
+  }
+}
+.pv-badge {
+  position: relative;
+  width: 88px;
+  height: 88px;
+  margin: 0 auto;
+  border-radius: 50%;
+  background: linear-gradient(155deg, #f5a623, #e08e12);
+  display: grid;
+  place-items: center;
+  box-shadow: 0 16px 32px -10px rgba(224, 142, 18, 0.55);
+  animation: pvBadgePop 0.7s cubic-bezier(0.2, 0.9, 0.3, 1.3) 0.15s both;
+}
+
+@keyframes pvSparkleTwinkle {
+  0%,
+  100% {
+    opacity: 0.3;
+    transform: scale(0.7);
+  }
+  50% {
+    opacity: 1;
+    transform: scale(1.2);
+  }
+}
+.pv-sparkle {
+  position: absolute;
+  animation: pvSparkleTwinkle 1.4s ease-in-out infinite;
+}
+.pv-sparkle-a {
+  top: -6px;
+  right: -2px;
+}
+.pv-sparkle-b {
+  bottom: -2px;
+  left: -8px;
+  animation-delay: 0.5s;
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .pv-overlay,
+  .pv-card,
+  .pv-badge,
+  .pv-ring,
+  .pv-sparkle,
+  .pv-confetti {
+    animation: none;
+  }
+  .pv-confetti-layer {
+    display: none;
+  }
+}

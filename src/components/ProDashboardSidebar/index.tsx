@@ -7,6 +7,9 @@ import { hexToRgb } from "@/utils/color";
 import Icon, { type IconName } from "@/components/Icon";
 import Brand from "@/components/Brand";
 import Reveal from "@/components/Reveal";
+import NotificationBell from "@/components/NotificationBell";
+import { useNotificationsFeed } from "@/hooks/useNotificationsFeed";
+import { useProfessionalHomeStore } from "@/store/useProfessionalHomeStore";
 
 type SidebarNavEntry = { icon: IconName; label: string; href?: string; onClick?: () => void; danger?: boolean; chip?: string };
 
@@ -31,6 +34,17 @@ type SidebarNavEntry = { icon: IconName; label: string; href?: string; onClick?:
 export default function ProDashboardSidebar({ onLogout, loggingOut, bare = false }: { onLogout: () => void; loggingOut: boolean; bare?: boolean }) {
   const router = useRouter();
   const pathname = usePathname();
+
+  // Mounted on every /professional/* screen (this sidebar is shared across
+  // all of them, bare or not), so this is the one place the professional's
+  // notification bell needs to live — see NotificationBell/useNotificationsFeed.
+  const professionalUserId = useProfessionalHomeStore(
+    (s) => s.home?.professionalInfo?.[0]?.userId,
+  );
+  const { notifications, loading: notificationsLoading } = useNotificationsFeed(
+    professionalUserId,
+    "professional",
+  );
 
   const live: SidebarNavEntry[] = [
     { icon: "grid", label: "Dashboard", href: "/professional/dashboard" },
@@ -70,7 +84,11 @@ export default function ProDashboardSidebar({ onLogout, loggingOut, bare = false
             }
       }
     >
-      {!bare && (
+      {bare ? (
+        <div style={{ display: "flex", justifyContent: "flex-end", padding: "0 0 2px" }}>
+          <NotificationBell notifications={notifications} loading={notificationsLoading} debugUserId={professionalUserId} />
+        </div>
+      ) : (
         <div style={{ display: "flex", alignItems: "center", gap: 8, padding: "6px 8px 14px", borderBottom: `1px solid ${colors.line}` }}>
           <Brand />
           <span
@@ -86,6 +104,9 @@ export default function ProDashboardSidebar({ onLogout, loggingOut, bare = false
             }}
           >
             Pro
+          </span>
+          <span style={{ marginLeft: "auto" }}>
+            <NotificationBell notifications={notifications} loading={notificationsLoading} debugUserId={professionalUserId} />
           </span>
         </div>
       )}

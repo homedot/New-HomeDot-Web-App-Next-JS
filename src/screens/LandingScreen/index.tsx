@@ -109,35 +109,6 @@ const contactSocialIconStyle: CSSProperties = {
   placeItems: "center",
 };
 
-// Same accounts as SiteFooter's SOCIALS.
-const CONTACT_SOCIALS: { icon: IconName; href: string; label: string }[] = [
-  {
-    icon: "facebook",
-    href: "https://www.facebook.com/homedotapps/",
-    label: "HomeDot on Facebook",
-  },
-  {
-    icon: "instagram",
-    href: "https://www.instagram.com/homedotapp/",
-    label: "HomeDot on Instagram",
-  },
-  {
-    icon: "linkedin",
-    href: "https://in.linkedin.com/company/homedotapp",
-    label: "HomeDot on LinkedIn",
-  },
-  {
-    icon: "youtube",
-    href: "https://www.youtube.com/@Hometechmalayalam",
-    label: "HomeDot on YouTube",
-  },
-  {
-    icon: "whatsapp",
-    href: `https://wa.me/91${CONTACT_PHONE}`,
-    label: "Chat with HomeDot on WhatsApp",
-  },
-];
-
 export default function LandingScreen() {
   const loginModalRef = useRef<LoginModalHandle>(null);
 
@@ -1525,8 +1496,11 @@ function ConstructionStages() {
   const totalHeight = constructionStages.length * ROAD_ROW_H;
   const roadCenterX = roadWidth / 2;
   const roadD = buildRoadPath(
-    constructionStages.map((_, i) => ({ x: roadCenterX, y: ROAD_ROW_H * (i + 0.5) })),
-    Math.min(roadWidth * 0.3, 240)
+    constructionStages.map((_, i) => ({
+      x: roadCenterX,
+      y: ROAD_ROW_H * (i + 0.5),
+    })),
+    Math.min(roadWidth * 0.3, 240),
   );
 
   useEffect(() => {
@@ -1547,7 +1521,9 @@ function ConstructionStages() {
 
     if (window.matchMedia("(prefers-reduced-motion: reduce)").matches) {
       path.style.strokeDasharray = "none";
-      requestAnimationFrame(() => setActiveIndex(constructionStages.length - 1));
+      requestAnimationFrame(() =>
+        setActiveIndex(constructionStages.length - 1),
+      );
       return;
     }
 
@@ -1558,8 +1534,9 @@ function ConstructionStages() {
         const vh = window.innerHeight;
         const progress = Math.min(
           Math.max((vh * 0.85 - rect.top) / (rect.height + vh * 0.3), 0),
-          1
+          1,
         );
+
         // Dash the path using its own real total length rather than the
         // pathLength="1" normalization trick — WebKit/Safari mis-renders
         // that normalization on curved (bezier) paths, drawing straight
@@ -1567,6 +1544,7 @@ function ConstructionStages() {
         // Re-measured every tick (cheap, native, rAF-throttled) rather than
         // cached once — the length changes whenever roadWidth does, and a
         // cached value would go stale on resize.
+
         const len = path.getTotalLength();
         path.style.strokeDasharray = String(len);
         path.style.strokeDashoffset = String(len * (1 - progress));
@@ -1575,11 +1553,11 @@ function ConstructionStages() {
         pinRef.current?.setAttribute("cy", String(pt.y));
         pinRef.current?.style.setProperty(
           "opacity",
-          progress > 0.01 && progress < 0.999 ? "1" : "0"
+          progress > 0.01 && progress < 0.999 ? "1" : "0",
         );
         const idx = Math.min(
           constructionStages.length - 1,
-          Math.floor(progress * constructionStages.length)
+          Math.floor(progress * constructionStages.length),
         );
         setActiveIndex((prev) => (prev !== idx ? idx : prev));
       });
@@ -1595,18 +1573,78 @@ function ConstructionStages() {
   }, []);
 
   return (
-    <section style={{ padding: `${spacing.huge}px 0`, background: colors.bg, position: "relative", overflow: "hidden" }}>
+    <section
+      style={{
+        padding: `${spacing.huge}px 0`,
+        background: colors.bg,
+        position: "relative",
+        overflow: "hidden",
+      }}
+    >
       <script
         type="application/ld+json"
-        dangerouslySetInnerHTML={{ __html: JSON.stringify(constructionHowToSchema) }}
+        dangerouslySetInnerHTML={{
+          __html: JSON.stringify(constructionHowToSchema),
+        }}
       />
       {/* Faint blueprint grid + a few ambient glow blobs so the long scroll through
           this section reads as "on a job site", not a blank page — the ruled dots
           echo a site plan, the blobs give it warmth without competing with cards. */}
-      <div aria-hidden="true" className="road-bg-grid" style={{ position: "absolute", inset: 0, zIndex: 0 }} />
-      <div aria-hidden="true" className="animate-glow-pulse" style={{ position: "absolute", top: "6%", left: "4%", width: 300, height: 300, borderRadius: "50%", background: colors.accent, filter: "blur(80px)", opacity: 0.16, zIndex: 0 }} />
-      <div aria-hidden="true" className="animate-glow-pulse" style={{ position: "absolute", top: "42%", right: "2%", width: 340, height: 340, borderRadius: "50%", background: colors.gold, filter: "blur(90px)", opacity: 0.14, zIndex: 0, animationDelay: "1.4s" }} />
-      <div aria-hidden="true" className="animate-glow-pulse" style={{ position: "absolute", top: "78%", left: "6%", width: 280, height: 280, borderRadius: "50%", background: colors.accent, filter: "blur(80px)", opacity: 0.14, zIndex: 0, animationDelay: "2.6s" }} />
+      <div
+        aria-hidden="true"
+        className="road-bg-grid"
+        style={{ position: "absolute", inset: 0, zIndex: 0 }}
+      />
+      <div
+        aria-hidden="true"
+        className="animate-glow-pulse"
+        style={{
+          position: "absolute",
+          top: "6%",
+          left: "4%",
+          width: 300,
+          height: 300,
+          borderRadius: "50%",
+          background: colors.accent,
+          filter: "blur(80px)",
+          opacity: 0.16,
+          zIndex: 0,
+        }}
+      />
+      <div
+        aria-hidden="true"
+        className="animate-glow-pulse"
+        style={{
+          position: "absolute",
+          top: "42%",
+          right: "2%",
+          width: 340,
+          height: 340,
+          borderRadius: "50%",
+          background: colors.gold,
+          filter: "blur(90px)",
+          opacity: 0.14,
+          zIndex: 0,
+          animationDelay: "1.4s",
+        }}
+      />
+      <div
+        aria-hidden="true"
+        className="animate-glow-pulse"
+        style={{
+          position: "absolute",
+          top: "78%",
+          left: "6%",
+          width: 280,
+          height: 280,
+          borderRadius: "50%",
+          background: colors.accent,
+          filter: "blur(80px)",
+          opacity: 0.14,
+          zIndex: 0,
+          animationDelay: "2.6s",
+        }}
+      />
 
       <div style={{ ...wrap, position: "relative", zIndex: 1 }}>
         <SectionHead
@@ -1618,11 +1656,19 @@ function ConstructionStages() {
       </div>
 
       {/* Desktop: winding road with alternating cards either side */}
-      <div className="hidden md:block" style={{ ...wrap, position: "relative", zIndex: 1 }}>
+      <div
+        className="hidden md:block"
+        style={{ ...wrap, position: "relative", zIndex: 1 }}
+      >
         <div ref={roadRef} style={{ position: "relative" }}>
           <svg
             aria-hidden="true"
-            style={{ position: "absolute", inset: 0, width: "100%", height: "100%" }}
+            style={{
+              position: "absolute",
+              inset: 0,
+              width: "100%",
+              height: "100%",
+            }}
             viewBox={`0 0 ${roadWidth} ${totalHeight}`}
           >
             <defs>
@@ -1659,7 +1705,12 @@ function ConstructionStages() {
 
           {constructionStages.map((s, i) => {
             const onLeft = i % 2 === 0;
-            const status = i < activeIndex ? "done" : i === activeIndex ? "current" : "upcoming";
+            const status =
+              i < activeIndex
+                ? "done"
+                : i === activeIndex
+                  ? "current"
+                  : "upcoming";
             return (
               <div
                 key={s.id}
@@ -1671,21 +1722,47 @@ function ConstructionStages() {
                   alignItems: "center",
                 }}
               >
-                <div style={{ width: "42%", display: "flex", justifyContent: "flex-end", alignItems: "center" }}>
+                <div
+                  style={{
+                    width: "42%",
+                    display: "flex",
+                    justifyContent: "flex-end",
+                    alignItems: "center",
+                  }}
+                >
                   {onLeft ? (
-                    <Reveal style={{ width: "100%", maxWidth: 360 }} delay={(i % 3) * 90}>
+                    <Reveal
+                      style={{ width: "100%", maxWidth: 360 }}
+                      delay={(i % 3) * 90}
+                    >
                       <StageCard stage={s} />
                     </Reveal>
                   ) : (
                     <StageWatermark icon={s.icon} n={s.n} side="right" />
                   )}
                 </div>
-                <div style={{ width: "16%", display: "grid", placeItems: "center" }}>
+                <div
+                  style={{
+                    width: "16%",
+                    display: "grid",
+                    placeItems: "center",
+                  }}
+                >
                   <StageNode stage={s} status={status} />
                 </div>
-                <div style={{ width: "42%", display: "flex", justifyContent: "flex-start", alignItems: "center" }}>
+                <div
+                  style={{
+                    width: "42%",
+                    display: "flex",
+                    justifyContent: "flex-start",
+                    alignItems: "center",
+                  }}
+                >
                   {!onLeft ? (
-                    <Reveal style={{ width: "100%", maxWidth: 360 }} delay={(i % 3) * 90}>
+                    <Reveal
+                      style={{ width: "100%", maxWidth: 360 }}
+                      delay={(i % 3) * 90}
+                    >
                       <StageCard stage={s} />
                     </Reveal>
                   ) : (
@@ -1699,7 +1776,10 @@ function ConstructionStages() {
       </div>
 
       {/* Mobile: simple stacked timeline — no room for the road's wiggle */}
-      <div className="md:hidden" style={{ ...wrap, position: "relative", zIndex: 1 }}>
+      <div
+        className="md:hidden"
+        style={{ ...wrap, position: "relative", zIndex: 1 }}
+      >
         <div
           aria-hidden="true"
           style={{
@@ -1712,10 +1792,15 @@ function ConstructionStages() {
             background: `linear-gradient(180deg, ${colors.accent}, ${colors.gold})`,
           }}
         />
-        <Reveal stagger style={{ display: "flex", flexDirection: "column", gap: spacing.xxl }}>
+        <Reveal
+          stagger
+          style={{ display: "flex", flexDirection: "column", gap: spacing.xxl }}
+        >
           {constructionStages.map((s) => (
             <div key={s.id} style={{ display: "flex", gap: spacing.lg }}>
-              <div style={{ flex: "0 0 auto", position: "relative", zIndex: 1 }}>
+              <div
+                style={{ flex: "0 0 auto", position: "relative", zIndex: 1 }}
+              >
                 <StageNode stage={s} status="done" />
               </div>
               <div style={{ flex: 1, minWidth: 0 }}>
@@ -1732,6 +1817,7 @@ function ConstructionStages() {
 // Large, near-invisible outline of the stage's own icon, filling the empty
 // half of its row so the road doesn't scroll past bare background — a quiet
 // echo of the card opposite it rather than a second thing to read.
+
 function StageWatermark({
   icon,
   n,
@@ -1742,7 +1828,10 @@ function StageWatermark({
   side: "left" | "right";
 }) {
   return (
-    <div aria-hidden="true" style={{ position: "relative", width: 210, height: 210 }}>
+    <div
+      aria-hidden="true"
+      style={{ position: "relative", width: 210, height: 210 }}
+    >
       <span
         style={{
           position: "absolute",
@@ -1788,7 +1877,14 @@ function StageNode({
   const done = status === "done";
   const current = status === "current";
   return (
-    <div style={{ display: "flex", flexDirection: "column", alignItems: "center", gap: 6 }}>
+    <div
+      style={{
+        display: "flex",
+        flexDirection: "column",
+        alignItems: "center",
+        gap: 6,
+      }}
+    >
       <div
         className={current ? "road-node-current" : undefined}
         style={{
@@ -1800,10 +1896,15 @@ function StageNode({
           background: done || current ? colors.primary : colors.card,
           border: `2px solid ${done || current ? colors.accent : colors.line}`,
           boxShadow: done || current ? shadow.md : shadow.sm,
-          transition: "background 0.3s ease, border-color 0.3s ease, box-shadow 0.3s ease",
+          transition:
+            "background 0.3s ease, border-color 0.3s ease, box-shadow 0.3s ease",
         }}
       >
-        <Icon name={stage.icon} size={22} color={done || current ? colors.white : colors.muted} />
+        <Icon
+          name={stage.icon}
+          size={22}
+          color={done || current ? colors.white : colors.muted}
+        />
       </div>
       <span
         style={{
@@ -1820,11 +1921,6 @@ function StageNode({
   );
 }
 
-// Clicking (or tapping) a card pins it open; hovering with a mouse previews
-// the same expanded state without needing a click, so a cursor "resting" on
-// a card reads as deliberate as a tap does on touch. Only one card expands
-// at a time via CSS :hover for the preview, but the pinned click state is
-// per-card local state so several can stay open together.
 function StageCard({
   stage,
   full,
@@ -1832,22 +1928,9 @@ function StageCard({
   stage: (typeof constructionStages)[number];
   full?: boolean;
 }) {
-  const [pinned, setPinned] = useState(false);
-  const toggle = () => setPinned((v) => !v);
-
   return (
     <div
-      className={`card-hover stage-card${pinned ? " stage-card-pinned" : ""}`}
-      role="button"
-      tabIndex={0}
-      aria-expanded={pinned}
-      onClick={toggle}
-      onKeyDown={(e) => {
-        if (e.key === "Enter" || e.key === " ") {
-          e.preventDefault();
-          toggle();
-        }
-      }}
+      className="card-hover"
       style={{
         width: "100%",
         maxWidth: full ? undefined : 360,
@@ -1857,19 +1940,17 @@ function StageCard({
         border: `1px solid ${colors.line}`,
         boxShadow: shadow.sm,
         textAlign: "left",
-        cursor: "pointer",
       }}
     >
-      <div className="stage-card-media" style={{ position: "relative", height: 150, overflow: "hidden" }}>
+      <div style={{ position: "relative", height: 150, overflow: "hidden" }}>
         {/* eslint-disable-next-line @next/next/no-img-element */}
         <img
           src={stage.image}
           alt={stage.title}
-          className="card-hover-img stage-card-img"
+          className="card-hover-img"
           style={{ width: "100%", height: "100%", objectFit: "cover" }}
         />
         <span
-          className="stage-card-badge"
           style={{
             position: "absolute",
             top: 10,
@@ -1888,17 +1969,24 @@ function StageCard({
         </span>
       </div>
       <div style={{ padding: spacing.lg }}>
-        <div style={{ display: "flex", alignItems: "center", justifyContent: "space-between", gap: spacing.sm }}>
-          <h3 className="stage-card-title" style={{ fontSize: fontSize.md + 1, fontWeight: 700, marginBottom: 6 }}>
-            {stage.title}
-          </h3>
-          <Icon name="chevronDown" size={16} color={colors.muted} className="stage-card-chevron" />
-        </div>
-        <div className="stage-card-desc-wrap">
-          <p className="stage-card-desc" style={{ color: colors.muted, fontSize: fontSize.base - 1, lineHeight: 1.5 }}>
-            {stage.text}
-          </p>
-        </div>
+        <h3
+          style={{
+            fontSize: fontSize.md + 1,
+            fontWeight: 700,
+            marginBottom: 6,
+          }}
+        >
+          {stage.title}
+        </h3>
+        <p
+          style={{
+            color: colors.muted,
+            fontSize: fontSize.base - 1,
+            lineHeight: 1.5,
+          }}
+        >
+          {stage.text}
+        </p>
       </div>
     </div>
   );
@@ -2365,11 +2453,18 @@ function ProCta({
     await useRoleSwitchStore.getState().runSwitch("professional", async () => {
       const res = await SwitchProfessionalService.switchRole();
       if (!res.success || res.data?.status === false) {
-        setError(res.data?.message || res.message || "Couldn't switch modes. Please try again.");
+        setError(
+          res.data?.message ||
+            res.message ||
+            "Couldn't switch modes. Please try again.",
+        );
         return false;
       }
       const pair = res.data?.data?.[0];
-      if (pair) useAuthStore.getState().setTokens({ token: pair.token, refreshToken: pair.reToken });
+      if (pair)
+        useAuthStore
+          .getState()
+          .setTokens({ token: pair.token, refreshToken: pair.reToken });
       setActiveRole("professional");
       router.push("/professional/dashboard");
       return true;
@@ -2377,7 +2472,11 @@ function ProCta({
     setSwitching(false);
   };
 
-  const label = switching ? "Switching…" : signedIn && hasProfessionalRole ? "Switch to Professional" : "Become a Professional";
+  const label = switching
+    ? "Switching…"
+    : signedIn && hasProfessionalRole
+      ? "Switch to Professional"
+      : "Become a Professional";
 
   return (
     <section
@@ -2419,10 +2518,24 @@ function ProCta({
             homeowners across Kerala.
           </p>
           {error && (
-            <p style={{ color: "#DC2626", fontSize: fontSize.xs, marginTop: spacing.sm }}>{error}</p>
+            <p
+              style={{
+                color: "#DC2626",
+                fontSize: fontSize.xs,
+                marginTop: spacing.sm,
+              }}
+            >
+              {error}
+            </p>
           )}
         </div>
-        <Button variant="dark" size="lg" icon={<Icon name="arrow" size={18} />} onClick={handleClick} disabled={switching}>
+        <Button
+          variant="dark"
+          size="lg"
+          icon={<Icon name="arrow" size={18} />}
+          onClick={handleClick}
+          disabled={switching}
+        >
           {label}
         </Button>
       </ScrollScrub>
@@ -2993,18 +3106,13 @@ function ContactSection() {
             </div>
           </div>
           <div style={{ display: "flex", gap: spacing.md }}>
-            {CONTACT_SOCIALS.map((s) => (
-              <a
-                key={s.icon}
-                href={s.href}
-                target="_blank"
-                rel="noopener noreferrer"
-                aria-label={s.label}
-                style={contactSocialIconStyle}
-              >
-                <Icon name={s.icon} size={18} color={colors.white} />
-              </a>
-            ))}
+            {(["facebook", "twitter", "instagram", "linkedin"] as const).map(
+              (icon) => (
+                <span key={icon} style={contactSocialIconStyle}>
+                  <Icon name={icon} size={18} color={colors.white} />
+                </span>
+              ),
+            )}
           </div>
         </div>
       </Reveal>

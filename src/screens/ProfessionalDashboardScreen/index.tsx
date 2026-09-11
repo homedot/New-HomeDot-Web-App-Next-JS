@@ -17,6 +17,7 @@ import Reveal from "@/components/Reveal";
 import SiteFooter from "@/components/SiteFooter";
 import LoginModal, { type LoginModalHandle } from "@/components/LoginModal";
 import AvatarLightbox from "@/components/AvatarLightbox";
+import VerifiedCelebrationModal from "@/components/VerifiedCelebrationModal";
 import EmptyState from "@/components/EmptyState";
 import SkeletonGrid from "@/components/SkeletonGrid";
 import LoadMoreButton from "@/components/LoadMoreButton";
@@ -33,6 +34,7 @@ import {
   useProfessionalEnquiries,
   type EnquiryKind,
 } from "@/components/ProfessionalEnquiry/useProfessionalEnquiries";
+import { useProfessionalVerificationSocket } from "@/hooks/useProfessionalVerificationSocket";
 import {
   getAuthToken,
   getActiveRole,
@@ -164,6 +166,11 @@ export default function ProfessionalDashboardScreen() {
     return () => clearTimeout(t);
   }, [projectToast]);
 
+  // Confetti + badge-pop celebration for the "professionalVerification"
+  // socket push below — a toast felt too small a moment for "you just got
+  // verified", so this gets its own full-screen modal instead.
+  const [showVerifiedCelebration, setShowVerifiedCelebration] = useState(false);
+
   // Portal target guard: `document` doesn't exist during SSR, and even on
   // the client the very first render must match the server's markup to
   // avoid a hydration mismatch — so this flips true only after mount.
@@ -194,6 +201,29 @@ export default function ProfessionalDashboardScreen() {
   };
 
   const enq = useProfessionalEnquiries(refreshProjects);
+
+  // Live push the moment an admin approves this professional's
+  // verification while they're on this screen — mirrors
+  // ProfessionalHomeScreen.js's socket.on("professionalVerification", ...):
+  // swap in the fresh token pair the payload carries (the old one predates
+  // approval), then re-fetch this professional's own details and
+  // enquiries/projects with it so the verified badge and any now-visible
+  // data show up without a manual reload. Only wired here, not in
+  // ProDashboardSidebar's always-mounted notification bell — mobile only
+  // ever listens for this on its Home screen too.
+  const professionalUserId = home?.professionalInfo?.[0]?.userId;
+  useProfessionalVerificationSocket(professionalUserId, async (payload) => {
+    const { token, refreshToken } = payload.professionalInfo ?? {};
+    if (token && refreshToken) {
+      useAuthStore.getState().setTokens({ token, refreshToken });
+    }
+    await Promise.all([
+      useProfessionalHomeStore.getState().refresh(),
+      enq.refresh(),
+      refreshProjects(),
+    ]);
+    setShowVerifiedCelebration(true);
+  });
 
   useEffect(() => {
     if (!getAuthToken()) {
@@ -435,6 +465,11 @@ export default function ProfessionalDashboardScreen() {
           onClose={() => setAvatarExpanded(false)}
         />
       )}
+
+      <VerifiedCelebrationModal
+        open={showVerifiedCelebration}
+        onClose={() => setShowVerifiedCelebration(false)}
+      />
 
       {signedIn && home && (
         <ProDashboardHero maxWidth={DASHBOARD_MAX_WIDTH}>

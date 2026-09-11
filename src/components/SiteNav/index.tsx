@@ -19,6 +19,9 @@ import ContactModal, {
   type ContactModalHandle,
 } from "@/components/ContactModal";
 import NavShell from "@/components/NavShell";
+import NotificationBell from "@/components/NotificationBell";
+import { useNotificationsFeed } from "@/hooks/useNotificationsFeed";
+import { useProfileStore } from "@/store/useProfileStore";
 import { getAuthToken } from "@/utils/authStorage";
 
 // Only nudge once per browser session — SiteNav is mounted fresh on every
@@ -47,6 +50,16 @@ export default function SiteNav() {
   const loginModalRef = useRef<LoginModalHandle>(null);
   const contactModalRef = useRef<ContactModalHandle>(null);
   const [menuOpen, setMenuOpen] = useState(false);
+
+  // SiteNav is mounted on every user-facing page (Professional-mode accounts
+  // never see it — RoleGate keeps them inside /professional/*), so this is
+  // the one place the "user" role's notification bell needs to live. `null`
+  // signed-out has no id, same as ProDashboardSidebar's professional bell.
+  const profileId = useProfileStore((s) => s.profile?._id);
+  const { notifications, loading: notificationsLoading } = useNotificationsFeed(
+    profileId,
+    "user",
+  );
 
   // Escape-to-close, matching the modals elsewhere in the header.
   useEffect(() => {
@@ -169,6 +182,9 @@ export default function SiteNav() {
             gap: spacing.sm + 1,
           }}
         >
+          {profileId && (
+            <NotificationBell notifications={notifications} loading={notificationsLoading} debugUserId={profileId} />
+          )}
           <button
             onClick={onFavorites}
             aria-label="Favorites"

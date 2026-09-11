@@ -56,7 +56,8 @@ type IconName =
   | "linkedin"
   | "whatsapp"
   | "youtube"
-  | "alertTriangle";
+  | "alertTriangle"
+  | "bell";
 
 const PATHS: Record<IconName, React.ReactNode> = {
   search: (
@@ -376,6 +377,12 @@ const PATHS: Record<IconName, React.ReactNode> = {
       <path d="M12 3.3 2.4 20h19.2L12 3.3Z" />
       <path d="M12 9.7v4.6" strokeLinecap="round" />
       <circle cx="12" cy="17.3" r="0.9" fill="currentColor" stroke="none" />
+    </>
+  ),
+  bell: (
+    <>
+      <path d="M18 8.5a6 6 0 0 0-12 0c0 5.5-2 7-2 7h16s-2-1.5-2-7Z" />
+      <path d="M10.7 20a1.6 1.6 0 0 0 2.6 0" strokeLinecap="round" />
     </>
   ),
 };
