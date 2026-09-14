@@ -43,7 +43,15 @@ export function useProfessionalEnquiries(onProjectInitiated?: () => void) {
     const res = await ProfessionalDashboardService.getEnquiries(1);
     setLoading(false);
     const groups = res.data?.data?.[0];
-    if (!res.success || !res.data?.status || !groups) return;
+    if (!res.success || !res.data?.status || !groups) {
+      // Unlike pin/submitRespond/confirmDecline/submitInitiateProject below,
+      // this used to fail silently — enquiryCounts just stayed at its {job:0,
+      // direct:0} initial state with no indication anything went wrong, so a
+      // real backend/auth failure was indistinguishable from "no enquiries
+      // yet". Surface it the same way those do.
+      setToast(res.data?.message || res.message || "Couldn't load enquiries.");
+      return;
+    }
     setEnquiries({
       job: groups.jobEnquiries?.[0]?.data ?? [],
       direct: groups.directEnquires?.[0]?.data ?? [],
