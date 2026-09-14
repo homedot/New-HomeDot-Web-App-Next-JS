@@ -2,6 +2,34 @@ import { colors } from "@/constants/colors";
 import { radius, shadow, spacing, fontSize } from "@/utils/size";
 import Icon from "@/components/Icon";
 
+const unsplash = (id: string, w = 1200) =>
+  `https://images.unsplash.com/photo-${id}?auto=format&fit=crop&w=${w}&q=80`;
+
+// Same category → photo pairing ProfessionalsScreen/data.ts uses for its
+// mock cards, kept here (rather than imported) to avoid a circular import —
+// that file already imports the `Professional` type from this one. Keyword
+// match mirrors LandingScreenService's iconForCategory so a professional
+// with no cover of their own gets a photo that actually looks like their
+// trade instead of one generic stock image.
+const CATEGORY_COVER_IMAGE: [match: string, url: string][] = [
+  ["interior", unsplash("1618221195710-dd6b41faaea6")],
+  ["architect", unsplash("1487958449943-2429e8be8625")],
+  ["landscap", unsplash("1558904541-efa843a96f01")],
+  ["engineer", unsplash("1581094794329-c8112a89af12")],
+  ["kitchen", unsplash("1556911220-bff31c812dba")],
+  ["bath", unsplash("1556911220-bff31c812dba")],
+  ["contractor", unsplash("1503387762-592deb58ef4e")],
+];
+const DEFAULT_COVER_IMAGE = unsplash("1503387762-592deb58ef4e");
+
+function coverForProfession(profession: string): string {
+  const p = profession.toLowerCase();
+  return (
+    CATEGORY_COVER_IMAGE.find(([match]) => p.includes(match))?.[1] ??
+    DEFAULT_COVER_IMAGE
+  );
+}
+
 export type Professional = {
   id: string;
   slug?: string;
@@ -46,20 +74,14 @@ export default function ProCard({
       }}
     >
       <div style={{ position: "relative", aspectRatio: "16/10", background: colors.primarySoft, overflow: "hidden" }}>
-        {pro.cover ? (
-          // eslint-disable-next-line @next/next/no-img-element
-          <img
-            src={pro.cover}
-            alt={pro.name}
-            loading="lazy"
-            className="card-hover-img"
-            style={{ width: "100%", height: "100%", objectFit: "cover" }}
-          />
-        ) : (
-          <div style={{ width: "100%", height: "100%", display: "grid", placeItems: "center" }}>
-            <Icon name="hardhat" size={40} color={colors.primary} />
-          </div>
-        )}
+        {/* eslint-disable-next-line @next/next/no-img-element */}
+        <img
+          src={pro.cover || coverForProfession(pro.profession)}
+          alt={pro.name}
+          loading="lazy"
+          className="card-hover-img"
+          style={{ width: "100%", height: "100%", objectFit: "cover" }}
+        />
         {pro.verified && (
           <span
             style={{
