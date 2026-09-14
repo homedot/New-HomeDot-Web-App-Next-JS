@@ -33,8 +33,13 @@ const AMENITY_ICON: Record<string, IconName> = {
 // facts — so the page actually reads differently per listing type.
 type PropertyKind = "residential" | "office" | "plot";
 
-function getPropertyKind(category: string): PropertyKind {
-  const c = category.toLowerCase();
+function getPropertyKind(prop: MarketplaceProperty): PropertyKind {
+  // `length`/`breadth` are only ever collected for Plot listings (see
+  // PropertyAddScreen's KIND_FIELDS), so their presence is a reliable
+  // signal even when `category` itself doesn't say "plot" — e.g. a Rent
+  // listing whose propertyTypeDetails came back empty from the API.
+  if (prop.length || prop.breadth) return "plot";
+  const c = prop.category.toLowerCase();
   if (c.includes("plot") || c.includes("land")) return "plot";
   if (c.includes("office") || c.includes("commercial")) return "office";
   return "residential";
@@ -160,7 +165,7 @@ export default function PropertyDetail({
   const priceVal = parsePrice(prop.price);
   const emi = !isRent && priceVal > 0 ? estimateMonthlyEmi(priceVal) : null;
 
-  const kind = getPropertyKind(prop.category);
+  const kind = getPropertyKind(prop);
   const kindStyle = KIND_STYLE[kind];
   const highlights = KIND_HIGHLIGHTS[kind];
   const verifiedHighlight = highlights.find(
