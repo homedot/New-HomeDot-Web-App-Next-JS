@@ -1,6 +1,7 @@
 "use client";
 
-import { useEffect, useRef, useState } from "react";
+import { useEffect, useLayoutEffect, useRef, useState } from "react";
+import { createPortal } from "react-dom";
 import { colors } from "@/constants/colors";
 import { radius, fontSize, shadow } from "@/utils/size";
 import Icon from "@/components/Icon";
@@ -29,21 +30,46 @@ export default function NotificationBell({
 }) {
   const [open, setOpen] = useState(false);
   const rootRef = useRef<HTMLDivElement | null>(null);
+  const panelRef = useRef<HTMLDivElement | null>(null);
   const [debugStatus, setDebugStatus] = useState(() => SocketService.getDebugStatus());
+  // The panel is portaled to document.body (see render below) so it can
+  // escape the dashboard's overflow:hidden "unified container" instead of
+  // being clipped by it — position is computed from the bell button's own
+  // rect rather than relying on a CSS-positioned ancestor.
+  const [panelPos, setPanelPos] = useState<{ top: number; right: number } | null>(null);
+
+  const updatePanelPos = () => {
+    const el = rootRef.current;
+    if (!el) return;
+    const rect = el.getBoundingClientRect();
+    setPanelPos({ top: rect.bottom + 10, right: Math.max(16, window.innerWidth - rect.right) });
+  };
+
+  useLayoutEffect(() => {
+    if (!open) return;
+    updatePanelPos();
+  }, [open]);
 
   useEffect(() => {
     if (!open) return;
     const onOutside = (e: MouseEvent) => {
-      if (rootRef.current && !rootRef.current.contains(e.target as Node)) setOpen(false);
+      const target = e.target as Node;
+      if (rootRef.current?.contains(target)) return;
+      if (panelRef.current?.contains(target)) return;
+      setOpen(false);
     };
     const onKey = (e: KeyboardEvent) => {
       if (e.key === "Escape") setOpen(false);
     };
     document.addEventListener("mousedown", onOutside);
     document.addEventListener("keydown", onKey);
+    window.addEventListener("resize", updatePanelPos);
+    window.addEventListener("scroll", updatePanelPos, true);
     return () => {
       document.removeEventListener("mousedown", onOutside);
       document.removeEventListener("keydown", onKey);
+      window.removeEventListener("resize", updatePanelPos);
+      window.removeEventListener("scroll", updatePanelPos, true);
     };
   }, [open]);
 
@@ -93,12 +119,13 @@ export default function NotificationBell({
         )}
       </button>
 
-      {open && (
+      {open && panelPos && createPortal(
         <div
+          ref={panelRef}
           style={{
-            position: "absolute",
-            top: "calc(100% + 10px)",
-            right: 0,
+            position: "fixed",
+            top: panelPos.top,
+            right: panelPos.right,
             width: 340,
             maxWidth: "calc(100vw - 32px)",
             maxHeight: 420,
@@ -107,7 +134,7 @@ export default function NotificationBell({
             border: `1px solid ${colors.line}`,
             borderRadius: radius.md,
             boxShadow: shadow.md,
-            zIndex: 200,
+            zIndex: 1000,
           }}
         >
           <div
@@ -185,7 +212,8 @@ export default function NotificationBell({
               {debugStatus.connected ? `connected (${debugStatus.socketId})` : "disconnected"}
             </div>
           )}
-        </div>
+        </div>,
+        document.body
       )}
     </div>
   );

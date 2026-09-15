@@ -1,6 +1,7 @@
 "use client";
 
 import { useEffect, useRef, useState, type CSSProperties } from "react";
+import { createPortal } from "react-dom";
 import { useSearchParams, useRouter, usePathname } from "next/navigation";
 import { colors } from "@/constants/colors";
 import { spacing, radius, fontSize, shadow, maxWidth } from "@/utils/size";
@@ -60,8 +61,33 @@ export default function ProjectsScreen() {
   const [pages, setPages] = useState<Record<TabKey, number>>({ ongoing: 1, completed: 1, cancelled: 1 });
   const [loading, setLoading] = useState(true);
   const [loadingMore, setLoadingMore] = useState(false);
+  // getMyProjects has no total-count field to compare against — "no more
+  // pages for this tab" can only be discovered by trying: a page whose
+  // bucket for this status comes back empty, or comes back containing only
+  // records we already have (the shared-page-bucketed-by-status API
+  // legitimately does this once a status bucket runs dry) — see
+  // ProfessionalDashboardScreen's identical loadMoreProjects for the same
+  // API shape. Marks the tab exhausted and hides "Show more" instead of
+  // refetching the same page forever.
+  const [exhausted, setExhausted] = useState<Record<TabKey, boolean>>({ ongoing: false, completed: false, cancelled: false });
+  // Surfaced on the exact click that discovers a tab is exhausted (the
+  // button then hides itself right after) — without this, that click just
+  // silently does nothing, which reads as broken rather than "that's all".
+  const [toast, setToast] = useState<{ message: string; variant: "info" | "error" } | null>(null);
+  const [mounted, setMounted] = useState(false);
 
   const [detailSlug, setDetailSlug] = useState<string | null>(null);
+
+  useEffect(() => {
+    // eslint-disable-next-line react-hooks/set-state-in-effect -- mount-detection guard for the portal target (document.body), which doesn't exist during SSR
+    setMounted(true);
+  }, []);
+
+  useEffect(() => {
+    if (!toast) return;
+    const t = setTimeout(() => setToast(null), 4000);
+    return () => clearTimeout(t);
+  }, [toast]);
 
   useEffect(() => {
     if (!getAuthToken()) {
@@ -115,19 +141,40 @@ export default function ProjectsScreen() {
   };
 
   const loadMore = async () => {
-    if (loadingMore) return;
+    if (loadingMore || exhausted[tab]) return;
     setLoadingMore(true);
     const nextPage = pages[tab] + 1;
     const res = await ProjectsService.getMyProjects(nextPage);
     setLoadingMore(false);
-    const result = res.data?.data?.[0];
-    if (res.success && res.data?.status && result) {
-      const next = result[tab] ?? [];
-      if (next.length > 0) {
-        setGroups((g) => ({ ...g, [tab]: [...g[tab], ...next] }));
-        setPages((p) => ({ ...p, [tab]: nextPage }));
-      }
+    const label = TABS.find((t) => t.key === tab)?.label ?? tab;
+    const noMore = () => {
+      setExhausted((e) => ({ ...e, [tab]: true }));
+      setToast({ message: `You're all caught up — no more ${label.toLowerCase()} projects to show.`, variant: "info" });
+    };
+    if (!res.success || !res.data?.status) {
+      // A genuine fetch failure, not "ran out of pages" — leave the tab
+      // loadable so the next click can retry.
+      setToast({ message: "Couldn't load more projects. Please try again.", variant: "error" });
+      return;
     }
+    const result = res.data?.data?.[0];
+    const next = result?.[tab];
+    if (!next || next.length === 0) {
+      noMore();
+      return;
+    }
+    // The next page can come back holding only records this tab already
+    // has (the API buckets one shared page by status, so a status that's
+    // run dry keeps echoing whatever page it last had data on) — without
+    // this filter those re-appear as duplicate React keys.
+    const existingIds = new Set(groups[tab].map((p) => p._id));
+    const fresh = next.filter((p) => !existingIds.has(p._id));
+    if (fresh.length === 0) {
+      noMore();
+      return;
+    }
+    setGroups((g) => ({ ...g, [tab]: [...g[tab], ...fresh] }));
+    setPages((p) => ({ ...p, [tab]: nextPage }));
   };
 
   if (detailSlug) {
@@ -284,30 +331,99 @@ export default function ProjectsScreen() {
                 <ProjectCard key={p._id} project={p} onOpen={() => p.projectSlug && openDetail(p.projectSlug)} />
               ))}
             </Reveal>
-            <div style={{ display: "flex", justifyContent: "center", marginTop: spacing.xxl }}>
-              <button
-                onClick={loadMore}
-                disabled={loadingMore}
-                style={{
-                  display: "inline-flex",
-                  alignItems: "center",
-                  gap: 8,
-                  fontWeight: 600,
-                  fontSize: fontSize.sm,
-                  color: colors.ink,
-                  background: colors.card,
-                  border: `1.5px solid ${colors.line}`,
-                  borderRadius: radius.full,
-                  padding: "15px 26px",
-                  boxShadow: shadow.sm,
-                }}
-              >
-                {loadingMore ? "Loading…" : "Show more projects"}
-              </button>
-            </div>
+            {!exhausted[tab] && (
+              <div style={{ display: "flex", justifyContent: "center", marginTop: spacing.xxl }}>
+                <button
+                  onClick={loadMore}
+                  disabled={loadingMore}
+                  style={{
+                    display: "inline-flex",
+                    alignItems: "center",
+                    gap: 8,
+                    fontWeight: 600,
+                    fontSize: fontSize.sm,
+                    color: colors.ink,
+                    background: colors.card,
+                    border: `1.5px solid ${colors.line}`,
+                    borderRadius: radius.full,
+                    padding: "15px 26px",
+                    boxShadow: shadow.sm,
+                  }}
+                >
+                  {loadingMore ? "Loading…" : "Show more projects"}
+                </button>
+              </div>
+            )}
           </>
         )}
       </section>
+
+      {mounted &&
+        toast &&
+        createPortal(
+          <div
+            style={{
+              position: "fixed",
+              top: 24,
+              left: "50%",
+              transform: "translateX(-50%)",
+              zIndex: 1100,
+              display: "flex",
+              flexDirection: "column",
+              alignItems: "center",
+              gap: 10,
+            }}
+          >
+            <div
+              className="pd-toast"
+              style={{
+                display: "flex",
+                alignItems: "center",
+                gap: 10,
+                background: colors.ink,
+                color: colors.white,
+                padding: "10px 12px 10px 14px",
+                borderRadius: radius.full,
+                fontSize: fontSize.sm,
+                fontWeight: 600,
+                boxShadow: "0 20px 40px -14px rgba(0,0,0,0.35)",
+                maxWidth: "min(420px, 90vw)",
+              }}
+            >
+              <span
+                style={{
+                  width: 24,
+                  height: 24,
+                  borderRadius: "50%",
+                  flexShrink: 0,
+                  display: "grid",
+                  placeItems: "center",
+                  background: toast.variant === "error" ? "rgba(229,72,77,0.22)" : "rgba(52,211,153,0.2)",
+                  color: toast.variant === "error" ? "#E5484D" : "#34D399",
+                }}
+              >
+                <Icon name={toast.variant === "error" ? "alertTriangle" : "check"} size={13} strokeWidth={3} />
+              </span>
+              <span style={{ flex: 1 }}>{toast.message}</span>
+              <button
+                onClick={() => setToast(null)}
+                aria-label="Dismiss"
+                style={{
+                  width: 22,
+                  height: 22,
+                  flexShrink: 0,
+                  borderRadius: "50%",
+                  display: "grid",
+                  placeItems: "center",
+                  color: "rgba(255,255,255,0.6)",
+                }}
+              >
+                <Icon name="close" size={13} color="rgba(255,255,255,0.6)" />
+              </button>
+            </div>
+          </div>,
+          document.body
+        )}
 
       <SiteFooter />
     </div>
