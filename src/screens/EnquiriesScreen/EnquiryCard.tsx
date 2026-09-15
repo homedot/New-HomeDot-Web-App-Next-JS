@@ -39,6 +39,7 @@ export default function EnquiryCard({
   // this "rejected" is a status token on the list record, not the free-text
   // message shown once the response detail is fetched.
   const isRejected = enquiry.professionalResponse?.[0]?.responseText === "rejected";
+  const userDeclined = !!enquiry.professionalResponse?.[0]?.userReject;
   const isCompleted = enquiry.status === "project-completed";
   const isInitiated = enquiry.status === "project-initiated";
   const hasProfResponse = enquiry.professionalResponse.length !== 0;
@@ -184,7 +185,24 @@ export default function EnquiryCard({
           >
             <Icon name="close" size={13} color="#DC2626" /> Enquiry rejected
           </span>
-        ) : isCompleted || isInitiated ? null : hasProfResponse ? (
+        ) : isCompleted || isInitiated ? null : userDeclined ? (
+          <span
+            style={{
+              display: "inline-flex",
+              alignItems: "center",
+              gap: 6,
+              background: "#FFF5F5",
+              border: "1px solid #FCA5A5",
+              borderRadius: radius.full,
+              padding: "6px 12px",
+              fontSize: fontSize.xs,
+              fontWeight: 600,
+              color: "#F87171",
+            }}
+          >
+            <Icon name="close" size={13} color="#F87171" /> You declined this response
+          </span>
+        ) : hasProfResponse ? (
           <button
             onClick={onOpenResponse}
             className="pd-badge-pulse"
