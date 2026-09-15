@@ -105,7 +105,10 @@ const COLS: {
   },
 ];
 
-const SOCIALS: { name: IconName; href: string; label: string }[] = [
+// Exported so other sections (e.g. LandingScreen's "Connect with us") can
+// render the exact same social row instead of drifting out of sync with
+// their own hardcoded copy.
+export const SOCIALS: { name: IconName; href: string; label: string }[] = [
   { name: "facebook", href: "https://www.facebook.com/homedotapps/", label: "HomeDot on Facebook" },
   { name: "instagram", href: "https://www.instagram.com/homedotapp/", label: "HomeDot on Instagram" },
   { name: "linkedin", href: "https://in.linkedin.com/company/homedotapp", label: "HomeDot on LinkedIn" },

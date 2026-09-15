@@ -27,7 +27,7 @@ import ScrollProgress from "@/components/ScrollProgress";
 import ScrollScrub from "@/components/ScrollScrub";
 import Parallax from "@/components/Parallax";
 import SiteNav from "@/components/SiteNav";
-import SiteFooter from "@/components/SiteFooter";
+import SiteFooter, { SOCIALS } from "@/components/SiteFooter";
 import LoginModal, { type LoginModalHandle } from "@/components/LoginModal";
 import { getAuthToken, setActiveRole } from "@/utils/authStorage";
 import { useProfileStore } from "@/store/useProfileStore";
@@ -3106,13 +3106,18 @@ function ContactSection() {
             </div>
           </div>
           <div style={{ display: "flex", gap: spacing.md }}>
-            {(["facebook", "twitter", "instagram", "linkedin"] as const).map(
-              (icon) => (
-                <span key={icon} style={contactSocialIconStyle}>
-                  <Icon name={icon} size={18} color={colors.white} />
-                </span>
-              ),
-            )}
+            {SOCIALS.map((s) => (
+              <a
+                key={s.name}
+                href={s.href}
+                target="_blank"
+                rel="noopener noreferrer"
+                aria-label={s.label}
+                style={contactSocialIconStyle}
+              >
+                <Icon name={s.name} size={18} color={colors.white} />
+              </a>
+            ))}
           </div>
         </div>
       </Reveal>
