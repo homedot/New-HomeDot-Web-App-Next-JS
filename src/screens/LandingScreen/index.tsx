@@ -34,28 +34,20 @@ import { useProfileStore } from "@/store/useProfileStore";
 import { useAuthStore } from "@/store/useAuthStore";
 import { useRoleSwitchStore } from "@/store/useRoleSwitchStore";
 import SwitchProfessionalService from "@/services/SwitchProfessionalService";
-import LandingScreenService, {
-  toProCardProfessional,
-  pickTestimonials,
-  toBlogPost,
-  toServiceCategoryCard,
-  toPropertyCategoryCard,
-  type Testimonial,
-  type BlogPost,
-  type ServiceCategoryCard,
-  type PropertyCategoryCard,
+import type {
+  Testimonial,
+  BlogPost,
+  ServiceCategoryCard,
+  PropertyCategoryCard,
 } from "@/services/LandingScreenService";
+import { submitContactAction } from "./actions";
+import type { LandingInitialData } from "./getInitialData";
 import appHomeImg from "@/assets/images/app-home.png";
 import {
-  categories,
-  propertyCategories,
   properties,
-  professionals,
   steps,
   constructionStages,
   exploreImage,
-  blogPosts,
-  testimonials,
 } from "./data";
 import { getRecaptchaToken } from "@/utils/recaptcha";
 const wrap: CSSProperties = {
@@ -109,7 +101,11 @@ const contactSocialIconStyle: CSSProperties = {
   placeItems: "center",
 };
 
-export default function LandingScreen() {
+export default function LandingScreen({
+  initialData,
+}: {
+  initialData: LandingInitialData;
+}) {
   const loginModalRef = useRef<LoginModalHandle>(null);
 
   useEffect(() => {
@@ -135,16 +131,25 @@ export default function LandingScreen() {
       <MarqueeStrip />
       <FeatureShowcase />
       <FeaturedProperties />
-      <Categories />
-      <PropertyCategories />
+      <Categories
+        items={initialData.categories}
+        loaded={initialData.categoriesLoaded}
+      />
+      <PropertyCategories items={initialData.propertyCategories} />
       <PosterShowcase />
-      <TopProfessionals loginModalRef={loginModalRef} />
+      <TopProfessionals
+        pros={initialData.topProfessionals}
+        loginModalRef={loginModalRef}
+      />
       <HowItWorks />
       <ConstructionStages />
       <StoryShowcase />
       <ProCta loginModalRef={loginModalRef} />
-      <LatestInsights loginModalRef={loginModalRef} />
-      <Testimonials />
+      <LatestInsights
+        posts={initialData.blogPosts}
+        loginModalRef={loginModalRef}
+      />
+      <Testimonials items={initialData.testimonials} />
       <ContactSection />
       <SiteFooter />
     </div>
@@ -933,23 +938,17 @@ function FeaturedProperties() {
   );
 }
 
-function Categories() {
-  const [items, setItems] = useState<ServiceCategoryCard[]>(categories);
-  // Tracks whether `items` holds real category ids from the API rather than
-  // the local mock's placeholder slugs (e.g. "architects") — ProfessionalsScreen
+function Categories({
+  items,
+  loaded,
+}: {
+  items: ServiceCategoryCard[];
+  // Whether `items` holds real category ids from the API rather than the
+  // local mock's placeholder slugs (e.g. "architects") — ProfessionalsScreen
   // only pre-selects/highlights a category when the id in the URL matches one
   // of its own API-sourced options, so a card must not link with a mock id.
-  const [loaded, setLoaded] = useState(false);
-
-  useEffect(() => {
-    LandingScreenService.getServiceCategories().then((res) => {
-      if (res.success && res.data?.status && res.data.data.length > 0) {
-        setItems(res.data.data.map(toServiceCategoryCard));
-        setLoaded(true);
-      }
-    });
-  }, []);
-
+  loaded: boolean;
+}) {
   return (
     <section style={{ ...wrap, padding: `${spacing.xxl}px ${spacing.xl}px` }}>
       <ScrollScrub className="scrub-rise">
@@ -1019,18 +1018,7 @@ function Categories() {
   );
 }
 
-function PropertyCategories() {
-  const [items, setItems] =
-    useState<PropertyCategoryCard[]>(propertyCategories);
-
-  useEffect(() => {
-    LandingScreenService.getPropertyCategories().then((res) => {
-      if (res.success && res.data?.status && res.data.data.length > 0) {
-        setItems(res.data.data.map(toPropertyCategoryCard));
-      }
-    });
-  }, []);
-
+function PropertyCategories({ items }: { items: PropertyCategoryCard[] }) {
   return (
     <section
       style={{
@@ -1279,20 +1267,13 @@ function PosterShowcase() {
 }
 
 function TopProfessionals({
+  pros,
   loginModalRef,
 }: {
+  pros: Professional[];
   loginModalRef: RefObject<LoginModalHandle | null>;
 }) {
   const router = useRouter();
-  const [pros, setPros] = useState<Professional[]>(professionals);
-
-  useEffect(() => {
-    LandingScreenService.getFeaturedProfessionals().then((res) => {
-      if (res.success && res.data?.status && res.data.data.length > 0) {
-        setPros(res.data.data.slice(0, 3).map(toProCardProfessional));
-      }
-    });
-  }, []);
 
   // The professional detail screen is signed-in only (same convention as
   // ProfessionalsScreen.openDetail) — guests get the login popup instead of
@@ -2544,21 +2525,13 @@ function ProCta({
 }
 
 function LatestInsights({
+  posts,
   loginModalRef,
 }: {
+  posts: BlogPost[];
   loginModalRef: RefObject<LoginModalHandle | null>;
 }) {
   const router = useRouter();
-  const [posts, setPosts] = useState<BlogPost[]>(blogPosts);
-
-  useEffect(() => {
-    LandingScreenService.getHomeData().then((res) => {
-      const stories = res.data?.data?.[0]?.stories;
-      if (res.success && res.data?.status && stories?.length) {
-        setPosts(stories.slice(0, 3).map(toBlogPost));
-      }
-    });
-  }, []);
 
   return (
     <section
@@ -2738,18 +2711,7 @@ function CardWrapper({
   );
 }
 
-function Testimonials() {
-  const [items, setItems] = useState<Testimonial[]>(testimonials);
-
-  useEffect(() => {
-    LandingScreenService.getReviews().then((res) => {
-      if (res.success && res.data?.status && res.data.data.length > 0) {
-        const picked = pickTestimonials(res.data.data);
-        if (picked.length > 0) setItems(picked);
-      }
-    });
-  }, []);
-
+function Testimonials({ items }: { items: Testimonial[] }) {
   return (
     <section
       style={{
@@ -2935,7 +2897,7 @@ function ContactSection() {
     if (!validate()) return;
 
     setSubmitting(true);
-    const res = await LandingScreenService.submitContact({
+    const res = await submitContactAction({
       name: form.name.trim(),
       email: form.email.trim(),
       message: form.message.trim(),

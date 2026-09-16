@@ -14,7 +14,6 @@ import { spacing, radius, fontSize, shadow, maxWidth } from "@/utils/size";
 import Icon from "@/components/Icon";
 import Button from "@/components/Button";
 import ProCard, { type Professional } from "@/components/ProCard";
-import CardSkeleton from "@/components/CardSkeleton";
 import SiteNav from "@/components/SiteNav";
 import SiteFooter from "@/components/SiteFooter";
 import AmbientBackground from "@/components/AmbientBackground";
@@ -29,10 +28,7 @@ import {
   type GoogleMapsNamespace,
   type GoogleMapsPlacePrediction,
 } from "@/utils/loadGoogleMapsScript";
-import LandingScreenService, {
-  toServiceCategoryCard,
-  type ServiceCategoryCard,
-} from "@/services/LandingScreenService";
+import type { ServiceCategoryCard } from "@/services/LandingScreenService";
 import ProfessionalsScreenService, {
   toProfessionalRecord,
   toProfessionalRecordFromDetail,
@@ -48,6 +44,7 @@ import {
   unsplash,
   type ProfessionalRecord,
 } from "./data";
+import type { ProfessionalsInitialData } from "./getInitialData";
 
 const wrap: CSSProperties = {
   maxWidth,
@@ -55,15 +52,17 @@ const wrap: CSSProperties = {
   padding: `0 ${spacing.xl}px`,
 };
 
-export default function ProfessionalsScreen() {
+export default function ProfessionalsScreen({
+  initialData,
+}: {
+  initialData: ProfessionalsInitialData;
+}) {
   const searchParams = useSearchParams();
   const router = useRouter();
   const pathname = usePathname();
 
-  const [categoryOptions, setCategoryOptions] = useState<ServiceCategoryCard[]>(
-    [],
-  );
-  const [category, setCategory] = useState<string>("all");
+  const categoryOptions: ServiceCategoryCard[] = initialData.categoryOptions;
+  const [category, setCategory] = useState<string>(initialData.category);
   const [query, setQuery] = useState("");
   const [budget, setBudget] = useState<number | null>(null); // index into budgetBuckets
   const [rating, setRating] = useState<number | null>(null); // exact star value
@@ -102,14 +101,10 @@ export default function ProfessionalsScreen() {
 
   const [apiProfessionals, setApiProfessionals] = useState<
     ProfessionalRecord[]
-  >([]);
+  >(initialData.professionals);
   const [page, setPage] = useState(1);
-  const [totalRows, setTotalRows] = useState(0);
+  const [totalRows, setTotalRows] = useState(initialData.totalRows);
   const [loading, setLoading] = useState(false);
-  // True until the very first filter-professional response comes back
-  // (success or failure) — drives the skeleton grid below instead of
-  // flashing mock data that then gets swapped for the real thing.
-  const [initialLoad, setInitialLoad] = useState(true);
   const [detail, setDetail] = useState<ProfessionalRecord | null>(null);
   const initialSlugHandled = useRef(false);
   const detailRequestId = useRef(0);
@@ -133,29 +128,6 @@ export default function ProfessionalsScreen() {
     if (getAuthToken()) setPendingSlug(searchParams.get("professional"));
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, []);
-
-  useEffect(() => {
-    LandingScreenService.getServiceCategories().then((res) => {
-      if (res.success && res.data?.status) {
-        setCategoryOptions(res.data.data.map(toServiceCategoryCard));
-      }
-    });
-  }, []);
-
-  // Pre-selects the category passed in via "?category=<id>" (e.g. from
-  // LandingScreen's "Design & build professionals" cards) once the category
-  // taxonomy has loaded and a matching option can be resolved — same
-  // pattern as MarketplaceScreen's requestedPropertyTypeId.
-  const requestedCategoryId = searchParams.get("category");
-  useEffect(() => {
-    const applyRequestedCategory = () => {
-      if (!requestedCategoryId || categoryOptions.length === 0) return;
-      if (categoryOptions.some((c) => c.id === requestedCategoryId)) {
-        setCategory(requestedCategoryId);
-      }
-    };
-    applyRequestedCategory();
-  }, [requestedCategoryId, categoryOptions]);
 
   // Seeds the saved/favorited set from the backend on load, for signed-in
   // users, so the heart state persists across sessions — mirrors
@@ -369,8 +341,17 @@ export default function ProfessionalsScreen() {
   }, [rating, experience]);
 
   // Reset to page 1 and refetch whenever a server-side filter changes —
-  // mirrors MarketplaceScreen's equivalent effect.
+  // mirrors MarketplaceScreen's equivalent effect. Skips its very first run:
+  // page.tsx already fetched this exact default-filter first page server-side
+  // (see getInitialData.ts) and seeded apiProfessionals/totalRows from it, so
+  // firing again here on mount would just repeat the same request from the
+  // browser.
+  const skippedInitialFilterFetch = useRef(false);
   useEffect(() => {
+    if (!skippedInitialFilterFetch.current) {
+      skippedInitialFilterFetch.current = true;
+      return;
+    }
     let cancelled = false;
     const load = async () => {
       setLoading(true);
@@ -381,7 +362,6 @@ export default function ProfessionalsScreen() {
       );
       if (cancelled) return;
       setLoading(false);
-      setInitialLoad(false);
       const result = res.data?.data?.[0];
       if (res.success && res.data?.status) {
         setApiProfessionals(
@@ -1086,9 +1066,7 @@ export default function ProfessionalsScreen() {
                       marginTop: 5,
                     }}
                   >
-                    {initialLoad
-                      ? "Finding professionals for you…"
-                      : `${totalRows} ${totalRows === 1 ? "professional" : "professionals"} found · sorted by ${sort}`}
+                    {`${totalRows} ${totalRows === 1 ? "professional" : "professionals"} found · sorted by ${sort}`}
                   </p>
                 </div>
 
@@ -1236,16 +1214,7 @@ export default function ProfessionalsScreen() {
                   </div>
                 )}
 
-                {initialLoad ? (
-                  <div
-                    className="grid grid-cols-1 sm:grid-cols-2 xl:grid-cols-3"
-                    style={{ gap: spacing.xl }}
-                  >
-                    {Array.from({ length: 6 }).map((_, i) => (
-                      <CardSkeleton key={i} />
-                    ))}
-                  </div>
-                ) : list.length === 0 ? (
+                {list.length === 0 ? (
                   <div
                     style={{
                       textAlign: "center",

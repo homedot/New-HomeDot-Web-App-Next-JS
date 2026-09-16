@@ -18,6 +18,16 @@ if (missingEnvVars.length > 0) {
 
 const nextConfig: NextConfig = {
   output: "standalone",
+  experimental: {
+    serverActions: {
+      // Every API call (including file uploads) is routed through the
+      // serverFetch Server Action (see src/services/serverFetch.ts) so the
+      // backend host is never called directly from the browser. Property
+      // photos are allowed up to 10MB each (ImagesStep.tsx) plus multipart
+      // overhead, so the default 1MB action body limit is raised to match.
+      bodySizeLimit: "15mb",
+    },
+  },
 };
 
 export default nextConfig;

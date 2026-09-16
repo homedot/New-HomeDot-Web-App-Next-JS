@@ -6,7 +6,6 @@ import { colors } from "@/constants/colors";
 import { spacing, radius, fontSize, shadow, maxWidth } from "@/utils/size";
 import Icon from "@/components/Icon";
 import BlogCard from "@/components/BlogCard";
-import CardSkeleton from "@/components/CardSkeleton";
 import SiteNav from "@/components/SiteNav";
 import SiteFooter from "@/components/SiteFooter";
 import AmbientBackground from "@/components/AmbientBackground";
@@ -22,7 +21,8 @@ import BlogScreenService, {
   type BlogArticle,
 } from "@/services/BlogScreenService";
 import BlogDetail from "./BlogDetail";
-import { fallbackPosts, heroImage } from "./data";
+import { heroImage } from "./data";
+import type { BlogInitialData } from "./getInitialData";
 
 const wrap: CSSProperties = {
   maxWidth,
@@ -30,22 +30,21 @@ const wrap: CSSProperties = {
   padding: `0 ${spacing.xl}px`,
 };
 
-export default function BlogScreen() {
+export default function BlogScreen({
+  initialData,
+}: {
+  initialData: BlogInitialData;
+}) {
   const searchParams = useSearchParams();
   const router = useRouter();
   const pathname = usePathname();
   const loginModalRef = useRef<LoginModalHandle>(null);
 
   const [query, setQuery] = useState("");
-  const [posts, setPosts] = useState<BlogCardData[]>(fallbackPosts);
+  const [posts, setPosts] = useState<BlogCardData[]>(initialData.posts);
   const [page, setPage] = useState(1);
-  const [hasMore, setHasMore] = useState(true);
-  const [loading, setLoading] = useState(false);
+  const [hasMore, setHasMore] = useState(initialData.hasMore);
   const [loadingMore, setLoadingMore] = useState(false);
-  // True until the very first response for the current category comes back
-  // (success or failure) — drives the skeleton grid instead of flashing
-  // fallbackPosts that then get swapped for the real thing.
-  const [initialLoad, setInitialLoad] = useState(true);
 
   const [saved, setSaved] = useState<string[]>([]);
   const [detail, setDetail] = useState<BlogArticle | null>(null);
@@ -73,33 +72,8 @@ export default function BlogScreen() {
     });
   }, []);
 
-  useEffect(() => {
-    let cancelled = false;
-    const load = async () => {
-      setLoading(true);
-      const res = await BlogScreenService.getBlogList(1);
-      if (cancelled) return;
-      setLoading(false);
-      setInitialLoad(false);
-      const result = res.data?.data?.[0];
-      if (res.success && res.data?.status) {
-        const list = result ? result.data.map(toBlogCard) : [];
-        setPosts(list);
-        setPage(1);
-        setHasMore(list.length > 0 && (result?.totalCount ? list.length < result.totalCount.total_rows : true));
-      } else {
-        setPosts([]);
-        setHasMore(false);
-      }
-    };
-    load();
-    return () => {
-      cancelled = true;
-    };
-  }, []);
-
   const loadMore = async () => {
-    if (loading || loadingMore) return;
+    if (loadingMore) return;
     setLoadingMore(true);
     const res = await BlogScreenService.getBlogList(page + 1);
     setLoadingMore(false);
@@ -350,17 +324,11 @@ export default function BlogScreen() {
                 All stories
               </h2>
               <p style={{ color: colors.muted, fontSize: fontSize.base, marginTop: 5 }}>
-                {initialLoad ? "Finding the latest stories for you…" : `${list.length} ${list.length === 1 ? "article" : "articles"}`}
+                {`${list.length} ${list.length === 1 ? "article" : "articles"}`}
               </p>
             </div>
 
-            {initialLoad ? (
-              <div className="grid grid-cols-1 sm:grid-cols-2 xl:grid-cols-3" style={{ gap: spacing.xl }}>
-                {Array.from({ length: 6 }).map((_, i) => (
-                  <CardSkeleton key={i} />
-                ))}
-              </div>
-            ) : list.length === 0 ? (
+            {list.length === 0 ? (
               <div
                 style={{
                   textAlign: "center",

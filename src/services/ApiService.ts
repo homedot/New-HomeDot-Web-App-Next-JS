@@ -1,9 +1,9 @@
-import { BASE_URL, API_ENDPOINTS } from "@/constants/ApiConstants";
+import { API_ENDPOINTS } from "@/constants/ApiConstants";
 import { getAuthToken, getRefreshToken } from "@/utils/authStorage";
 import { useAuthStore } from "@/store/useAuthStore";
+import { serverFetch } from "./serverFetch";
 
 export type HttpMethod = "GET" | "POST" | "PUT" | "PATCH" | "DELETE";
-console.log("BASE_URL_________", BASE_URL);
 export interface ApiResponse<T = unknown> {
   success: boolean;
   statusCode: number;
@@ -16,26 +16,6 @@ export interface ApiRequestOptions {
   headers?: Record<string, string>;
   body?: unknown;
   params?: Record<string, string | number | boolean | undefined>;
-}
-
-function buildUrl(
-  endpoint: string,
-  params?: ApiRequestOptions["params"],
-): string {
-  if (!BASE_URL && !endpoint.startsWith("http")) {
-    throw new Error("NEXT_PUBLIC_API_STAGING_BASE_URL is not set");
-  }
-  const url = new URL(
-    endpoint.startsWith("http")
-      ? endpoint
-      : `${BASE_URL!.replace(/\/$/, "")}/${endpoint.replace(/^\//, "")}`,
-  );
-  if (params) {
-    Object.entries(params).forEach(([key, value]) => {
-      if (value !== undefined) url.searchParams.append(key, String(value));
-    });
-  }
-  return url.toString();
 }
 
 interface RefreshTokenBody {
@@ -54,16 +34,15 @@ async function refreshAccessToken(): Promise<string | null> {
       const refreshToken = getRefreshToken();
       if (!refreshToken) return null;
       try {
-        const response = await fetch(
-          buildUrl(API_ENDPOINTS.AUTH.REFRESH_TOKEN),
-          {
-            method: "POST",
-            headers: { "Content-Type": "application/json" },
-            body: JSON.stringify({ refreshToken }),
-          },
+        const response = await serverFetch(
+          API_ENDPOINTS.AUTH.REFRESH_TOKEN,
+          undefined,
+          "POST",
+          { "Content-Type": "application/json" },
+          JSON.stringify({ refreshToken }),
         );
         if (!response.ok) return null;
-        const responseBody = (await response.json()) as RefreshTokenBody;
+        const responseBody = response.data as RefreshTokenBody;
         const newToken = responseBody.status
           ? responseBody.data?.[0]?.token
           : null;
@@ -98,22 +77,23 @@ export async function apiCall<T = unknown>(
   // browser sets the multipart boundary itself. Everything else is JSON.
   const isFormData =
     typeof FormData !== "undefined" && body instanceof FormData;
-  const url = buildUrl(endpoint, params);
 
   const doFetch = (authToken: string | null) =>
-    fetch(url, {
+    serverFetch(
+      endpoint,
+      params,
       method,
-      headers: {
+      {
         ...(isFormData ? {} : { "Content-Type": "application/json" }),
         ...(authToken ? { Authorization: `Bearer ${authToken}` } : {}),
         ...headers,
       },
-      body: isFormData
-        ? body
+      isFormData
+        ? (body as FormData)
         : body !== undefined
           ? JSON.stringify(body)
           : undefined,
-    });
+    );
 
   try {
     let response = await doFetch(token);
@@ -136,17 +116,11 @@ export async function apiCall<T = unknown>(
 
     const statusCode = response.status;
     console.log(`API [${method}] ${endpoint} -> status code ${statusCode}`);
-    let data: T | null = null;
-    try {
-      data = (await response.json()) as T;
-    } catch {
-      data = null;
-    }
 
     return {
       success: response.ok,
       statusCode,
-      data,
+      data: response.data as T | null,
       message: response.ok
         ? "Success"
         : response.statusText || "Request failed",

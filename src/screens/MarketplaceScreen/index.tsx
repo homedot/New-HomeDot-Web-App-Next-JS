@@ -14,7 +14,6 @@ import { spacing, radius, fontSize, shadow, maxWidth } from "@/utils/size";
 import Icon from "@/components/Icon";
 import Button from "@/components/Button";
 import PropertyCard from "@/components/PropertyCard";
-import CardSkeleton from "@/components/CardSkeleton";
 import SiteNav from "@/components/SiteNav";
 import SiteFooter from "@/components/SiteFooter";
 import AmbientBackground from "@/components/AmbientBackground";
@@ -48,6 +47,7 @@ import {
   unsplash,
   type MarketplaceProperty,
 } from "./data";
+import type { MarketplaceInitialData } from "./getInitialData";
 
 const wrap: CSSProperties = {
   maxWidth,
@@ -74,11 +74,14 @@ function hidesBedBath(type: PropertyTypeRecord | null): boolean {
   return /office|plot/i.test(type.propertyType);
 }
 
-export default function MarketplaceScreen() {
+export default function MarketplaceScreen({
+  initialData,
+}: {
+  initialData: MarketplaceInitialData;
+}) {
   const searchParams = useSearchParams();
   const router = useRouter();
   const pathname = usePathname();
-  const requestedPropertyTypeId = searchParams.get("propertyType");
 
   const [purpose, setPurpose] = useState<"Buy" | "Rent">("Buy");
   // Rent prices are monthly rupee amounts, not lakhs/crores, so Rent gets its
@@ -87,9 +90,9 @@ export default function MarketplaceScreen() {
   const activeBudgetRanges = purpose === "Rent" ? rentBudgetRanges : budgetRanges;
   const [propertyTypeOptions, setPropertyTypeOptions] = useState<
     PropertyTypeRecord[]
-  >([]);
+  >(initialData.propertyTypeOptions);
   const [selectedPropertyType, setSelectedPropertyType] =
-    useState<PropertyTypeRecord | null>(null);
+    useState<PropertyTypeRecord | null>(initialData.selectedPropertyType);
   // `locationText` is purely the input's display value (updates on every
   // keystroke); `appliedLocation` is what actually drives the API filter and
   // is only set when a Places suggestion is picked or "use my current
@@ -118,40 +121,24 @@ export default function MarketplaceScreen() {
   const [view, setView] = useState<"grid" | "list">("grid");
   const [saved, setSaved] = useState<string[]>([]);
   const loginModalRef = useRef<LoginModalHandle>(null);
-  const [detail, setDetail] = useState<MarketplaceProperty | null>(null);
+  const [detail, setDetail] = useState<MarketplaceProperty | null>(
+    initialData.detail,
+  );
   const [detailSimilar, setDetailSimilar] = useState<
     MarketplaceProperty[] | null
-  >(null);
+  >(initialData.detailSimilar);
   const detailRequestId = useRef(0);
-  // Whether a shared "?property=<slug>" link is still being resolved on
-  // first load (no `detail` yet to show, but the plain listing shouldn't
-  // flash first either). Seeded lazily from the initial URL so it's already
-  // correct on the very first render, instead of flipping true inside an effect.
-  const [initialSlugLoading, setInitialSlugLoading] = useState(
-    () => searchParams.get("property") !== null,
+
+  const [apiProperties, setApiProperties] = useState<MarketplaceProperty[]>(
+    initialData.apiProperties,
   );
-  const initialSlugHandled = useRef(false);
-
-  const [apiProperties, setApiProperties] =
-    useState<MarketplaceProperty[]>([]);
-  const [page, setPage] = useState(1);
-  const [totalPages, setTotalPages] = useState(1);
+  const [page, setPage] = useState(initialData.page);
+  const [totalPages, setTotalPages] = useState(initialData.totalPages);
   const [loading, setLoading] = useState(false);
-  // True until the very first properties-filter response comes back (success
-  // or failure) — drives the skeleton grid below instead of flashing mock
-  // data that then gets swapped for the real thing.
-  const [initialLoad, setInitialLoad] = useState(true);
 
-  const propertyTypeIdsRef = useRef<string[]>([]);
-
-  useEffect(() => {
-    MarketplaceScreenService.getPropertyTypes().then((res) => {
-      if (res.success && res.data?.status) {
-        setPropertyTypeOptions(res.data.data);
-        propertyTypeIdsRef.current = res.data.data.map((t) => t._id);
-      }
-    });
-  }, []);
+  const propertyTypeIdsRef = useRef<string[]>(
+    initialData.propertyTypeOptions.map((t) => t._id),
+  );
 
   // The property-types endpoint above returns one fixed, purpose-agnostic
   // count per type (confirmed against the live API — identical response
@@ -159,8 +146,16 @@ export default function MarketplaceScreen() {
   // vs Rent and looked "stuck" when switching tabs. Re-derive each type's
   // count from the same properties-filter endpoint the listing grid itself
   // uses, scoped to that type + the active purpose, which *does* differ
-  // between Buy and Rent.
+  // between Buy and Rent. Skips its very first run — page.tsx already fetched
+  // these exact "Buy" counts server-side (see getInitialData.ts) and seeded
+  // propertyTypeOptions from them, so firing again here on mount would just
+  // repeat the same requests from the browser.
+  const skippedInitialTypeCounts = useRef(false);
   useEffect(() => {
+    if (!skippedInitialTypeCounts.current) {
+      skippedInitialTypeCounts.current = true;
+      return;
+    }
     if (propertyTypeIdsRef.current.length === 0) return;
     let cancelled = false;
     const neutralFilters: PropertiesFilterPayload = {
@@ -401,20 +396,6 @@ export default function MarketplaceScreen() {
     }
   };
 
-  // Pre-selects the property type passed in via ?propertyType=<id> (e.g. from
-  // LandingScreen's "Browse by property category" cards) once the taxonomy
-  // has loaded and a matching option can be resolved.
-  useEffect(() => {
-    const applyRequestedType = () => {
-      if (!requestedPropertyTypeId || propertyTypeOptions.length === 0) return;
-      const match = propertyTypeOptions.find(
-        (t) => t._id === requestedPropertyTypeId,
-      );
-      if (match) selectPropertyType(match);
-    };
-    applyRequestedType();
-  }, [requestedPropertyTypeId, propertyTypeOptions]);
-
   // "5+" has no exact BHK value server-side — the real API's enum tops out
   // at 4_PLUS_BHK (matches the mobile app's filter payload).
   const filterPayload = useMemo((): PropertiesFilterPayload => {
@@ -432,7 +413,16 @@ export default function MarketplaceScreen() {
     };
   }, [budget, activeBudgetRanges, beds, baths, selectedPropertyType, appliedLocation]);
 
+  // Skips its very first run — page.tsx already fetched this exact
+  // default-filter first page server-side (see getInitialData.ts) and seeded
+  // apiProperties/page/totalPages from it, so firing again here on mount
+  // would just repeat the same request from the browser.
+  const skippedInitialListingFetch = useRef(false);
   useEffect(() => {
+    if (!skippedInitialListingFetch.current) {
+      skippedInitialListingFetch.current = true;
+      return;
+    }
     let cancelled = false;
     const load = async () => {
       setLoading(true);
@@ -443,7 +433,6 @@ export default function MarketplaceScreen() {
       );
       if (cancelled) return;
       setLoading(false);
-      setInitialLoad(false);
       // An empty `data` array (no page entry at all) means zero matches for
       // this search — must still clear stale results from a previous search,
       // not just leave them on screen.
@@ -603,31 +592,9 @@ export default function MarketplaceScreen() {
     router.back();
   };
 
-  // Resolves a shared "?property=<slug>" link on first load — the normal
-  // openDetail() flow above always starts from an already-known
-  // MarketplaceProperty (the clicked card), but a pasted URL has only the
-  // slug, so this fetches the detail record directly instead.
-  useEffect(() => {
-    if (initialSlugHandled.current) return;
-    initialSlugHandled.current = true;
-    const slug = searchParams.get("property");
-    if (!slug) return;
-
-    MarketplaceScreenService.getPropertyBySlug(slug).then((res) => {
-      setInitialSlugLoading(false);
-      const entry = res.data?.data?.[0];
-      const record = entry?.propertyDetails?.[0];
-      if (!record) return; // invalid/stale slug — falls through to the normal listing
-      const full = toMarketplacePropertyDetail(record);
-      setDetail(full);
-      if (entry?.similarProperties?.length) {
-        setDetailSimilar(
-          entry.similarProperties.map((r) => toMarketplaceProperty(r, full.purpose)),
-        );
-      }
-    });
-    // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, []);
+  // A shared "?property=<slug>" link is resolved server-side now (see
+  // getInitialData.ts), which already seeds `detail`/`detailSimilar` above —
+  // no client-side resolution effect needed for it.
 
   const similar = useMemo(() => {
     if (!detail) return [];
@@ -664,33 +631,6 @@ export default function MarketplaceScreen() {
           onBack={closeDetail}
           onOpen={openDetail}
         />
-      ) : initialSlugLoading ? (
-        <div
-          style={{
-            minHeight: "70vh",
-            display: "flex",
-            flexDirection: "column",
-            alignItems: "center",
-            justifyContent: "center",
-            gap: spacing.md,
-          }}
-        >
-          <span
-            className="animate-glow-pulse"
-            style={{
-              width: 60,
-              height: 60,
-              borderRadius: "50%",
-              background: colors.primarySoft,
-              color: colors.primary,
-              display: "grid",
-              placeItems: "center",
-            }}
-          >
-            <Icon name="house" size={26} />
-          </span>
-          <p style={{ color: colors.muted, fontSize: fontSize.base }}>Loading property…</p>
-        </div>
       ) : (
         <>
           {/* compact hero + search */}
@@ -1181,9 +1121,7 @@ export default function MarketplaceScreen() {
                       marginTop: 5,
                     }}
                   >
-                    {initialLoad
-                      ? "Finding properties for you…"
-                      : `${list.length} ${list.length === 1 ? "property" : "properties"} found · updated today`}
+                    {`${list.length} ${list.length === 1 ? "property" : "properties"} found · updated today`}
                   </p>
                 </div>
 
@@ -1333,13 +1271,7 @@ export default function MarketplaceScreen() {
                   </div>
                 )}
 
-                {initialLoad ? (
-                  <div className="grid grid-cols-1 sm:grid-cols-2 xl:grid-cols-3" style={{ gap: spacing.xl }}>
-                    {Array.from({ length: 6 }).map((_, i) => (
-                      <CardSkeleton key={i} />
-                    ))}
-                  </div>
-                ) : list.length === 0 ? (
+                {list.length === 0 ? (
                   <div
                     style={{
                       textAlign: "center",
@@ -1462,7 +1394,7 @@ export default function MarketplaceScreen() {
           the detail/loading branches end on light content, where the
           footer's default top margin is invisible against the same
           page background rather than a stray seam. */}
-      <SiteFooter flush={!detail && !initialSlugLoading} />
+      <SiteFooter flush={!detail} />
     </div>
   );
 }
