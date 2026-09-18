@@ -184,7 +184,7 @@ export default function PrivacyPolicyScreen() {
         </div>
       </section>
 
-      <SiteFooter />
+      <SiteFooter variant={professionalMode ? "professional" : "user"} />
     </div>
   );
 }

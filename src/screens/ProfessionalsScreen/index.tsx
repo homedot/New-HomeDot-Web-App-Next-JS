@@ -94,10 +94,14 @@ export default function ProfessionalsScreen({
   );
   const [showSuggestions, setShowSuggestions] = useState(false);
   const [locationError, setLocationError] = useState(false);
+  const [showMobileFilters, setShowMobileFilters] = useState(false);
   const locationInputRef = useRef<HTMLInputElement | null>(null);
   const locationFieldRef = useRef<HTMLDivElement | null>(null);
   const googleMapsRef = useRef<GoogleMapsNamespace | null>(null);
   const suggestTimer = useRef<ReturnType<typeof setTimeout> | null>(null);
+  // Set by onPaste so the next onChange (fired by the paste itself) skips
+  // the AutocompleteService predictions lookup — see geocodeQuery below.
+  const pasteSkipRef = useRef(false);
 
   const [apiProfessionals, setApiProfessionals] = useState<
     ProfessionalRecord[]
@@ -178,10 +182,20 @@ export default function ProfessionalsScreen({
   // (which has no CORS headers and can't be called from a browser — same
   // reason MarketplaceScreen avoids it).
   const onLocationInputChange = (rawValue: string) => {
-    const value = rawValue.replace(/[^a-zA-Z0-9\s,.'/-]/g, "");
+    // "+" is allowed alongside the rest so Plus Codes (e.g. "28QR+2GF...")
+    // survive this filter instead of being geocoded with the + stripped out.
+    const value = rawValue.replace(/[^a-zA-Z0-9\s,.'/+-]/g, "");
     setLocationText(value);
     setLocationError(false);
     if (suggestTimer.current) clearTimeout(suggestTimer.current);
+    if (pasteSkipRef.current) {
+      // A paste triggered this change — geocodeQuery (called from onPaste)
+      // resolves it directly, so skip the predictions lookup below.
+      pasteSkipRef.current = false;
+      setSuggestions([]);
+      setShowSuggestions(false);
+      return;
+    }
     const q = value.trim();
     if (q.length < 1) {
       setSuggestions([]);
@@ -290,17 +304,14 @@ export default function ProfessionalsScreen({
   // works if the user never triggered (or dismissed) the dropdown.
 
 
-  const applyTypedLocation = () => {
-    if (showSuggestions && suggestions[0]) {
-      selectSuggestion(suggestions[0]);
-      return;
-    }
-    const q = locationText.trim();
+  // Full Geocoding API lookup — resolves addresses (incl. plus codes) that
+  // the AutocompleteService predictions endpoint often misses.
+  const geocodeQuery = (query: string) => {
+    const q = query.trim();
     if (!q) {
       clearLocation();
       return;
     }
-    if (appliedLocation?.address === q) return;
     const google = googleMapsRef.current;
     if (!google) return;
     new google.maps.Geocoder().geocode({ address: q }, (results, status) => {
@@ -316,6 +327,20 @@ export default function ProfessionalsScreen({
         setLocationError(true);
       }
     });
+  };
+
+  const applyTypedLocation = () => {
+    if (showSuggestions && suggestions[0]) {
+      selectSuggestion(suggestions[0]);
+      return;
+    }
+    const q = locationText.trim();
+    if (!q) {
+      clearLocation();
+      return;
+    }
+    if (appliedLocation?.address === q) return;
+    geocodeQuery(q);
   };
 
   
@@ -566,6 +591,49 @@ export default function ProfessionalsScreen({
 
   const hasMore = apiProfessionals.length < totalRows;
 
+  // Shared between the desktop sidebar and the mobile filter sheet so the
+  // two surfaces can't drift out of sync with each other.
+  const filterFields = (
+    <>
+      <FilterGroup title="Budget (₹ / sqft)">
+        {budgetBuckets.map((b, i) => (
+          <RadioRow
+            key={b.label}
+            label={b.label}
+            checked={budget === i}
+            onChange={() => setBudget(budget === i ? null : i)}
+          />
+        ))}
+      </FilterGroup>
+
+      <FilterGroup title="Rating">
+        {ratingBuckets.map((r) => (
+          <RadioRow
+            key={r.value}
+            label={r.label}
+            checked={rating === r.value}
+            onChange={() =>
+              setRating(rating === r.value ? null : r.value)
+            }
+          />
+        ))}
+      </FilterGroup>
+
+      <FilterGroup title="Experience" last>
+        {experienceBuckets.map((e, i) => (
+          <RadioRow
+            key={e.label}
+            label={e.label}
+            checked={experience === i}
+            onChange={() =>
+              setExperience(experience === i ? null : i)
+            }
+          />
+        ))}
+      </FilterGroup>
+    </>
+  );
+
   return (
     <div
       style={{
@@ -758,6 +826,16 @@ export default function ProfessionalsScreen({
                     onFocus={() =>
                       suggestions.length > 0 && setShowSuggestions(true)
                     }
+                    onPaste={() => {
+                      // A pasted address/plus-code often gets ZERO_RESULTS
+                      // from AutocompleteService even though the Geocoding
+                      // API resolves it fine — skip predictions and geocode
+                      // the pasted text directly.
+                      pasteSkipRef.current = true;
+                      requestAnimationFrame(() => {
+                        geocodeQuery(locationInputRef.current?.value ?? "");
+                      });
+                    }}
                     onKeyDown={(e) => {
                       if (e.key === "Enter") {
                         e.preventDefault();
@@ -1005,42 +1083,7 @@ export default function ProfessionalsScreen({
                   )}
                 </div>
 
-                <FilterGroup title="Budget (₹ / sqft)">
-                  {budgetBuckets.map((b, i) => (
-                    <RadioRow
-                      key={b.label}
-                      label={b.label}
-                      checked={budget === i}
-                      onChange={() => setBudget(budget === i ? null : i)}
-                    />
-                  ))}
-                </FilterGroup>
-
-                <FilterGroup title="Rating">
-                  {ratingBuckets.map((r) => (
-                    <RadioRow
-                      key={r.value}
-                      label={r.label}
-                      checked={rating === r.value}
-                      onChange={() =>
-                        setRating(rating === r.value ? null : r.value)
-                      }
-                    />
-                  ))}
-                </FilterGroup>
-
-                <FilterGroup title="Experience" last>
-                  {experienceBuckets.map((e, i) => (
-                    <RadioRow
-                      key={e.label}
-                      label={e.label}
-                      checked={experience === i}
-                      onChange={() =>
-                        setExperience(experience === i ? null : i)
-                      }
-                    />
-                  ))}
-                </FilterGroup>
+                {filterFields}
               </aside>
 
               {/* results */}
@@ -1080,18 +1123,30 @@ export default function ProfessionalsScreen({
                     flexWrap: "wrap",
                   }}
                 >
-                  <span
+                  <button
                     className="lg:hidden"
+                    onClick={() => setShowMobileFilters(true)}
                     style={{
                       fontSize: fontSize.sm,
                       fontWeight: 600,
-                      color: colors.muted,
+                      color: activeCount > 0 ? colors.primary : colors.muted,
+                      border: `1px solid ${activeCount > 0 ? colors.primary : colors.line}`,
+                      borderRadius: 10,
+                      padding: "8px 12px",
+                      background: activeCount > 0 ? colors.primarySoft : colors.card,
                     }}
                   >
-                    {activeCount > 0
-                      ? `${activeCount} filters active`
-                      : "All professionals"}
-                  </span>
+                    {/* the flex layout lives on this inner span, not the
+                        button itself — an inline `display` on the button
+                        would out-specificity `lg:hidden`'s display:none and
+                        make it show up at desktop widths too */}
+                    <span style={{ display: "inline-flex", alignItems: "center", gap: 6 }}>
+                      <Icon name="filter" size={16} />
+                      {activeCount > 0
+                        ? `${activeCount} filters active`
+                        : "All professionals"}
+                    </span>
+                  </button>
                   <div
                     style={{
                       display: "flex",
@@ -1303,6 +1358,99 @@ export default function ProfessionalsScreen({
               </main>
             </div>
           </section>
+
+          {showMobileFilters && (
+            // The fixed-position flex layout lives on the inner div, not
+            // here — an inline `display` on this element would
+            // out-specificity `lg:hidden`'s display:none (see the filter
+            // button above) and leave the sheet stuck open if the viewport
+            // is ever resized past the desktop breakpoint.
+            <div className="lg:hidden" role="dialog" aria-modal="true" aria-label="Filters">
+              <div
+                style={{
+                  position: "fixed",
+                  inset: 0,
+                  zIndex: 100,
+                  display: "flex",
+                  flexDirection: "column",
+                  justifyContent: "flex-end",
+                }}
+              >
+                <div
+                  onClick={() => setShowMobileFilters(false)}
+                  style={{
+                    position: "absolute",
+                    inset: 0,
+                    background: "rgba(15, 23, 42, 0.45)",
+                  }}
+                />
+                <div
+                  style={{
+                    position: "relative",
+                    background: colors.card,
+                    borderTopLeftRadius: radius.lg,
+                    borderTopRightRadius: radius.lg,
+                    maxHeight: "85vh",
+                    display: "flex",
+                    flexDirection: "column",
+                    boxShadow: "0 -10px 30px rgba(0,0,0,0.15)",
+                  }}
+                >
+                  <div
+                    style={{
+                      display: "flex",
+                      alignItems: "center",
+                      justifyContent: "space-between",
+                      padding: `${spacing.lg}px ${spacing.lg}px ${spacing.md}px`,
+                      borderBottom: `1px solid ${colors.line}`,
+                    }}
+                  >
+                    <span style={{ fontSize: fontSize.lg, fontWeight: 700 }}>
+                      Filters
+                    </span>
+                    <button
+                      onClick={() => setShowMobileFilters(false)}
+                      aria-label="Close filters"
+                      style={{ display: "flex", color: colors.muted }}
+                    >
+                      <Icon name="close" size={20} />
+                    </button>
+                  </div>
+
+                  <div
+                    style={{
+                      overflowY: "auto",
+                      padding: `0 ${spacing.lg}px`,
+                      flex: 1,
+                    }}
+                  >
+                    {filterFields}
+                  </div>
+
+                  <div
+                    style={{
+                      display: "flex",
+                      gap: spacing.md,
+                      padding: spacing.lg,
+                      borderTop: `1px solid ${colors.line}`,
+                    }}
+                  >
+                    <div style={{ flex: 1 }}>
+                      <Button variant="outline" full onClick={clearAll}>
+                        Clear all
+                      </Button>
+                    </div>
+                    <div style={{ flex: 1 }}>
+                      <Button full onClick={() => setShowMobileFilters(false)}>
+                        Show {totalRows}{" "}
+                        {totalRows === 1 ? "professional" : "professionals"}
+                      </Button>
+                    </div>
+                  </div>
+                </div>
+              </div>
+            </div>
+          )}
 
           <StoryBand
             image={unsplash("1618221195710-dd6b41faaea6", 1800)}

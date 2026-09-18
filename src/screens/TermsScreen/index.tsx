@@ -189,7 +189,7 @@ export default function TermsScreen() {
         </div>
       </section>
 
-      <SiteFooter />
+      <SiteFooter variant={professionalMode ? "professional" : "user"} />
     </div>
   );
 }

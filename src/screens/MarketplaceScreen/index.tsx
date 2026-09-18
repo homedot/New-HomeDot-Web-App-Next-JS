@@ -107,11 +107,16 @@ export default function MarketplaceScreen({
   const [suggestions, setSuggestions] = useState<GoogleMapsPlacePrediction[]>([]);
   const [showSuggestions, setShowSuggestions] = useState(false);
   const [showTypeMenu, setShowTypeMenu] = useState(false);
+  const [showMobileFilters, setShowMobileFilters] = useState(false);
   const locationInputRef = useRef<HTMLInputElement | null>(null);
   const locationFieldRef = useRef<HTMLDivElement | null>(null);
   const typeFieldRef = useRef<HTMLDivElement | null>(null);
   const googleMapsRef = useRef<GoogleMapsNamespace | null>(null);
+  const resultsRef = useRef<HTMLElement | null>(null);
   const suggestTimer = useRef<ReturnType<typeof setTimeout> | null>(null);
+  // Set by onPaste so the next onChange (fired by the paste itself) skips
+  // the AutocompleteService predictions lookup — see geocodeQuery below.
+  const pasteSkipRef = useRef(false);
   const [beds, setBeds] = useState("");
   const [baths, setBaths] = useState("");
   const [budget, setBudget] = useState("");
@@ -273,6 +278,14 @@ export default function MarketplaceScreen({
     setAppliedLocation(null);
     setLocationError(false);
     if (suggestTimer.current) clearTimeout(suggestTimer.current);
+    if (pasteSkipRef.current) {
+      // A paste triggered this change — geocodeQuery (called from onPaste)
+      // resolves it directly, so skip the predictions lookup below.
+      pasteSkipRef.current = false;
+      setSuggestions([]);
+      setShowSuggestions(false);
+      return;
+    }
     const q = value.trim();
     if (q.length < 1) {
       setSuggestions([]);
@@ -355,6 +368,30 @@ export default function MarketplaceScreen({
     setLocationError(false);
   };
 
+  // Full Geocoding API lookup — resolves addresses (incl. plus codes) that
+  // the AutocompleteService predictions endpoint often misses.
+  const geocodeQuery = (query: string) => {
+    const trimmed = query.trim();
+    if (!trimmed) {
+      clearLocation();
+      return;
+    }
+    const google = googleMapsRef.current;
+    if (!google) return;
+    new google.maps.Geocoder().geocode({ address: trimmed }, (results, status) => {
+      if (status === "OK" && results?.[0]) {
+        setLocationError(false);
+        setLocationText(results[0].formatted_address);
+        setAppliedLocation({
+          address: results[0].formatted_address,
+          city: cityFromAddressComponents(results[0].address_components),
+        });
+      } else {
+        setLocationError(true);
+      }
+    });
+  };
+
   // Enter/Search picks the top suggestion if the dropdown is open;
   // otherwise geocodes whatever's typed as a fallback so search still
   // works if the user never triggered (or dismissed) the dropdown.
@@ -369,20 +406,7 @@ export default function MarketplaceScreen({
       return;
     }
     if (appliedLocation?.address === query) return;
-    const google = googleMapsRef.current;
-    if (!google) return;
-    new google.maps.Geocoder().geocode({ address: query }, (results, status) => {
-      if (status === "OK" && results?.[0]) {
-        setLocationError(false);
-        setLocationText(results[0].formatted_address);
-        setAppliedLocation({
-          address: results[0].formatted_address,
-          city: cityFromAddressComponents(results[0].address_components),
-        });
-      } else {
-        setLocationError(true);
-      }
-    });
+    geocodeQuery(query);
   };
 
   // Sets the property type and clears Bedrooms/Bathrooms whenever the new
@@ -450,6 +474,20 @@ export default function MarketplaceScreen({
       cancelled = true;
     };
   }, [filterPayload, purpose]);
+
+  // Scrolls the results back into view whenever the filter set changes.
+  // Without this, as `apiProperties`/`list` shrinks to match the new
+  // filter, the page's shorter height clamps the still-unchanged scroll
+  // position down past the results and into StoryBand/the footer, leaving
+  // the user staring there until they scroll back up manually.
+  const skippedInitialScrollToResults = useRef(false);
+  useEffect(() => {
+    if (!skippedInitialScrollToResults.current) {
+      skippedInitialScrollToResults.current = true;
+      return;
+    }
+    resultsRef.current?.scrollIntoView({ behavior: "smooth", block: "start" });
+  }, [filterPayload]);
 
   const loadMore = async () => {
     if (loading || page >= totalPages) return;
@@ -607,6 +645,72 @@ export default function MarketplaceScreen({
     return (sameCat.length >= 3 ? sameCat : fallback).slice(0, 3);
   }, [detail, detailSimilar, apiProperties]);
 
+  // Shared between the desktop sidebar and the mobile filter sheet so the
+  // two surfaces can't drift out of sync with each other.
+  const filterFields = (
+    <>
+      <FilterGroup title="Property type">
+        {propertyTypeOptions.map((t) => (
+          <RadioRow
+            key={t._id}
+            label={
+              t.propertyCount != null
+                ? `${t.propertyType} (${t.propertyCount})`
+                : t.propertyType
+            }
+            checked={selectedPropertyType?._id === t._id}
+            onChange={() =>
+              selectPropertyType(
+                selectedPropertyType?._id === t._id ? null : t,
+              )
+            }
+          />
+        ))}
+      </FilterGroup>
+
+      <FilterGroup title="Budget" last={hidesBedBath(selectedPropertyType)}>
+        {activePriceOptions.map((b) => (
+          <RadioRow
+            key={b}
+            label={b}
+            checked={budget === b}
+            onChange={() => setBudget(budget === b ? "" : b)}
+          />
+        ))}
+      </FilterGroup>
+
+      {!hidesBedBath(selectedPropertyType) && (
+        <>
+          <FilterGroup title="Bedrooms">
+            <div style={{ display: "flex", flexWrap: "wrap", gap: 8 }}>
+              {bedOptions.map((b) => (
+                <SegPill
+                  key={b}
+                  label={`${b} BHK`}
+                  active={beds === b}
+                  onClick={() => setBeds(beds === b ? "" : b)}
+                />
+              ))}
+            </div>
+          </FilterGroup>
+
+          <FilterGroup title="Bathrooms" last>
+            <div style={{ display: "flex", flexWrap: "wrap", gap: 8 }}>
+              {bathOptions.map((b) => (
+                <SegPill
+                  key={b}
+                  label={`${b}+`}
+                  active={baths === b}
+                  onClick={() => setBaths(baths === b ? "" : b)}
+                />
+              ))}
+            </div>
+          </FilterGroup>
+        </>
+      )}
+    </>
+  );
+
   return (
     <div
       style={{
@@ -762,6 +866,16 @@ export default function MarketplaceScreen({
                     value={locationText}
                     onChange={(e) => onLocationInputChange(e.target.value)}
                     onFocus={() => suggestions.length > 0 && setShowSuggestions(true)}
+                    onPaste={() => {
+                      // A pasted address/plus-code often gets ZERO_RESULTS
+                      // from AutocompleteService even though the Geocoding
+                      // API resolves it fine — skip predictions and geocode
+                      // the pasted text directly.
+                      pasteSkipRef.current = true;
+                      requestAnimationFrame(() => {
+                        geocodeQuery(locationInputRef.current?.value ?? "");
+                      });
+                    }}
                     onKeyDown={(e) => {
                       if (e.key === "Enter") {
                         e.preventDefault();
@@ -990,7 +1104,7 @@ export default function MarketplaceScreen({
           </section>
 
           {/* listings */}
-          <section style={{ ...wrap, paddingTop: spacing.xxl + 6 }}>
+          <section ref={resultsRef} style={{ ...wrap, paddingTop: spacing.xxl + 6 }}>
             <div
               className="grid grid-cols-1 lg:grid-cols-[262px_1fr]"
               style={{ gap: spacing.xxl, alignItems: "start" }}
@@ -1040,65 +1154,7 @@ export default function MarketplaceScreen({
                   )}
                 </div>
 
-                <FilterGroup title="Property type">
-                  {propertyTypeOptions.map((t) => (
-                    <RadioRow
-                      key={t._id}
-                      label={
-                        t.propertyCount != null
-                          ? `${t.propertyType} (${t.propertyCount})`
-                          : t.propertyType
-                      }
-                      checked={selectedPropertyType?._id === t._id}
-                      onChange={() =>
-                        selectPropertyType(
-                          selectedPropertyType?._id === t._id ? null : t,
-                        )
-                      }
-                    />
-                  ))}
-                </FilterGroup>
-
-                <FilterGroup title="Budget" last={hidesBedBath(selectedPropertyType)}>
-                  {activePriceOptions.map((b) => (
-                    <RadioRow
-                      key={b}
-                      label={b}
-                      checked={budget === b}
-                      onChange={() => setBudget(budget === b ? "" : b)}
-                    />
-                  ))}
-                </FilterGroup>
-
-                {!hidesBedBath(selectedPropertyType) && (
-                  <>
-                    <FilterGroup title="Bedrooms">
-                      <div style={{ display: "flex", flexWrap: "wrap", gap: 8 }}>
-                        {bedOptions.map((b) => (
-                          <SegPill
-                            key={b}
-                            label={`${b} BHK`}
-                            active={beds === b}
-                            onClick={() => setBeds(beds === b ? "" : b)}
-                          />
-                        ))}
-                      </div>
-                    </FilterGroup>
-
-                    <FilterGroup title="Bathrooms" last>
-                      <div style={{ display: "flex", flexWrap: "wrap", gap: 8 }}>
-                        {bathOptions.map((b) => (
-                          <SegPill
-                            key={b}
-                            label={`${b}+`}
-                            active={baths === b}
-                            onClick={() => setBaths(baths === b ? "" : b)}
-                          />
-                        ))}
-                      </div>
-                    </FilterGroup>
-                  </>
-                )}
+                {filterFields}
               </aside>
 
               {/* results */}
@@ -1135,18 +1191,30 @@ export default function MarketplaceScreen({
                     flexWrap: "wrap",
                   }}
                 >
-                  <span
+                  <button
                     className="lg:hidden"
+                    onClick={() => setShowMobileFilters(true)}
                     style={{
                       fontSize: fontSize.sm,
                       fontWeight: 600,
-                      color: colors.muted,
+                      color: activeCount > 0 ? colors.primary : colors.muted,
+                      border: `1px solid ${activeCount > 0 ? colors.primary : colors.line}`,
+                      borderRadius: 10,
+                      padding: "8px 12px",
+                      background: activeCount > 0 ? colors.primarySoft : colors.card,
                     }}
                   >
-                    {activeCount > 0
-                      ? `${activeCount} filters active`
-                      : "All properties"}
-                  </span>
+                    {/* the flex layout lives on this inner span, not the
+                        button itself — an inline `display` on the button
+                        would out-specificity `lg:hidden`'s display:none and
+                        make it show up at desktop widths too */}
+                    <span style={{ display: "inline-flex", alignItems: "center", gap: 6 }}>
+                      <Icon name="filter" size={16} />
+                      {activeCount > 0
+                        ? `${activeCount} filters active`
+                        : "All properties"}
+                    </span>
+                  </button>
                   <div
                     style={{
                       display: "flex",
@@ -1364,6 +1432,99 @@ export default function MarketplaceScreen({
               </main>
             </div>
           </section>
+
+          {showMobileFilters && (
+            // The fixed-position flex layout lives on the inner div, not
+            // here — an inline `display` on this element would
+            // out-specificity `lg:hidden`'s display:none (see the filter
+            // button above) and leave the sheet stuck open if the viewport
+            // is ever resized past the desktop breakpoint.
+            <div className="lg:hidden" role="dialog" aria-modal="true" aria-label="Filters">
+              <div
+                style={{
+                  position: "fixed",
+                  inset: 0,
+                  zIndex: 100,
+                  display: "flex",
+                  flexDirection: "column",
+                  justifyContent: "flex-end",
+                }}
+              >
+                <div
+                  onClick={() => setShowMobileFilters(false)}
+                  style={{
+                    position: "absolute",
+                    inset: 0,
+                    background: "rgba(15, 23, 42, 0.45)",
+                  }}
+                />
+                <div
+                  style={{
+                    position: "relative",
+                    background: colors.card,
+                    borderTopLeftRadius: radius.lg,
+                    borderTopRightRadius: radius.lg,
+                    maxHeight: "85vh",
+                    display: "flex",
+                    flexDirection: "column",
+                    boxShadow: "0 -10px 30px rgba(0,0,0,0.15)",
+                  }}
+                >
+                  <div
+                    style={{
+                      display: "flex",
+                      alignItems: "center",
+                      justifyContent: "space-between",
+                      padding: `${spacing.lg}px ${spacing.lg}px ${spacing.md}px`,
+                      borderBottom: `1px solid ${colors.line}`,
+                    }}
+                  >
+                    <span style={{ fontSize: fontSize.lg, fontWeight: 700 }}>
+                      Filters
+                    </span>
+                    <button
+                      onClick={() => setShowMobileFilters(false)}
+                      aria-label="Close filters"
+                      style={{ display: "flex", color: colors.muted }}
+                    >
+                      <Icon name="close" size={20} />
+                    </button>
+                  </div>
+
+                  <div
+                    style={{
+                      overflowY: "auto",
+                      padding: `0 ${spacing.lg}px`,
+                      flex: 1,
+                    }}
+                  >
+                    {filterFields}
+                  </div>
+
+                  <div
+                    style={{
+                      display: "flex",
+                      gap: spacing.md,
+                      padding: spacing.lg,
+                      borderTop: `1px solid ${colors.line}`,
+                    }}
+                  >
+                    <div style={{ flex: 1 }}>
+                      <Button variant="outline" full onClick={clearAll}>
+                        Clear all
+                      </Button>
+                    </div>
+                    <div style={{ flex: 1 }}>
+                      <Button full onClick={() => setShowMobileFilters(false)}>
+                        Show {list.length}{" "}
+                        {list.length === 1 ? "property" : "properties"}
+                      </Button>
+                    </div>
+                  </div>
+                </div>
+              </div>
+            </div>
+          )}
 
           <StoryBand
             image={unsplash("1512917774080-9991f1c4c750", 1800)}

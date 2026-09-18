@@ -57,7 +57,8 @@ type IconName =
   | "whatsapp"
   | "youtube"
   | "alertTriangle"
-  | "bell";
+  | "bell"
+  | "filter";
 
 const PATHS: Record<IconName, React.ReactNode> = {
   search: (
@@ -383,6 +384,11 @@ const PATHS: Record<IconName, React.ReactNode> = {
     <>
       <path d="M18 8.5a6 6 0 0 0-12 0c0 5.5-2 7-2 7h16s-2-1.5-2-7Z" />
       <path d="M10.7 20a1.6 1.6 0 0 0 2.6 0" strokeLinecap="round" />
+    </>
+  ),
+  filter: (
+    <>
+      <path d="M4 6h16M7 12h10M10.5 18h3" />
     </>
   ),
 };

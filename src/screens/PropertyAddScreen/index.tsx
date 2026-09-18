@@ -150,6 +150,7 @@ export default function PropertyAddScreen() {
 
             {step === "images" && (
               <ImagesStep
+                initialImages={images}
                 setImages={setImages}
                 onBack={() => setStep("details")}
                 onContinue={() => setStep("review")}
