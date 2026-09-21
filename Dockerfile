@@ -4,7 +4,7 @@ ENV NEXT_TELEMETRY_DISABLED=1
 
 FROM base AS deps
 COPY package.json package-lock.json ./
-RUN npm ci
+RUN --mount=type=cache,target=/root/.npm npm ci
 
 FROM base AS builder
 ARG NEXT_PUBLIC_API_URL
@@ -21,7 +21,9 @@ ENV NEXT_PUBLIC_RECAPTCHA_SITE_KEY=$NEXT_PUBLIC_RECAPTCHA_SITE_KEY
 ENV NEXT_PUBLIC_GOOGLE_MAPS_API_KEY=$NEXT_PUBLIC_GOOGLE_MAPS_API_KEY
 COPY --from=deps /app/node_modules ./node_modules
 COPY . .
-RUN npm run build
+# Persist Turbopack's build cache (.next/cache) across image builds so
+# rebuilds start warm. Requires BuildKit (default in Docker 23+).
+RUN --mount=type=cache,target=/app/.next/cache npm run build
 
 FROM node:22-alpine AS runner
 WORKDIR /app
