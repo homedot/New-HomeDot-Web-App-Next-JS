@@ -10,3 +10,7 @@ pnpm-debug.log*
 .env*
 Dockerfile*
 README.md
+.claude
+.smoke-test-tmp.js
+__shot6.js
+tsconfig.tsbuildinfo
