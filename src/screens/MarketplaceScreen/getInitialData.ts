@@ -89,13 +89,27 @@ export async function getMarketplaceInitialData(
 
   let detail: MarketplaceProperty | null = null;
   let detailSimilar: MarketplaceProperty[] | null = null;
-  const entry = detailRes?.data?.data?.[0];
+  let entry = detailRes?.data?.data?.[0];
+  let detailPurpose: "Buy" | "Rent" = "Buy";
+  // A shared link doesn't say whether it's a sale or rent listing; the sell
+  // route returns an empty propertyDetails for rent slugs, so try rent next.
+  if (requestedPropertySlug && !entry?.propertyDetails?.[0]) {
+    const rentRes = await MarketplaceScreenService.getPropertyBySlug(
+      requestedPropertySlug,
+      "Rent",
+    );
+    const rentEntry = rentRes.data?.data?.[0];
+    if (rentEntry?.propertyDetails?.[0]) {
+      entry = rentEntry;
+      detailPurpose = "Rent";
+    }
+  }
   const record = entry?.propertyDetails?.[0];
   if (record) {
-    detail = toMarketplacePropertyDetail(record);
+    detail = toMarketplacePropertyDetail(record, detailPurpose);
     if (entry?.similarProperties?.length) {
       detailSimilar = entry.similarProperties.map((r) =>
-        toMarketplaceProperty(r, detail!.purpose),
+        toMarketplaceProperty(r, detailPurpose),
       );
     }
   }

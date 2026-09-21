@@ -39,6 +39,10 @@ function getPropertyKind(prop: MarketplaceProperty): PropertyKind {
   // signal even when `category` itself doesn't say "plot" — e.g. a Rent
   // listing whose propertyTypeDetails came back empty from the API.
   if (prop.length || prop.breadth) return "plot";
+  // Plots never carry bedrooms/bathrooms/carpet area, so a listing with only
+  // a plot area (no length/breadth) is still a plot.
+  if (prop.plotArea && !prop.beds && !prop.baths && !prop.carpetArea)
+    return "plot";
   const c = prop.category.toLowerCase();
   if (c.includes("plot") || c.includes("land")) return "plot";
   if (c.includes("office") || c.includes("commercial")) return "office";
@@ -389,8 +393,10 @@ export default function PropertyDetail({
     ["Property type", prop.category],
     ["Listing", isRent ? "For Rent" : "For Sale"],
   ];
-  if (prop.beds > 0) details.push(["Bedrooms", `${prop.beds} BHK`]);
-  if (prop.baths > 0) details.push(["Bathrooms", String(prop.baths)]);
+  if (kind !== "plot" && prop.beds > 0)
+    details.push(["Bedrooms", `${prop.beds} BHK`]);
+  if (kind !== "plot" && prop.baths > 0)
+    details.push(["Bathrooms", String(prop.baths)]);
   if (kind !== "plot" && prop.area > 0)
     details.push(["Built-up area", `${prop.area.toLocaleString()} sqft`]);
   if (prop.carpetArea)

@@ -149,6 +149,11 @@ export const API_ENDPOINTS = {
     // Guest-accessible — no auth required.
     PROPERTY_BY_SLUG: (slug: string) =>
       `property/guest/get-property/${encodeURIComponent(slug)}`,
+    // Guest-accessible — no auth required. Rent counterpart of
+    // PROPERTY_BY_SLUG (the sell route returns an empty propertyDetails for
+    // rent slugs, which left rent plots without any plot fields).
+    RENT_PROPERTY_BY_SLUG: (slug: string) =>
+      `rent/guest/get-property/${encodeURIComponent(slug)}`,
     // Guest-accessible — no auth required. Property type taxonomy (id + name
     // + count), used to drive the "Property type" filter with real ids.
     PROPERTY_TYPES: "property/get-property-types",

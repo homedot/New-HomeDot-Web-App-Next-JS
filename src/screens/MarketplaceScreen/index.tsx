@@ -603,11 +603,11 @@ export default function MarketplaceScreen({
     if (!slug) return;
     setPropertyQueryParam(slug);
     const requestId = ++detailRequestId.current;
-    MarketplaceScreenService.getPropertyBySlug(slug).then((res) => {
+    MarketplaceScreenService.getPropertyBySlug(slug, p.purpose).then((res) => {
       if (detailRequestId.current !== requestId) return; // superseded by a newer click
       const entry = res.data?.data?.[0];
       const record = entry?.propertyDetails?.[0];
-      if (record) setDetail(toMarketplacePropertyDetail(record));
+      if (record) setDetail(toMarketplacePropertyDetail(record, p.purpose));
       if (entry?.similarProperties?.length) {
         setDetailSimilar(
           entry.similarProperties.map((r) => toMarketplaceProperty(r, p.purpose)),

@@ -330,7 +330,21 @@ export default function MyPropertyDetail({
 
   const isSold = detail.status === "Sold Out";
   const typeName = detail.propertyTypeDetails?.[0]?.propertyType ?? "Property";
-  const kind = resolveKind(typeName);
+  // Rent listings can come back with empty propertyTypeDetails, which makes
+  // resolveKind fall through to "house" and show Bedrooms/Bathrooms/Built-up
+  // area for a plot. Plots are the only kind with length/breadth, and never
+  // carry bedrooms/bathrooms/buildUpArea, so use those as a fallback signal.
+  const looksLikePlot =
+    !!(detail.length || detail.breadth) ||
+    (!!detail.plotArea &&
+      !detail.bedrooms &&
+      detail.bathrooms == null &&
+      !detail.buildUpArea);
+  const kind: PropertyKind = detail.propertyTypeDetails?.[0]?.propertyType
+    ? resolveKind(typeName)
+    : looksLikePlot
+      ? "plot"
+      : resolveKind(typeName);
   const kindStyle = BUCKET_STYLE[KIND_BUCKET[kind]];
   const kindIcon = KIND_ICON[kind];
   const images = detail.propertyImages ?? [];
@@ -409,8 +423,9 @@ export default function MyPropertyDetail({
     ["Listing", purpose === "Rent" ? "For Rent" : "For Sale"],
   ];
   const bedroomsLabel = formatBedrooms(detail.bedrooms);
-  if (bedroomsLabel) detailRows.push(["Bedrooms", bedroomsLabel]);
-  if (detail.bathrooms != null)
+  if (kind !== "plot" && bedroomsLabel)
+    detailRows.push(["Bedrooms", bedroomsLabel]);
+  if (kind !== "plot" && detail.bathrooms != null)
     detailRows.push(["Bathrooms", String(detail.bathrooms)]);
   if (kind !== "plot" && detail.buildUpArea)
     detailRows.push([

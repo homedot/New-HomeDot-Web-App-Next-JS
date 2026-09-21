@@ -238,10 +238,16 @@ export const MarketplaceScreenService = {
     return ApiService.post<PropertiesFilterBody>(endpoint, filters);
   },
 
-  // Guest-accessible — no auth required.
-  getPropertyBySlug: (slug: string): Promise<ApiResponse<PropertyDetailBody>> =>
+  // Guest-accessible — no auth required. "Buy" and "Rent" are separate
+  // routes; a slug only resolves on the one it was listed under.
+  getPropertyBySlug: (
+    slug: string,
+    purpose: "Buy" | "Rent" = "Buy",
+  ): Promise<ApiResponse<PropertyDetailBody>> =>
     ApiService.get<PropertyDetailBody>(
-      API_ENDPOINTS.MARKETPLACE.PROPERTY_BY_SLUG(slug),
+      purpose === "Rent"
+        ? API_ENDPOINTS.MARKETPLACE.RENT_PROPERTY_BY_SLUG(slug)
+        : API_ENDPOINTS.MARKETPLACE.PROPERTY_BY_SLUG(slug),
     ),
 
   // Guest-accessible — no auth required.
