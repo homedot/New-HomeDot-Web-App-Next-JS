@@ -220,6 +220,19 @@ export function sanitizeIntegerInput(raw: string): string {
   return digitsOnly.replace(/^0+(?=\d)/, "");
 }
 
+// Same rationale as sanitizeIntegerInput above, but for fields that need
+// fractional values and, sometimes, a range — build-up/carpet area and
+// road width are occasionally given as "1232.22 - 3000.33" rather than a
+// single figure (buildPropertyPayload averages the two sides before
+// sending one number to the API, which types these fields as `number`).
+// The "-" here is a range separator, not a numeric sign — these
+// measurements can't be negative. Only stripping characters outside
+// digits/"."/"-"/space, rather than fully normalizing structure (single
+// dot, single dash), keeps this simple while the field is being typed.
+export function sanitizeDecimalInput(raw: string): string {
+  return raw.replace(/[^0-9. -]/g, "");
+}
+
 export const fieldInputStyle: CSSProperties = {
   border: "none",
   outline: "none",
@@ -471,6 +484,18 @@ export function buildPropertyPayload(
   const fields = KIND_FIELDS[kind];
   const has = (key: (typeof fields)[number]) => fields.includes(key);
   const num = (v: string) => (v.trim() ? parseInt(v, 10) : undefined);
+  // buildUpArea/carpetArea/roadWidth allow a decimal point and, sometimes, a
+  // range like "1232.22 - 3000.33" (see sanitizeDecimalInput). The API field
+  // is a single `number`, so a range is sent as the average of its parts;
+  // a plain value like "1800.5" has one part, so it's just itself.
+  const numFloat = (v: string) => {
+    const parts = v
+      .split("-")
+      .map((part) => parseFloat(part.trim()))
+      .filter((n) => !Number.isNaN(n));
+    if (parts.length === 0) return undefined;
+    return parts.reduce((sum, n) => sum + n, 0) / parts.length;
+  };
   const location = form.location;
 
   return {
@@ -497,11 +522,11 @@ export function buildPropertyPayload(
     bathrooms: has("bathrooms") ? num(form.bathrooms) : undefined,
     balcony: has("balcony") ? num(form.balcony) : undefined,
     furnished: has("furnished") ? form.furnished || undefined : undefined,
-    build_up_area: has("buildUpArea") ? num(form.buildUpArea) : undefined,
-    carpet_area: has("carpetArea") ? num(form.carpetArea) : undefined,
+    build_up_area: has("buildUpArea") ? numFloat(form.buildUpArea) : undefined,
+    carpet_area: has("carpetArea") ? numFloat(form.carpetArea) : undefined,
     plot_area: has("plotArea") ? num(form.plotArea) : undefined,
     no_of_floors: has("noOfFloors") ? num(form.noOfFloors) : undefined,
-    road_width: has("roadWidth") ? num(form.roadWidth) : undefined,
+    road_width: has("roadWidth") ? numFloat(form.roadWidth) : undefined,
     maintenanceCharge: has("maintenanceCharge")
       ? num(form.maintenanceCharge)
       : undefined,

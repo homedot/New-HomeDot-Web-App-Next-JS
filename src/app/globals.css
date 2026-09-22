@@ -1114,6 +1114,23 @@ body.has-cursor * {
   animation: pdToastIn 0.18s ease both;
 }
 
+/* Property detail header: price/EMI block. When the header wraps onto its
+   own line on narrow screens, "space-between" collapses to flex-start,
+   leaving a right-aligned block flush against the left edge — so once it
+   wraps, span full width and align left to match the badges/title above it. */
+.pd-price-block {
+  text-align: right;
+  flex-shrink: 0;
+}
+
+@media (max-width: 640px) {
+  .pd-price-block {
+    width: 100%;
+    text-align: left;
+    margin-top: 12px;
+  }
+}
+
 .pd-key-fact:hover .pd-key-fact-icon {
   transform: scale(1.08) rotate(-4deg);
 }

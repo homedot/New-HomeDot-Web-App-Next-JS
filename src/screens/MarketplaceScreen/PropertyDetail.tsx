@@ -901,7 +901,7 @@ export default function PropertyDetail({
               <Icon name="location" size={16} /> {prop.location}, {prop.city}
             </p>
           </div>
-          <div style={{ textAlign: "right", flexShrink: 0 }}>
+          <div className="pd-price-block">
             <div
               style={{
                 fontFamily: "var(--font-display)",

@@ -17,6 +17,7 @@ import {
   getMinPrice,
   getMissingFields,
   inputWrap,
+  sanitizeDecimalInput,
   sanitizeIntegerInput,
   type AllFieldKey,
   type ListingPurpose,
@@ -30,6 +31,7 @@ function NumberField({
   placeholder,
   suffix,
   max,
+  allowDecimal,
 }: {
   value: string;
   onChange: (v: string) => void;
@@ -39,17 +41,25 @@ function NumberField({
   // bathrooms/balconies that must stay single-digit (< 10), unlike areas or
   // price which have no sensible upper bound here.
   max?: number;
+  // Areas (build-up/carpet) and road width can be fractional, e.g. "1800.5"
+  // sq ft, or a range like "1232.22 - 3000.33" — everything else in this
+  // form is a whole-number count. Numeric mobile keypads don't have a "-"
+  // or space key, so these fields fall back to the default text keyboard
+  // instead of a restricted inputMode.
+  allowDecimal?: boolean;
 }) {
   return (
     <div style={inputWrap}>
       <input
         type="text"
-        inputMode="numeric"
-        pattern="[0-9]*"
+        inputMode={allowDecimal ? undefined : "numeric"}
+        pattern={allowDecimal ? "[0-9. -]*" : "[0-9]*"}
         placeholder={placeholder}
         value={value}
         onChange={(e) => {
-          const sanitized = sanitizeIntegerInput(e.target.value);
+          const sanitized = allowDecimal
+            ? sanitizeDecimalInput(e.target.value)
+            : sanitizeIntegerInput(e.target.value);
           if (max != null && sanitized !== "" && Number(sanitized) > max) {
             onChange(String(max));
             return;
@@ -348,6 +358,7 @@ export default function DetailsStep({
                   onChange={(v) => set("buildUpArea", v)}
                   placeholder="e.g. 1800"
                   suffix="sq ft"
+                  allowDecimal
                 />
               </Field>
             )}
@@ -358,6 +369,7 @@ export default function DetailsStep({
                   onChange={(v) => set("carpetArea", v)}
                   placeholder="e.g. 1500"
                   suffix="sq ft"
+                  allowDecimal
                 />
               </Field>
             )}
@@ -403,6 +415,7 @@ export default function DetailsStep({
                   onChange={(v) => set("roadWidth", v)}
                   placeholder="e.g. 20"
                   suffix="ft"
+                  allowDecimal
                 />
               </Field>
             )}

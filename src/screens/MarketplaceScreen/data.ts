@@ -306,5 +306,5 @@ export const agent = {
   role: "HomeDot Verified Consultant",
   rating: 4.9,
   deals: 64,
-  avatar: unsplash("1560250097-0b93528c311a", 200),
+  avatar: "/images/consultant-mahesh-mohanan.png",
 };
