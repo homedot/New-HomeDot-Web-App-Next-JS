@@ -241,7 +241,7 @@ export default function FavoritesScreen() {
         </Reveal>
 
         {/* tabs */}
-        <div style={{ display: "flex", gap: 8, marginBottom: spacing.xl }}>
+        <div className="fav-tabs-row" style={{ display: "flex", gap: 8, marginBottom: spacing.xl, overflowX: "auto", WebkitOverflowScrolling: "touch" }}>
           {(
             [
               { key: "properties" as const, label: "Properties", icon: "house" as const },
@@ -255,6 +255,7 @@ export default function FavoritesScreen() {
               style={{
                 display: "inline-flex",
                 alignItems: "center",
+                flexShrink: 0,
                 gap: 7,
                 fontSize: fontSize.sm,
                 fontWeight: 600,

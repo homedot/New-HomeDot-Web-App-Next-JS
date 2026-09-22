@@ -25,6 +25,10 @@ body {
   background: var(--background);
   color: var(--foreground);
   font-family: var(--font-sans), Arial, Helvetica, sans-serif;
+  /* Safety net: an element that overflows its container (e.g. an
+     un-scoped horizontal-scroll row) should never widen the whole page —
+     it should clip here instead of making the body itself scroll sideways. */
+  overflow-x: hidden;
 }
 
 @keyframes floaty {
@@ -958,6 +962,18 @@ body.has-cursor * {
 }
 
 .pd-subnav-row::-webkit-scrollbar {
+  display: none;
+}
+
+/* Favorites screen: Properties/Professionals/Blogs tab row scrolls
+   horizontally within itself on narrow screens instead of overflowing
+   the page. */
+.fav-tabs-row {
+  scrollbar-width: none;
+  -ms-overflow-style: none;
+}
+
+.fav-tabs-row::-webkit-scrollbar {
   display: none;
 }
 
