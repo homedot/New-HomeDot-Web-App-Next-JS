@@ -505,14 +505,29 @@ export default function MyPropertyDetail({
       garage: detail.garage != null ? String(detail.garage) : "",
       length: detail.length != null ? String(detail.length) : "",
       breadth: detail.breadth != null ? String(detail.breadth) : "",
-      // Matched back against AMENITY_CATALOG by title, since ids are purely
-      // local (not server-assigned) — see parseAmenities. Anything the API
-      // sent that isn't in the fixed catalog (a free-text "Others" entry)
-      // can't be represented here and is dropped, matching the catalog's
-      // own closed set.
-      amenities: AMENITY_CATALOG.filter((a) =>
-        parseAmenities(detail.amenities).includes(a.title),
-      ),
+      // Matched back against AMENITY_CATALOG by title (case/whitespace
+      // insensitive, since ids are purely local, not server-assigned — see
+      // parseAmenities). Anything the API sent that isn't one of the fixed
+      // catalog titles is a free-text "Others" entry — kept as its own
+      // custom amenity (with a freshly generated local id) instead of being
+      // dropped, so previously saved custom amenities still show as
+      // selected when editing.
+      amenities: (() => {
+        const normalize = (s: string) => s.trim().toLowerCase();
+        const savedTitles = parseAmenities(detail.amenities);
+        const catalogMatches = AMENITY_CATALOG.filter(
+          (a) =>
+            a.title !== "Others" &&
+            savedTitles.some((t) => normalize(t) === normalize(a.title)),
+        );
+        const customTitles = savedTitles.filter(
+          (t) => !AMENITY_CATALOG.some((a) => normalize(a.title) === normalize(t)),
+        );
+        return [
+          ...catalogMatches,
+          ...customTitles.map((title, i) => ({ id: Date.now() + i, title })),
+        ];
+      })(),
     });
     setEditImages(images.map((img) => ({ id: img._id, url: img.imageFile })));
     setMode("editDetails");

@@ -264,7 +264,14 @@ export function Field({
   children: ReactNode;
 }) {
   return (
-    <label
+    // A `<div>`, not a `<label>` — Field wraps arbitrary children (chip
+    // buttons, maps, custom inputs), not a single form control, and has no
+    // `htmlFor`. A bare `<label>` here has no associated control, so the
+    // browser falls back to forwarding any click inside it (including empty
+    // padding/whitespace) to the first labelable descendant — e.g. clicking
+    // blank space in the Amenities field was silently "clicking" the first
+    // amenity chip button ("Club House").
+    <div
       id={id}
       className={invalid ? "pa-field-invalid" : undefined}
       style={{
@@ -303,7 +310,7 @@ export function Field({
           </span>
         )
       )}
-    </label>
+    </div>
   );
 }
 

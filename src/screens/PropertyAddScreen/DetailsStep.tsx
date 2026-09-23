@@ -99,8 +99,13 @@ export default function DetailsStep({
 
   // "Others" (id 10) is a sentinel — selecting it reveals a text input
   // instead of toggling a real amenity, matching homedot-mobile-app's
-  // toggleAmenityOther() behavior.
-  const [showCustomAmenity, setShowCustomAmenity] = useState(false);
+  // toggleAmenityOther() behavior. Lazily seeded from the incoming form
+  // (not just false) so that when editing an existing property that already
+  // has custom amenities, the "Others" chip and its input show as active
+  // instead of looking deselected on load.
+  const [showCustomAmenity, setShowCustomAmenity] = useState(() =>
+    form.amenities.some((a) => !AMENITY_CATALOG.some((c) => c.id === a.id)),
+  );
   const [customAmenityInput, setCustomAmenityInput] = useState("");
 
   // Flips true the first time the user clicks Continue on an incomplete
