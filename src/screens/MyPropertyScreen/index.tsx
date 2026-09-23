@@ -11,7 +11,6 @@ import SiteNav from "@/components/SiteNav";
 import SiteFooter from "@/components/SiteFooter";
 import AmbientBackground from "@/components/AmbientBackground";
 import ScrollProgress from "@/components/ScrollProgress";
-import Cursor from "@/components/Cursor";
 import Reveal from "@/components/Reveal";
 import LoginModal, { type LoginModalHandle } from "@/components/LoginModal";
 import { getAuthToken } from "@/utils/authStorage";
@@ -137,7 +136,6 @@ export default function MyPropertyScreen() {
       <div style={{ background: colors.bg, color: colors.ink, position: "relative", zIndex: 0 }}>
         <AmbientBackground />
         <ScrollProgress />
-        <Cursor />
         <SiteNav />
         <MyPropertyDetail
           slug={detail.slug}
@@ -161,7 +159,6 @@ export default function MyPropertyScreen() {
     <div style={{ background: colors.bg, color: colors.ink, position: "relative", zIndex: 0 }}>
       <AmbientBackground />
       <ScrollProgress />
-      <Cursor />
       <SiteNav />
       <LoginModal ref={loginModalRef} hideTrigger />
 

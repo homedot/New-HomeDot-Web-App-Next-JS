@@ -12,7 +12,6 @@ import Button from "@/components/Button";
 import AmbientBackground from "@/components/AmbientBackground";
 import ProDashboardHero from "@/components/ProDashboardHero";
 import ScrollProgress from "@/components/ScrollProgress";
-import Cursor from "@/components/Cursor";
 import Reveal from "@/components/Reveal";
 import SiteFooter from "@/components/SiteFooter";
 import LoginModal, { type LoginModalHandle } from "@/components/LoginModal";
@@ -438,7 +437,6 @@ export default function ProfessionalDashboardScreen() {
       <AmbientBackground />
       <DashboardMargins />
       <ScrollProgress />
-      <Cursor />
       {/* No SiteNav here — Professional mode is a self-contained area
           (mirrors homedot-mobile-app's separate Professional stack, with its
           own tab bar rather than the User side's chrome); RoleGate keeps the

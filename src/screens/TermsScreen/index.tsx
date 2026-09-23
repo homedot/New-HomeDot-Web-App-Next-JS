@@ -10,7 +10,6 @@ import SiteFooter from "@/components/SiteFooter";
 import { getActiveRole } from "@/utils/authStorage";
 import AmbientBackground from "@/components/AmbientBackground";
 import ScrollProgress from "@/components/ScrollProgress";
-import Cursor from "@/components/Cursor";
 import Reveal from "@/components/Reveal";
 import { TERMS_INTRO, TERMS_SECTIONS, COPYRIGHT } from "./data";
 
@@ -42,7 +41,6 @@ export default function TermsScreen() {
     <div style={{ background: colors.bg, color: colors.ink, position: "relative", zIndex: 0 }}>
       <AmbientBackground />
       <ScrollProgress />
-      <Cursor />
       {!professionalMode && <SiteNav />}
 
       <section style={{ ...wrap, paddingTop: spacing.xl, paddingBottom: spacing.huge }}>

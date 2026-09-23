@@ -14,7 +14,6 @@ import SiteNav from "@/components/SiteNav";
 import SiteFooter from "@/components/SiteFooter";
 import AmbientBackground from "@/components/AmbientBackground";
 import ScrollProgress from "@/components/ScrollProgress";
-import Cursor from "@/components/Cursor";
 import Reveal from "@/components/Reveal";
 import LoginModal, { type LoginModalHandle } from "@/components/LoginModal";
 import AvatarLightbox from "@/components/AvatarLightbox";
@@ -288,7 +287,6 @@ export default function ProfileScreen() {
     >
       <AmbientBackground />
       <ScrollProgress />
-      <Cursor />
       <SiteNav />
       <LoginModal ref={loginModalRef} hideTrigger />
       {avatarExpanded && profile?.profileImage && (

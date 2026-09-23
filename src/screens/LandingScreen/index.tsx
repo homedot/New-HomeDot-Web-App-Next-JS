@@ -20,7 +20,6 @@ import PropertyCard from "@/components/PropertyCard";
 import ProCard, { type Professional } from "@/components/ProCard";
 import PhoneFrame, { PhoneChip } from "@/components/PhoneFrame";
 import StoreButtons from "@/components/StoreButtons";
-import Cursor from "@/components/Cursor";
 import HeroPhotoBackdrop from "@/components/HeroPhotoBackdrop";
 import Reveal from "@/components/Reveal";
 import ScrollProgress from "@/components/ScrollProgress";
@@ -124,7 +123,6 @@ export default function LandingScreen({
       }}
     >
       <ScrollProgress />
-      <Cursor />
       <SiteNav />
       <LoginModal ref={loginModalRef} hideTrigger />
       <Hero />

@@ -11,7 +11,6 @@ import Button from "@/components/Button";
 import AmbientBackground from "@/components/AmbientBackground";
 import ProDashboardHero from "@/components/ProDashboardHero";
 import ScrollProgress from "@/components/ScrollProgress";
-import Cursor from "@/components/Cursor";
 import Reveal from "@/components/Reveal";
 import SiteFooter from "@/components/SiteFooter";
 import LoginModal, { type LoginModalHandle } from "@/components/LoginModal";
@@ -60,7 +59,6 @@ export default function ProfessionalSupportScreen() {
     <div style={{ background: colors.bg, color: colors.ink, position: "relative", zIndex: 0 }}>
       <AmbientBackground />
       <ScrollProgress />
-      <Cursor />
       <LoginModal ref={loginModalRef} hideTrigger />
 
       {signedIn && (

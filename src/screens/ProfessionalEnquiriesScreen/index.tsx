@@ -9,7 +9,6 @@ import Button from "@/components/Button";
 import AmbientBackground from "@/components/AmbientBackground";
 import ProDashboardHero from "@/components/ProDashboardHero";
 import ScrollProgress from "@/components/ScrollProgress";
-import Cursor from "@/components/Cursor";
 import Reveal from "@/components/Reveal";
 import SiteFooter from "@/components/SiteFooter";
 import LoginModal, { type LoginModalHandle } from "@/components/LoginModal";
@@ -99,7 +98,6 @@ export default function ProfessionalEnquiriesScreen() {
     <div style={{ background: colors.bg, color: colors.ink, position: "relative", zIndex: 0 }}>
       <AmbientBackground />
       <ScrollProgress />
-      <Cursor />
       {/* No SiteNav — same self-contained professional area as
           ProfessionalDashboardScreen (see its own comment on this).
           SiteFooter is still shown, variant="professional". */}
