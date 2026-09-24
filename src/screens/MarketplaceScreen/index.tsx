@@ -742,7 +742,9 @@ export default function MarketplaceScreen({
                 position: "relative",
                 borderRadius: radius.lg,
                 overflow: "hidden",
-                height: "clamp(180px, 22vw, 260px)",
+                minHeight: "clamp(180px, 22vw, 260px)",
+                display: "flex",
+                alignItems: "flex-end",
                 boxShadow: shadow.md,
               }}
             >
@@ -750,7 +752,7 @@ export default function MarketplaceScreen({
               <img
                 src="https://images.unsplash.com/photo-1564013799919-ab600027ffc6?auto=format&fit=crop&w=1600&q=80"
                 alt=""
-                style={{ width: "100%", height: "100%", objectFit: "cover" }}
+                style={{ position: "absolute", inset: 0, width: "100%", height: "100%", objectFit: "cover" }}
               />
               <div
                 style={{
@@ -761,9 +763,12 @@ export default function MarketplaceScreen({
               />
               <div
                 style={{
-                  position: "absolute",
-                  left: "clamp(22px, 3.5vw, 44px)",
-                  bottom: "clamp(20px, 3vw, 34px)",
+                  position: "relative",
+                  // Text sits in normal flow (not pinned to the bottom edge) so a
+                  // wrapped heading grows the banner instead of being pushed
+                  // against its top edge. Bottom padding clears the search card
+                  // that overlaps the banner by 30px.
+                  padding: "40px clamp(22px, 3.5vw, 44px) clamp(48px, 3vw + 24px, 64px)",
                   color: colors.white,
                 }}
               >

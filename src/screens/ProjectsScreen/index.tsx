@@ -246,14 +246,17 @@ export default function ProjectsScreen() {
         </Reveal>
 
         {signedIn && (
-          <div style={{ display: "flex", gap: 8, marginBottom: spacing.xl }}>
+          <div className="fav-tabs-row proj-tabs-row" style={{ display: "flex", gap: 8, marginBottom: spacing.xl, overflowX: "auto", WebkitOverflowScrolling: "touch" }}>
             {TABS.map((t) => (
               <button
                 key={t.key}
+                className="proj-tab-btn"
                 onClick={() => setTab(t.key)}
                 style={{
                   display: "inline-flex",
                   alignItems: "center",
+                  flexShrink: 0,
+                  whiteSpace: "nowrap",
                   gap: 7,
                   fontSize: fontSize.sm,
                   fontWeight: 600,
@@ -264,7 +267,10 @@ export default function ProjectsScreen() {
                   border: `1px solid ${tab === t.key ? colors.primary : colors.line}`,
                 }}
               >
-                <Icon name={t.icon} size={16} /> {t.label}
+                <span className="proj-tab-icon" style={{ display: "inline-flex" }}>
+                  <Icon name={t.icon} size={16} />
+                </span>{" "}
+                {t.label}
                 {groups[t.key].length > 0 && (
                   <span
                     style={{

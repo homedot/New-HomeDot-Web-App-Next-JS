@@ -148,9 +148,18 @@ export default function ProfessionalBlogScreen() {
     };
     measure();
     window.addEventListener("resize", measure);
-    return () => window.removeEventListener("resize", measure);
+    // The tab buttons change width after this first measurement — count
+    // badges appear once the blog lists load, and the web font swaps in — so
+    // watch the buttons themselves, otherwise the thumb keeps its stale
+    // left/width and sits misaligned behind the labels.
+    const ro = typeof ResizeObserver !== "undefined" ? new ResizeObserver(measure) : null;
+    Object.values(tabRefs.current).forEach((el) => el && ro?.observe(el));
+    return () => {
+      window.removeEventListener("resize", measure);
+      ro?.disconnect();
+    };
     // `signedIn` matters too — see ProfessionalEnquiriesScreen's identical effect comment.
-  }, [blog.tab, signedIn, mode]);
+  }, [blog.tab, signedIn, mode, blog.loading, blog.publishedCount, blog.drafts.length]);
 
   useEffect(() => {
     // eslint-disable-next-line react-hooks/set-state-in-effect -- token lives in localStorage, a client-only system; see LoginModal's identical pattern

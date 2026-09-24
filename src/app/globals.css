@@ -872,6 +872,23 @@ body {
   display: none;
 }
 
+/* My Projects: on phones the Ongoing/Completed/Cancelled tabs share the
+   row equally (icons dropped) so all three are visible without needing a
+   swipe; the row still scrolls if the screen is narrower than that. */
+@media (max-width: 560px) {
+  .proj-tab-btn {
+    flex: 1 0 auto !important;
+    justify-content: center;
+    gap: 5px !important;
+    padding: 10px 10px !important;
+    font-size: 13px !important;
+  }
+
+  .proj-tab-icon {
+    display: none !important;
+  }
+}
+
 .pd-pill {
   transition: background 0.2s ease, color 0.2s ease, border-color 0.2s ease, transform 0.15s ease;
 }

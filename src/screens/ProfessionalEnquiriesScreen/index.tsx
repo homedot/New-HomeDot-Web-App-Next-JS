@@ -66,7 +66,15 @@ export default function ProfessionalEnquiriesScreen() {
     };
     measure();
     window.addEventListener("resize", measure);
-    return () => window.removeEventListener("resize", measure);
+    // Tab buttons change width after the first measurement (count badges
+    // appear once data loads, the web font swaps in), so watch the buttons
+    // themselves — otherwise the pill keeps a stale left/width.
+    const ro = typeof ResizeObserver !== "undefined" ? new ResizeObserver(measure) : null;
+    Object.values(tabRefs.current).forEach((el) => el && ro?.observe(el));
+    return () => {
+      window.removeEventListener("resize", measure);
+      ro?.disconnect();
+    };
     // `signedIn` matters too, not just `tab` — the tab bar doesn't exist yet
     // while the sign-in check is pending (a loading skeleton renders in its
     // place, same as ProfessionalDashboardScreen's identical `[tab, loadingHome]`

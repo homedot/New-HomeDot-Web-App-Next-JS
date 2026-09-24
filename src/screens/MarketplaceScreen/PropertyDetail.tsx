@@ -25,7 +25,42 @@ const AMENITY_ICON: Record<string, IconName> = {
   "Clear Title": "check",
   "Road Frontage": "location",
   "Near Highway": "location",
+  // Titles from the add-property form's AMENITY_CATALOG (what real listings
+  // actually carry) — each gets its own icon.
+  "Club House": "apartment",
+  "Individual Garden": "leaf",
+  "Kids Play Area": "sparkle",
+  "Open Party Area": "star",
+  "Health Club": "heart",
+  "Centralized Security": "shield",
+  Gazebo: "structure",
+  "Yoga & Meditation": "user",
 };
+
+// Keyword fallback for free-text ("Others") amenities not in the map above,
+// so they still get a fitting icon instead of a generic tick.
+const AMENITY_KEYWORD_ICON: [RegExp, IconName][] = [
+  [/pool|water|swim/i, "drop"],
+  [/garden|park|lawn|tree|green/i, "leaf"],
+  [/secur|cctv|guard|gate/i, "shield"],
+  [/power|electric|solar|backup/i, "bolt"],
+  [/gym|fitness|health|sport/i, "heart"],
+  [/club|hall|lift|elevator|tower/i, "apartment"],
+  [/kid|child|play/i, "sparkle"],
+  [/kitchen|dining|food|cafe/i, "chef"],
+  [/furnish|sofa|lounge/i, "sofa"],
+  [/parking|garage|home|house/i, "house"],
+  [/yoga|meditat|spa/i, "user"],
+  [/key|access|lock/i, "key"],
+];
+
+function amenityIcon(name: string): IconName {
+  return (
+    AMENITY_ICON[name] ??
+    AMENITY_KEYWORD_ICON.find(([re]) => re.test(name))?.[1] ??
+    "star"
+  );
+}
 
 // Villas / Flat & Apartment / House share the residential layout (bedrooms,
 // bathrooms, furnishing…); Office Space and Plots each have their own field
@@ -1246,7 +1281,7 @@ export default function PropertyDetail({
                             flexShrink: 0,
                           }}
                         >
-                          <Icon name={AMENITY_ICON[a] ?? "check"} size={16} />
+                          <Icon name={amenityIcon(a)} size={16} />
                         </span>
                         {a}
                       </span>
