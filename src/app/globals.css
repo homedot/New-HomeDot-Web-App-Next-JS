@@ -2364,3 +2364,11 @@ body {
     display: none;
   }
 }
+
+/* Hides the native scrollbar on horizontally scrolling pill rows. */
+.pill-scroller {
+  scrollbar-width: none;
+}
+.pill-scroller::-webkit-scrollbar {
+  display: none;
+}

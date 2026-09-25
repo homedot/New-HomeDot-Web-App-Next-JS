@@ -98,7 +98,7 @@ const COLS: {
     icon: "shield",
     links: [
       { label: "Contact us", href: `mailto:${SUPPORT_EMAIL}` },
-      { label: "Professional support", href: "/professional/support" },
+      // { label: "Professional support", href: "/professional/support" },
       { label: "Terms & conditions", href: "/termsandconditions" },
       { label: "Privacy policy", href: "/privacy" },
     ],
@@ -109,11 +109,31 @@ const COLS: {
 // render the exact same social row instead of drifting out of sync with
 // their own hardcoded copy.
 export const SOCIALS: { name: IconName; href: string; label: string }[] = [
-  { name: "facebook", href: "https://www.facebook.com/homedotapps/", label: "HomeDot on Facebook" },
-  { name: "instagram", href: "https://www.instagram.com/homedotapp/", label: "HomeDot on Instagram" },
-  { name: "linkedin", href: "https://in.linkedin.com/company/homedotapp", label: "HomeDot on LinkedIn" },
-  { name: "youtube", href: "https://www.youtube.com/@Hometechmalayalam", label: "HomeDot on YouTube" },
-  { name: "whatsapp", href: "https://wa.me/917012303017", label: "Chat with HomeDot on WhatsApp" },
+  {
+    name: "facebook",
+    href: "https://www.facebook.com/homedotapps/",
+    label: "HomeDot on Facebook",
+  },
+  {
+    name: "instagram",
+    href: "https://www.instagram.com/homedotapp/",
+    label: "HomeDot on Instagram",
+  },
+  {
+    name: "linkedin",
+    href: "https://in.linkedin.com/company/homedotapp",
+    label: "HomeDot on LinkedIn",
+  },
+  {
+    name: "youtube",
+    href: "https://www.youtube.com/@Hometechmalayalam",
+    label: "HomeDot on YouTube",
+  },
+  {
+    name: "whatsapp",
+    href: "https://wa.me/917012303017",
+    label: "Chat with HomeDot on WhatsApp",
+  },
 ];
 
 const linkStyle: CSSProperties = {
@@ -251,7 +271,9 @@ export default function SiteFooter({
         }}
       >
         <span>© 2026 HomeDot · Made in Kerala, India</span>
-        <span style={{ display: "flex", alignItems: "center", gap: spacing.lg }}>
+        <span
+          style={{ display: "flex", alignItems: "center", gap: spacing.lg }}
+        >
           <Link href="/termsandconditions" style={{ color: "inherit" }}>
             Terms
           </Link>
@@ -270,7 +292,8 @@ export default function SiteFooter({
               border: "1px solid rgba(255,255,255,0.14)",
             }}
           >
-            <Icon name="verified" size={11} color="rgba(255,255,255,0.5)" /> Verified professionals only
+            <Icon name="verified" size={11} color="rgba(255,255,255,0.5)" />{" "}
+            Verified professionals only
           </span>
         </span>
       </div>

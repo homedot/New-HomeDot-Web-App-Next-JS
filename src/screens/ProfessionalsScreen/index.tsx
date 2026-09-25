@@ -302,7 +302,6 @@ export default function ProfessionalsScreen({
   // otherwise geocodes whatever's typed as a fallback so search still
   // works if the user never triggered (or dismissed) the dropdown.
 
-
   // Full Geocoding API lookup — resolves addresses (incl. plus codes) that
   // the AutocompleteService predictions endpoint often misses.
   const geocodeQuery = (query: string) => {
@@ -342,7 +341,6 @@ export default function ProfessionalsScreen({
     geocodeQuery(q);
   };
 
-  
   const filterQuery = useMemo((): ProfessionalsFilterQuery => {
     const b = budget != null ? budgetBuckets[budget] : null;
     return {
@@ -611,9 +609,7 @@ export default function ProfessionalsScreen({
             key={r.value}
             label={r.label}
             checked={rating === r.value}
-            onChange={() =>
-              setRating(rating === r.value ? null : r.value)
-            }
+            onChange={() => setRating(rating === r.value ? null : r.value)}
           />
         ))}
       </FilterGroup>
@@ -624,9 +620,7 @@ export default function ProfessionalsScreen({
             key={e.label}
             label={e.label}
             checked={experience === i}
-            onChange={() =>
-              setExperience(experience === i ? null : i)
-            }
+            onChange={() => setExperience(experience === i ? null : i)}
           />
         ))}
       </FilterGroup>
@@ -1003,31 +997,11 @@ export default function ProfessionalsScreen({
             </div>
 
             {/* category pills */}
-            <div
-              className="no-scrollbar"
-              style={{
-                display: "flex",
-                gap: 9,
-                overflowX: "auto",
-                marginTop: spacing.xl,
-                paddingBottom: 2,
-              }}
-            >
-              <CategoryPill
-                label="All"
-                active={category === "all"}
-                onClick={() => setCategory("all")}
-              />
-              {categoryOptions.map((c) => (
-                <CategoryPill
-                  key={c.id}
-                  label={c.name}
-                  icon={c.icon}
-                  active={category === c.id}
-                  onClick={() => setCategory(c.id)}
-                />
-              ))}
-            </div>
+            <CategoryPillRow
+              options={categoryOptions}
+              selected={category}
+              onSelect={setCategory}
+            />
           </section>
 
           {/* listings */}
@@ -1131,14 +1105,21 @@ export default function ProfessionalsScreen({
                       border: `1px solid ${activeCount > 0 ? colors.primary : colors.line}`,
                       borderRadius: 10,
                       padding: "8px 12px",
-                      background: activeCount > 0 ? colors.primarySoft : colors.card,
+                      background:
+                        activeCount > 0 ? colors.primarySoft : colors.card,
                     }}
                   >
                     {/* the flex layout lives on this inner span, not the
                         button itself — an inline `display` on the button
                         would out-specificity `lg:hidden`'s display:none and
                         make it show up at desktop widths too */}
-                    <span style={{ display: "inline-flex", alignItems: "center", gap: 6 }}>
+                    <span
+                      style={{
+                        display: "inline-flex",
+                        alignItems: "center",
+                        gap: 6,
+                      }}
+                    >
                       <Icon name="filter" size={16} />
                       {activeCount > 0
                         ? `${activeCount} filters active`
@@ -1363,7 +1344,12 @@ export default function ProfessionalsScreen({
             // out-specificity `lg:hidden`'s display:none (see the filter
             // button above) and leave the sheet stuck open if the viewport
             // is ever resized past the desktop breakpoint.
-            <div className="lg:hidden" role="dialog" aria-modal="true" aria-label="Filters">
+            <div
+              className="lg:hidden"
+              role="dialog"
+              aria-modal="true"
+              aria-label="Filters"
+            >
               <div
                 style={{
                   position: "fixed",
@@ -1473,7 +1459,7 @@ export default function ProfessionalsScreen({
               { value: "98%", label: "Pass ID & license checks" },
               { value: "24 hrs", label: "Average first response time" },
             ]}
-            ctaLabel="Browse the marketplace"
+            ctaLabel="Browse the reality"
             onCta={() => router.push("/marketplace")}
           />
         </>
@@ -1485,6 +1471,140 @@ export default function ProfessionalsScreen({
           background rather than a stray seam. */}
       <SiteFooter flush={!detail} />
     </div>
+  );
+}
+
+// Horizontally scrolling category pills. Signals that the row scrolls (edge
+// fades + arrow buttons that only show on the side with more content) and
+// keeps the selected pill centered whenever the selection changes.
+function CategoryPillRow({
+  options,
+  selected,
+  onSelect,
+}: {
+  options: ServiceCategoryCard[];
+  selected: string;
+  onSelect: (id: string) => void;
+}) {
+  const scrollerRef = useRef<HTMLDivElement | null>(null);
+  const [canScrollLeft, setCanScrollLeft] = useState(false);
+  const [canScrollRight, setCanScrollRight] = useState(false);
+  const centeredOnce = useRef(false);
+
+  const updateEdges = () => {
+    const el = scrollerRef.current;
+    if (!el) return;
+    setCanScrollLeft(el.scrollLeft > 4);
+    setCanScrollRight(el.scrollLeft + el.clientWidth < el.scrollWidth - 4);
+  };
+
+  useEffect(() => {
+    updateEdges();
+    const el = scrollerRef.current;
+    if (!el) return;
+    const ro = new ResizeObserver(updateEdges);
+    ro.observe(el);
+    return () => ro.disconnect();
+  }, [options]);
+
+  // Centers the active pill inside the scroller only (scrollIntoView would
+  // also scroll the page vertically). The first run is instant so a
+  // "?category=" deep link doesn't animate on load.
+  useEffect(() => {
+    const el = scrollerRef.current;
+    const active = el?.querySelector<HTMLElement>('[data-active="true"]');
+    if (!el || !active) return;
+    const s = el.getBoundingClientRect();
+    const a = active.getBoundingClientRect();
+    const left = el.scrollLeft + (a.left - s.left) - (s.width - a.width) / 2;
+    el.scrollTo({
+      left: Math.max(0, left),
+      behavior: centeredOnce.current ? "smooth" : "auto",
+    });
+    centeredOnce.current = true;
+  }, [selected]);
+
+  const scrollByPage = (dir: -1 | 1) =>
+    scrollerRef.current?.scrollBy({
+      left: dir * scrollerRef.current.clientWidth * 0.6,
+      behavior: "smooth",
+    });
+
+  const fade = `linear-gradient(to right, ${canScrollLeft ? "transparent 0, #000 44px" : "#000 0"}, ${canScrollRight ? "#000 calc(100% - 44px), transparent 100%" : "#000 100%"})`;
+
+  return (
+    <div style={{ position: "relative", marginTop: spacing.xl }}>
+      <div
+        ref={scrollerRef}
+        onScroll={updateEdges}
+        className="pill-scroller"
+        style={{
+          display: "flex",
+          gap: 9,
+          overflowX: "auto",
+          paddingBottom: 2,
+          maskImage: fade,
+          WebkitMaskImage: fade,
+        }}
+      >
+        <CategoryPill
+          label="All"
+          active={selected === "all"}
+          onClick={() => onSelect("all")}
+        />
+        {options.map((c) => (
+          <CategoryPill
+            key={c.id}
+            label={c.name}
+            icon={c.icon}
+            active={selected === c.id}
+            onClick={() => onSelect(c.id)}
+          />
+        ))}
+      </div>
+      {canScrollLeft && (
+        <PillScrollButton dir="left" onClick={() => scrollByPage(-1)} />
+      )}
+      {canScrollRight && (
+        <PillScrollButton dir="right" onClick={() => scrollByPage(1)} />
+      )}
+    </div>
+  );
+}
+
+function PillScrollButton({
+  dir,
+  onClick,
+}: {
+  dir: "left" | "right";
+  onClick: () => void;
+}) {
+  return (
+    <button
+      type="button"
+      onClick={onClick}
+      aria-label={
+        dir === "left" ? "Scroll categories left" : "Scroll categories right"
+      }
+      style={{
+        position: "absolute",
+        top: "50%",
+        transform: "translateY(-50%)",
+        [dir]: 0,
+        width: 32,
+        height: 32,
+        borderRadius: radius.full,
+        display: "grid",
+        placeItems: "center",
+        background: colors.card,
+        color: colors.ink2,
+        border: `1px solid ${colors.line}`,
+        boxShadow: shadow.sm,
+        zIndex: 1,
+      }}
+    >
+      <Icon name={dir === "left" ? "arrowLeft" : "arrow"} size={15} />
+    </button>
   );
 }
 
@@ -1502,6 +1622,8 @@ function CategoryPill({
   return (
     <button
       onClick={onClick}
+      data-active={active}
+      aria-pressed={active}
       style={{
         flexShrink: 0,
         display: "inline-flex",

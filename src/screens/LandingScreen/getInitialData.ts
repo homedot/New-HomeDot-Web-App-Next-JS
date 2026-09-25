@@ -9,6 +9,7 @@ import LandingScreenService, {
   type ServiceCategoryCard,
   type PropertyCategoryCard,
 } from "@/services/LandingScreenService";
+import ProfessionalsScreenService from "@/services/ProfessionalsScreenService";
 import type { Professional } from "@/components/ProCard";
 import {
   categories,
@@ -25,6 +26,34 @@ export interface LandingInitialData {
   topProfessionals: Professional[];
   blogPosts: BlogPost[];
   testimonials: Testimonial[];
+}
+
+// The category API's `professionalsCount` includes professionals the
+// professionals search never returns, so a card could read "72 pros" while
+// the screen it links to says "68 professionals found". Re-counts each
+// category with the same filter endpoint (and total_rows) that screen uses so
+// the two always agree; keeps the API's own count if that request fails.
+async function withSearchCounts(
+  cards: ServiceCategoryCard[],
+): Promise<ServiceCategoryCard[]> {
+  return Promise.all(
+    cards.map(async (card) => {
+      const res = await ProfessionalsScreenService.getProfessionalsFilter(
+        1,
+        { category: card.id, lat: null, long: null, sqMin: null, sqMax: null },
+        {
+          rating: "",
+          minExperience: "",
+          maxExperience: "",
+          professionalType: "",
+        },
+      );
+      const total = res.data?.data?.[0]?.totalCount?.total_rows;
+      return res.success && res.data?.status && typeof total === "number"
+        ? { ...card, count: total }
+        : card;
+    }),
+  );
 }
 
 // Fetches every Landing screen data section server-side (Server Component),
@@ -49,7 +78,9 @@ export async function getLandingInitialData(): Promise<LandingInitialData> {
     categoriesRes.data?.status &&
     categoriesRes.data.data.length > 0
   ) {
-    categoriesData = categoriesRes.data.data.map(toServiceCategoryCard);
+    categoriesData = await withSearchCounts(
+      categoriesRes.data.data.map(toServiceCategoryCard),
+    );
     categoriesLoaded = true;
   }
 
