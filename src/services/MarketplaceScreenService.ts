@@ -165,6 +165,10 @@ export interface CreatePropertyPayload {
   property_type: string;
   price: number;
   property_images: string[];
+  // Always sent on create (Buy and Rent) — "" unless one of the internal
+  // HomeDot accounts allowed to see the field (canSetPropertyConsultant)
+  // filled it in. Optional in the type only because the edit flow drops it.
+  propertyConsultant?: string;
   bedrooms?: string;
   bathrooms?: number;
   balcony?: number;

@@ -4,6 +4,7 @@ import { useState } from "react";
 import { colors } from "@/constants/colors";
 import { spacing, radius, fontSize } from "@/utils/size";
 import Icon from "@/components/Icon";
+import { useProfileStore } from "@/store/useProfileStore";
 import LocationMapPicker from "@/components/LocationMapPicker";
 import {
   AMENITY_CATALOG,
@@ -11,6 +12,7 @@ import {
   FURNISHING_OPTIONS,
   Field,
   KIND_FIELDS,
+  canSetPropertyConsultant,
   SelectField,
   TITLE_PLACEHOLDER,
   fieldInputStyle,
@@ -83,6 +85,7 @@ export default function DetailsStep({
   setForm,
   onBack,
   onContinue,
+  hideConsultant,
 }: {
   kind: PropertyKind;
   typeName: string;
@@ -91,7 +94,11 @@ export default function DetailsStep({
   setForm: (updater: (f: PropertyFormState) => PropertyFormState) => void;
   onBack: () => void;
   onContinue: () => void;
+  // The edit flow doesn't load or resend the consultant, so it opts out.
+  hideConsultant?: boolean;
 }) {
+  const canSeeConsultant = useProfileStore((s) => canSetPropertyConsultant(s.profile));
+  const showConsultant = canSeeConsultant && !hideConsultant;
   const fields = KIND_FIELDS[kind];
   const has = (key: (typeof fields)[number]) => fields.includes(key);
   const set = <K extends keyof PropertyFormState>(key: K, value: PropertyFormState[K]) =>
@@ -225,6 +232,20 @@ export default function DetailsStep({
             />
           </div>
         </Field>
+
+        {showConsultant && (
+          <Field label="Property consultant" hint="Optional, internal">
+            <div style={inputWrap}>
+              <input
+                type="text"
+                placeholder="Consultant name"
+                value={form.propertyConsultant}
+                onChange={(e) => set("propertyConsultant", e.target.value)}
+                style={fieldInputStyle}
+              />
+            </div>
+          </Field>
+        )}
 
         <Field label="Description" {...fieldProps("description")}>
           <textarea

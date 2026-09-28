@@ -600,6 +600,9 @@ export default function MyPropertyDetail({
       editForm,
       editImages.map((i) => i.id),
     );
+    // The edit form never loads the saved consultant, so don't overwrite it
+    // with the "" buildPropertyPayload defaults to.
+    delete payload.propertyConsultant;
     // The owner never touched the map — keep the property's existing
     // location/coordinates untouched rather than resend whatever default the
     // form was seeded with (avoids silently relocating the listing).
@@ -754,6 +757,7 @@ export default function MyPropertyDetail({
             {mode === "editDetails" && (
               <DetailsStep
                 kind={kind}
+                hideConsultant
                 typeName={typeName}
                 purpose={purpose}
                 form={editForm}

@@ -380,6 +380,7 @@ export interface PropertyFormState {
   amenities: CreatePropertyAmenity[];
   length: string;
   breadth: string;
+  propertyConsultant: string;
 }
 
 export const initialFormState: PropertyFormState = {
@@ -404,6 +405,7 @@ export const initialFormState: PropertyFormState = {
   amenities: [],
   length: "",
   breadth: "",
+  propertyConsultant: "",
 };
 
 // Kind-specific fields in the order they appear in DetailsStep's DOM, so
@@ -477,6 +479,23 @@ export function isDetailsComplete(
   return getMissingFields(kind, f, purpose).length === 0;
 }
 
+// The "Property consultant" field is internal — only these HomeDot accounts
+// (matched on mobile number or email) see it on the listing form.
+const CONSULTANT_FIELD_MOBILES = ["7012303017"];
+const CONSULTANT_FIELD_EMAILS = ["mail@homedotapp.com", "homedotofficial@gmail.com"];
+
+export function canSetPropertyConsultant(
+  profile: { mobile?: string; email?: string } | null | undefined,
+): boolean {
+  if (!profile) return false;
+  const mobile = (profile.mobile ?? "").replace(/\D/g, "");
+  const email = (profile.email ?? "").trim().toLowerCase();
+  return (
+    (mobile !== "" && CONSULTANT_FIELD_MOBILES.some((m) => mobile.endsWith(m))) ||
+    (email !== "" && CONSULTANT_FIELD_EMAILS.includes(email))
+  );
+}
+
 // Builds the wire payload for both property/create and property/update-info
 // (and their rent equivalents) — homedot-mobile-app sends byte-for-byte the
 // same shape for create and edit, just against a different endpoint. Shared
@@ -522,6 +541,7 @@ export function buildPropertyPayload(
     property_type: propertyType._id,
     price: num(form.price) ?? 0,
     property_images: imageIds,
+    propertyConsultant: form.propertyConsultant.trim(),
     bedrooms:
       has("bedrooms") && form.bedrooms
         ? bedroomsToApi(form.bedrooms)

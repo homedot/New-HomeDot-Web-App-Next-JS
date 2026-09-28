@@ -41,13 +41,8 @@ import type {
 } from "@/services/LandingScreenService";
 import { submitContactAction } from "./actions";
 import type { LandingInitialData } from "./getInitialData";
-import appHomeImg from "@/assets/images/app-home.png";
-import {
-  properties,
-  steps,
-  constructionStages,
-  exploreImage,
-} from "./data";
+import appHomeImg from "@/assets/images/app-home-mobile.jpeg";
+import { properties, steps, constructionStages, exploreImage } from "./data";
 import { getRecaptchaToken } from "@/utils/recaptcha";
 const wrap: CSSProperties = {
   maxWidth,
