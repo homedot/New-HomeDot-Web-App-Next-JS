@@ -6,11 +6,11 @@ import type { MarketplaceProperty } from "@/screens/MarketplaceScreen/data";
 export interface PropertiesFilterPayload {
   min: number | null;
   max: number | null;
-  address: string | null;
+  latitude: string | null;
+  longitude: string | null;
   featured: boolean;
   bedrooms: string | null;
   bathrooms: number | null;
-  cities: string[] | null;
   propertyType: string | null;
 }
 

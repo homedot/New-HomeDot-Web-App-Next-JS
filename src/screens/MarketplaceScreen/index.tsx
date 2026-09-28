@@ -100,6 +100,8 @@ export default function MarketplaceScreen({
   const [appliedLocation, setAppliedLocation] = useState<{
     address: string;
     city: string | null;
+    latitude: number;
+    longitude: number;
   } | null>(null);
   const [locatingMe, setLocatingMe] = useState(false);
   const [locationError, setLocationError] = useState(false);
@@ -165,11 +167,11 @@ export default function MarketplaceScreen({
     const neutralFilters: PropertiesFilterPayload = {
       min: null,
       max: null,
-      address: null,
+      latitude: null,
+      longitude: null,
       featured: false,
       bedrooms: null,
       bathrooms: null,
-      cities: null,
       propertyType: null,
     };
     Promise.all(
@@ -323,6 +325,8 @@ export default function MarketplaceScreen({
         setAppliedLocation({
           address: results[0].formatted_address,
           city: cityFromAddressComponents(results[0].address_components),
+          latitude: results[0].geometry.location.lat(),
+          longitude: results[0].geometry.location.lng(),
         });
       } else {
         setLocationError(true);
@@ -350,6 +354,8 @@ export default function MarketplaceScreen({
               setAppliedLocation({
                 address: results[0].formatted_address,
                 city: cityFromAddressComponents(results[0].address_components),
+                latitude: coords.latitude,
+                longitude: coords.longitude,
               });
             }
           },
@@ -384,6 +390,8 @@ export default function MarketplaceScreen({
         setAppliedLocation({
           address: results[0].formatted_address,
           city: cityFromAddressComponents(results[0].address_components),
+          latitude: results[0].geometry.location.lat(),
+          longitude: results[0].geometry.location.lng(),
         });
       } else {
         setLocationError(true);
@@ -427,11 +435,11 @@ export default function MarketplaceScreen({
     return {
       min: range?.[0] ?? null,
       max: max === undefined || max === Infinity ? null : max,
-      address: appliedLocation?.address ?? null,
+      latitude: appliedLocation ? String(appliedLocation.latitude) : null,
+      longitude: appliedLocation ? String(appliedLocation.longitude) : null,
       featured: false,
       bedrooms: beds ? (beds === "5+" ? "4_PLUS_BHK" : `${beds}_BHK`) : null,
       bathrooms: baths ? parseInt(baths, 10) : null,
-      cities: appliedLocation?.city ? [appliedLocation.city] : null,
       propertyType: selectedPropertyType?._id ?? null,
     };
   }, [budget, activeBudgetRanges, beds, baths, selectedPropertyType, appliedLocation]);

@@ -19,11 +19,11 @@ export interface MarketplaceInitialData {
 const NEUTRAL_FILTERS: PropertiesFilterPayload = {
   min: null,
   max: null,
-  address: null,
+  latitude: null,
+  longitude: null,
   featured: false,
   bedrooms: null,
   bathrooms: null,
-  cities: null,
   propertyType: null,
 };
 
