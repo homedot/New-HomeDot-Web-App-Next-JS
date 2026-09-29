@@ -11,7 +11,11 @@ import PropertyCard from "@/components/PropertyCard";
 import Reveal from "@/components/Reveal";
 import CountryCodeSelect from "@/components/LoginModal/CountryCodeSelect";
 import { digitLimitFor } from "@/components/LoginModal/shared";
-import { agent, parsePrice, type MarketplaceProperty } from "./data";
+import {
+  getPropertyConsultant,
+  parsePrice,
+  type MarketplaceProperty,
+} from "./data";
 
 const AMENITY_ICON: Record<string, IconName> = {
   "Covered Parking": "house",
@@ -198,6 +202,8 @@ export default function PropertyDetail({
     amenities: amenitiesRef,
     location: locationRef,
   } as const;
+
+  const consultant = getPropertyConsultant(prop.propertyConsultant);
 
   const isSaved = saved.includes(prop.id);
   const isRent = prop.purpose === "Rent";
@@ -1481,8 +1487,8 @@ export default function PropertyDetail({
                   <span style={{ position: "relative", flexShrink: 0 }}>
                     {/* eslint-disable-next-line @next/next/no-img-element */}
                     <img
-                      src={agent.avatar}
-                      alt={agent.name}
+                      src={consultant.avatar}
+                      alt={consultant.name}
                       style={{
                         width: 50,
                         height: 50,
@@ -1512,12 +1518,12 @@ export default function PropertyDetail({
                         fontSize: fontSize.md,
                       }}
                     >
-                      {agent.name}
+                      {consultant.name}
                     </b>
                     <span
                       style={{ fontSize: fontSize.xs, color: colors.muted }}
                     >
-                      {agent.role}
+                      {consultant.role}
                     </span>
                     <div
                       style={{
@@ -1528,7 +1534,7 @@ export default function PropertyDetail({
                       }}
                     >
                       <Icon name="star" size={13} filled color={colors.gold} />{" "}
-                      {agent.rating} · {agent.deals} deals
+                      {consultant.rating} · {consultant.deals} deals
                     </div>
                   </div>
                 </div>
@@ -1758,7 +1764,7 @@ export default function PropertyDetail({
                       }
                     }
                     window.open(
-                      `https://wa.me/917012899166?text=${encodeURIComponent(message)}`,
+                      `https://wa.me/${consultant.phone.replace(/\D/g, "")}?text=${encodeURIComponent(message)}`,
                       "_blank",
                       "noopener,noreferrer",
                     );

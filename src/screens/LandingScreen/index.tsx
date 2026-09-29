@@ -16,6 +16,8 @@ import { colors } from "@/constants/colors";
 import { spacing, radius, fontSize, shadow, maxWidth } from "@/utils/size";
 import Icon, { type IconName } from "@/components/Icon";
 import Button from "@/components/Button";
+import EmailField, { type EmailFieldHandle } from "@/components/EmailField";
+import { isEmailFormatValid } from "@/hooks/useEmailValidation";
 import PropertyCard from "@/components/PropertyCard";
 import ProCard, { type Professional } from "@/components/ProCard";
 import PhoneFrame, { PhoneChip } from "@/components/PhoneFrame";
@@ -70,6 +72,32 @@ const contactInputStyle: CSSProperties = {
   color: colors.ink,
   background: colors.white,
   outline: "none",
+};
+
+// Same visual shell as contactInputStyle, but split into a wrap (border) +
+// inner input (borderless) so EmailField can slot its own icon/status text
+// in — EmailField owns the input element and needs both styles separately.
+const contactEmailWrapStyle: CSSProperties = {
+  display: "flex",
+  alignItems: "center",
+  gap: 10,
+  width: "100%",
+  height: 50,
+  border: `1.5px solid ${colors.line}`,
+  borderRadius: radius.md,
+  padding: "0 16px",
+  background: colors.white,
+};
+
+const contactEmailInputStyle: CSSProperties = {
+  flex: 1,
+  minWidth: 0,
+  height: "100%",
+  border: "none",
+  outline: "none",
+  background: "transparent",
+  fontSize: fontSize.md - 1,
+  color: colors.ink,
 };
 
 const contactSubmitStyle: CSSProperties = {
@@ -2857,6 +2885,16 @@ const EMPTY_CONTACT_FORM: ContactFormValues = {
   message: "",
 };
 
+// Letters (plus space/period/apostrophe/hyphen for names like "Mary-Jane" or
+// "O'Brien") only — rejects the digits/symbols-only input the QA report
+// flagged ("Enter invalid data in the Name field").
+const CONTACT_NAME_PATTERN = /^[A-Za-z][A-Za-z .'-]{1,49}$/;
+const CONTACT_MESSAGE_MIN_LENGTH = 10;
+
+function isContactNameValid(name: string): boolean {
+  return CONTACT_NAME_PATTERN.test(name.trim());
+}
+
 function ContactSection() {
   const [form, setForm] = useState<ContactFormValues>(EMPTY_CONTACT_FORM);
   const [errors, setErrors] = useState<Partial<Record<ContactField, string>>>(
@@ -2866,6 +2904,16 @@ function ContactSection() {
   const [result, setResult] = useState<{ ok: boolean; text: string } | null>(
     null,
   );
+  const emailFieldRef = useRef<EmailFieldHandle>(null);
+
+  // Format-level check only (the ZeroBounce round trip runs on submit, via
+  // emailFieldRef) — cheap enough to run on every keystroke so the submit
+  // button can stay greyed out until all three fields look valid, matching
+  // the CTA pattern in LoginModal/UserFormStep.
+  const formValid =
+    isContactNameValid(form.name) &&
+    isEmailFormatValid(form.email.trim()) &&
+    form.message.trim().length >= CONTACT_MESSAGE_MIN_LENGTH;
 
   const updateField =
     (field: ContactField) =>
@@ -2873,23 +2921,30 @@ function ContactSection() {
       setForm((f) => ({ ...f, [field]: e.target.value }));
     };
 
-  const validate = (): boolean => {
-    const next: Partial<Record<ContactField, string>> = {};
-    if (!form.name.trim()) next.name = "Please enter your name.";
-    if (!/\S+@\S+\.\S+/.test(form.email.trim()))
-      next.email = "Enter a valid email address.";
-    if (!form.message.trim()) next.message = "Please write a message.";
-    setErrors(next);
-    return Object.keys(next).length === 0;
-  };
-
   const handleSubmit = async (e: FormEvent) => {
     e.preventDefault();
     if (submitting) return;
     setResult(null);
-    if (!validate()) return;
 
+    const next: Partial<Record<ContactField, string>> = {};
+    if (!isContactNameValid(form.name))
+      next.name = "Enter your name using letters only (at least 2 characters).";
+    if (form.message.trim().length < CONTACT_MESSAGE_MIN_LENGTH)
+      next.message = `Please write a message of at least ${CONTACT_MESSAGE_MIN_LENGTH} characters.`;
+
+    // ZeroBounce round trip (same check the login/signup flows run) — do
+    // this even if the fields above already failed, so a resubmit after
+    // fixing them doesn't need a second pass to discover a bad email too.
     setSubmitting(true);
+    const emailOk = await emailFieldRef.current?.validate();
+    if (!emailOk) next.email = "Enter a valid, deliverable email address.";
+
+    setErrors(next);
+    if (Object.keys(next).length > 0) {
+      setSubmitting(false);
+      return;
+    }
+
     const res = await submitContactAction({
       name: form.name.trim(),
       email: form.email.trim(),
@@ -2963,14 +3018,16 @@ function ContactSection() {
             />
           </ContactFieldRow>
 
-          <ContactFieldRow label="Email address" error={errors.email}>
-            <input
-              type="email"
-              inputMode="email"
-              placeholder="john@example.com"
+          <ContactFieldRow label="Email address">
+            <EmailField
+              ref={emailFieldRef}
               value={form.email}
-              onChange={updateField("email")}
-              style={contactInputStyle}
+              onChange={(value) =>
+                setForm((f) => ({ ...f, email: value }))
+              }
+              placeholder="john@example.com"
+              wrapStyle={contactEmailWrapStyle}
+              inputStyle={contactEmailInputStyle}
             />
           </ContactFieldRow>
 
@@ -3003,8 +3060,12 @@ function ContactSection() {
 
           <button
             type="submit"
-            disabled={submitting}
-            style={{ ...contactSubmitStyle, opacity: submitting ? 0.6 : 1 }}
+            disabled={submitting || !formValid}
+            style={{
+              ...contactSubmitStyle,
+              opacity: formValid && !submitting ? 1 : 0.5,
+              cursor: formValid && !submitting ? "pointer" : "not-allowed",
+            }}
           >
             {submitting ? "Sending…" : "Send message"}
             {!submitting && (

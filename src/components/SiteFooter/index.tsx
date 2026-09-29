@@ -188,7 +188,7 @@ export default function SiteFooter({
               fontSize: fontSize.base,
               lineHeight: 1.6,
               margin: `${spacing.md}px 0 ${spacing.lg}px`,
-              maxWidth: 280,
+              maxWidth: 320,
             }}
           >
             Plan, design, build and maintain your dream home — with verified

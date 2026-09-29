@@ -61,15 +61,26 @@ export default function NotificationBell({
     const onKey = (e: KeyboardEvent) => {
       if (e.key === "Escape") setOpen(false);
     };
+    // Scrolling closes the panel instead of chasing the bell's new position
+    // on every scroll tick — re-deriving `top`/`right` from
+    // getBoundingClientRect() on each scroll event (previously via a
+    // capture-phase "scroll" listener calling updatePanelPos) reads as the
+    // panel bobbing/jittering as the page scrolls, since the bell itself
+    // moves (it sits in the dashboard's `xl:sticky` rail, which stops
+    // sticking past the rail's own bottom) while the state update lags a
+    // frame behind the actual scroll position. Closing on scroll is the same
+    // pattern most notification dropdowns use (Gmail, Twitter, etc.) and
+    // avoids the follow-jitter entirely.
+    const onScroll = () => setOpen(false);
     document.addEventListener("mousedown", onOutside);
     document.addEventListener("keydown", onKey);
     window.addEventListener("resize", updatePanelPos);
-    window.addEventListener("scroll", updatePanelPos, true);
+    window.addEventListener("scroll", onScroll, true);
     return () => {
       document.removeEventListener("mousedown", onOutside);
       document.removeEventListener("keydown", onKey);
       window.removeEventListener("resize", updatePanelPos);
-      window.removeEventListener("scroll", updatePanelPos, true);
+      window.removeEventListener("scroll", onScroll, true);
     };
   }, [open]);
 

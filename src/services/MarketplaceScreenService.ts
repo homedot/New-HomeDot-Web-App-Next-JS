@@ -112,6 +112,10 @@ export interface PropertyDetailRecord {
   // their location just to change the price.
   latitude?: number;
   longitude?: number;
+  // Free-text name of the internal HomeDot staffer assigned to this listing
+  // (set via canSetPropertyConsultant-gated field on create/update — see
+  // PropertyAddScreen/shared.tsx). Empty/absent when unset.
+  propertyConsultant?: string;
 }
 
 export interface PropertyDetailEntry {
@@ -529,6 +533,7 @@ export function toMarketplacePropertyDetail(
     plotArea: record.plotArea,
     length: record.length,
     breadth: record.breadth,
+    propertyConsultant: record.propertyConsultant,
   };
 }
 

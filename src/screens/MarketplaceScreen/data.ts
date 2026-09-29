@@ -22,6 +22,7 @@ export type MarketplaceProperty = Property & {
   plotArea?: number;
   length?: number;
   breadth?: number;
+  propertyConsultant?: string;
 };
 
 export const properties: MarketplaceProperty[] = [
@@ -301,10 +302,56 @@ export const rentBudgetRanges: Record<string, [number, number]> = {
   "₹20,000+": [20000, Infinity],
 };
 
-export const agent = {
-  name: "Mahesh Mohanan",
-  role: "HomeDot Verified Consultant",
-  rating: 4.9,
-  deals: 64,
-  avatar: "/images/consultant-mahesh-mohanan.png",
+export type PropertyConsultant = {
+  name: string;
+  phone: string;
+  avatar: string;
+  role: string;
+  rating: number;
+  deals: number;
 };
+
+// Keyed by the free-text `propertyConsultant` name the API echoes back
+// (set by internal HomeDot staff at listing creation — see
+// canSetPropertyConsultant in PropertyAddScreen/shared.tsx). Lowercased so
+// lookups can match case-insensitively.
+const PROPERTY_CONSULTANTS: Record<string, PropertyConsultant> = {
+  mahesh: {
+    name: "Mahesh",
+    phone: "+91 90728 38118",
+    avatar:
+      "https://firebasestorage.googleapis.com/v0/b/storage-d11ff.appspot.com/o/Dot_Coffie%2FMahesh.jpeg?alt=media&token=ace9cb9e-609d-4c96-8f06-5ede90b840db",
+    role: "HomeDot Verified Consultant",
+    rating: 4.9,
+    deals: 64,
+  },
+  surabhi: {
+    name: "Surabhi",
+    phone: "+91 70128 99166",
+    avatar:
+      "https://firebasestorage.googleapis.com/v0/b/storage-d11ff.appspot.com/o/Dot_Coffie%2FSurabhi.jpeg?alt=media&token=480e2869-f45f-44c8-b3fa-22eff7fb1d6e",
+    role: "HomeDot Verified Consultant",
+    rating: 4.9,
+    deals: 64,
+  },
+  shahana: {
+    name: "Shahana",
+    phone: "+91 6282 667 984",
+    avatar:
+      "https://firebasestorage.googleapis.com/v0/b/storage-d11ff.appspot.com/o/Dot_Coffie%2FShahana.jpeg?alt=media&token=20209b8b-a6f1-42c7-bcf7-ff11f40214ad",
+    role: "HomeDot Verified Consultant",
+    rating: 4.9,
+    deals: 64,
+  },
+};
+
+const DEFAULT_CONSULTANT = PROPERTY_CONSULTANTS.mahesh;
+
+// Falls back to Mahesh when the property has no propertyConsultant, or the
+// name doesn't match a known consultant.
+export function getPropertyConsultant(
+  name?: string | null,
+): PropertyConsultant {
+  if (!name) return DEFAULT_CONSULTANT;
+  return PROPERTY_CONSULTANTS[name.trim().toLowerCase()] ?? DEFAULT_CONSULTANT;
+}

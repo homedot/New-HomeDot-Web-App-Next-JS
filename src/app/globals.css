@@ -323,7 +323,15 @@ body {
 
 .reveal.in-view {
   opacity: 1;
-  transform: translateY(0);
+  /* `none` rather than `translateY(0)` — a lingering non-none transform on
+     an ancestor (this wraps ProfessionalDashboardScreen's whole unified
+     container, including its `xl:sticky` rail) makes browsers recompute
+     `position: sticky` descendants against the transformed box instead of
+     the viewport, which reads as the sticky notification bell/sidebar
+     bobbing up and down while scrolling. `none` animates from
+     translateY(28px) exactly like translateY(0) would, but doesn't leave
+     that containing-block side effect behind once the reveal settles. */
+  transform: none;
 }
 
 .reveal-stagger > * {
@@ -334,7 +342,7 @@ body {
 
 .reveal-stagger.in-view > * {
   opacity: 1;
-  transform: translateY(0);
+  transform: none;
 }
 
 .reveal-stagger > *:nth-child(1) { transition-delay: 0ms; }
