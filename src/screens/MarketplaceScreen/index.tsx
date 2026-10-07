@@ -167,11 +167,13 @@ export default function MarketplaceScreen({
     const neutralFilters: PropertiesFilterPayload = {
       min: null,
       max: null,
+      address: null,
       latitude: null,
       longitude: null,
       featured: false,
       bedrooms: null,
       bathrooms: null,
+      cities: null,
       propertyType: null,
     };
     Promise.all(
@@ -435,11 +437,13 @@ export default function MarketplaceScreen({
     return {
       min: range?.[0] ?? null,
       max: max === undefined || max === Infinity ? null : max,
-      latitude: appliedLocation ? String(appliedLocation.latitude) : null,
-      longitude: appliedLocation ? String(appliedLocation.longitude) : null,
+      address: null,
+      latitude: appliedLocation ? appliedLocation.latitude : null,
+      longitude: appliedLocation ? appliedLocation.longitude : null,
       featured: false,
       bedrooms: beds ? (beds === "5+" ? "4_PLUS_BHK" : `${beds}_BHK`) : null,
       bathrooms: baths ? parseInt(baths, 10) : null,
+      cities: null,
       propertyType: selectedPropertyType?._id ?? null,
     };
   }, [budget, activeBudgetRanges, beds, baths, selectedPropertyType, appliedLocation]);

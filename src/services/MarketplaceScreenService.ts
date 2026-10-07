@@ -184,6 +184,11 @@ export interface CreatePropertyPayload {
   amenities?: CreatePropertyAmenity[];
   length?: number;
   breadth?: number;
+  // Internal, optional — gated to specific HomeDot accounts by
+  // canSetPropertyConsultant in PropertyAddScreen/shared.tsx. The API echoes
+  // this back as the free-text name PropertyDetail.tsx's getPropertyConsultant
+  // matches against PROPERTY_CONSULTANTS.
+  propertyConsultant?: string;
 }
 
 export interface CreatePropertyRecord {
