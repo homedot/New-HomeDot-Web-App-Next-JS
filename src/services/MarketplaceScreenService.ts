@@ -6,11 +6,13 @@ import type { MarketplaceProperty } from "@/screens/MarketplaceScreen/data";
 export interface PropertiesFilterPayload {
   min: number | null;
   max: number | null;
-  latitude: string | null;
-  longitude: string | null;
+  address: null;
+  latitude: number | null;
+  longitude: number | null;
   featured: boolean;
   bedrooms: string | null;
   bathrooms: number | null;
+  cities: null;
   propertyType: string | null;
 }
 
@@ -112,10 +114,6 @@ export interface PropertyDetailRecord {
   // their location just to change the price.
   latitude?: number;
   longitude?: number;
-  // Free-text name of the internal HomeDot staffer assigned to this listing
-  // (set via canSetPropertyConsultant-gated field on create/update — see
-  // PropertyAddScreen/shared.tsx). Empty/absent when unset.
-  propertyConsultant?: string;
 }
 
 export interface PropertyDetailEntry {
@@ -169,10 +167,6 @@ export interface CreatePropertyPayload {
   property_type: string;
   price: number;
   property_images: string[];
-  // Always sent on create (Buy and Rent) — "" unless one of the internal
-  // HomeDot accounts allowed to see the field (canSetPropertyConsultant)
-  // filled it in. Optional in the type only because the edit flow drops it.
-  propertyConsultant?: string;
   bedrooms?: string;
   bathrooms?: number;
   balcony?: number;
@@ -533,7 +527,6 @@ export function toMarketplacePropertyDetail(
     plotArea: record.plotArea,
     length: record.length,
     breadth: record.breadth,
-    propertyConsultant: record.propertyConsultant,
   };
 }
 

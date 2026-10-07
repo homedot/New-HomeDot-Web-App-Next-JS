@@ -32,4 +32,4 @@ export function useNotificationSocket(
   onNotification: (notification: SocketNotification) => void,
 ) {
   useSocketEvent<SocketNotification>(userId, "notification", onNotification);
-}
+  }
