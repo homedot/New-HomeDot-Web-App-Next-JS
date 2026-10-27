@@ -75,6 +75,30 @@ export interface EnquiryActionBody {
   message: string;
 }
 
+// Sent as the POST body to enquiry/submit-enquiry — the untargeted "post a
+// requirement" flow (no `professional` field, a category instead). Mirrors
+// homedot-mobile-app's HomeScreen "Submit Enquiry" bottom sheet
+// (UserSearchandEnquireServices.enquireSubmit). A professional sees this in
+// their own enquiries list as a "Job Enquiry" — the counterpart of
+// ProfessionalsScreenService.submitDirectEnquiry's professional-targeted
+// "Direct Enquiry", which uses this identical endpoint the other way.
+export interface SubmitEnquiryPayload {
+  levelOneId: string;
+  levelOneName: string;
+  levelTwoId?: string;
+  levelTwoName?: string;
+  latitude: number;
+  longitude: number;
+  location: string;
+  requirement: string;
+  terms: true;
+}
+
+export interface SubmitEnquiryBody {
+  status: boolean;
+  message: string;
+}
+
 // The professional's full response to one enquiry — a different shape from
 // EnquiryProfessionalResponse above (that's the thin flag embedded on the
 // list record; this is the detail fetched when the response card is
@@ -131,6 +155,11 @@ export const EnquiryService = {
       professional: professionalId,
       rejectReason,
     }),
+
+  // Requires a stored auth token. Posts a new, untargeted "Job Enquiry" —
+  // see SubmitEnquiryPayload above.
+  submitEnquiry: (payload: SubmitEnquiryPayload): Promise<ApiResponse<SubmitEnquiryBody>> =>
+    ApiService.post<SubmitEnquiryBody>(API_ENDPOINTS.PROFESSIONALS.ENQUIRE_SUBMIT, payload),
 };
 
 export default EnquiryService;

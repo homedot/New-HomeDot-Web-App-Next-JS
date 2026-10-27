@@ -363,12 +363,13 @@ body {
   }
 }
 
-/* Marketplace "All property types" custom dropdown row hover. */
-.mp-type-option {
+/* Hover state for custom dropdown/listbox option rows — Marketplace's
+   "All property types" and "Sort" menus, ProfessionalsScreen's "Sort" menu. */
+.dropdown-option {
   transition: background 0.15s ease;
 }
 
-.mp-type-option:hover {
+.dropdown-option:hover {
   background: #F5F5F7;
 }
 

@@ -59,7 +59,9 @@ const wrap: CSSProperties = {
 function cityFromAddressComponents(
   components: GoogleMapsAddressComponent[] | undefined,
 ): string | null {
-  return components?.find((c) => c.types.includes("locality"))?.long_name ?? null;
+  return (
+    components?.find((c) => c.types.includes("locality"))?.long_name ?? null
+  );
 }
 
 // Office space and plots have no bedroom/bathroom counts server-side, so
@@ -68,10 +70,23 @@ const PROPERTY_TYPES_WITHOUT_BED_BATH = new Set(["office-space", "plots"]);
 
 function hidesBedBath(type: PropertyTypeRecord | null): boolean {
   if (!type) return false;
-  if (type.propertyTypeSlug && PROPERTY_TYPES_WITHOUT_BED_BATH.has(type.propertyTypeSlug))
+  if (
+    type.propertyTypeSlug &&
+    PROPERTY_TYPES_WITHOUT_BED_BATH.has(type.propertyTypeSlug)
+  )
     return true;
   return /office|plot/i.test(type.propertyType);
 }
+
+const SORT_OPTIONS: {
+  value: "recommended" | "low" | "high" | "area";
+  label: string;
+}[] = [
+  { value: "recommended", label: "Recommended" },
+  { value: "low", label: "Price: low to high" },
+  { value: "high", label: "Price: high to low" },
+  { value: "area", label: "Largest area" },
+];
 
 export default function MarketplaceScreen({
   initialData,
@@ -85,8 +100,10 @@ export default function MarketplaceScreen({
   const [purpose, setPurpose] = useState<"Buy" | "Rent">("Buy");
   // Rent prices are monthly rupee amounts, not lakhs/crores, so Rent gets its
   // own bucket list (mirrors homedot-mobile-app's rent min/max breakpoints).
-  const activePriceOptions = purpose === "Rent" ? rentPriceOptions : priceOptions;
-  const activeBudgetRanges = purpose === "Rent" ? rentBudgetRanges : budgetRanges;
+  const activePriceOptions =
+    purpose === "Rent" ? rentPriceOptions : priceOptions;
+  const activeBudgetRanges =
+    purpose === "Rent" ? rentBudgetRanges : budgetRanges;
   const [propertyTypeOptions, setPropertyTypeOptions] = useState<
     PropertyTypeRecord[]
   >(initialData.propertyTypeOptions);
@@ -105,13 +122,17 @@ export default function MarketplaceScreen({
   } | null>(null);
   const [locatingMe, setLocatingMe] = useState(false);
   const [locationError, setLocationError] = useState(false);
-  const [suggestions, setSuggestions] = useState<GoogleMapsPlacePrediction[]>([]);
+  const [suggestions, setSuggestions] = useState<GoogleMapsPlacePrediction[]>(
+    [],
+  );
   const [showSuggestions, setShowSuggestions] = useState(false);
   const [showTypeMenu, setShowTypeMenu] = useState(false);
+  const [showSortMenu, setShowSortMenu] = useState(false);
   const [showMobileFilters, setShowMobileFilters] = useState(false);
   const locationInputRef = useRef<HTMLInputElement | null>(null);
   const locationFieldRef = useRef<HTMLDivElement | null>(null);
   const typeFieldRef = useRef<HTMLDivElement | null>(null);
+  const sortFieldRef = useRef<HTMLDivElement | null>(null);
   const googleMapsRef = useRef<GoogleMapsNamespace | null>(null);
   const resultsRef = useRef<HTMLElement | null>(null);
   const suggestTimer = useRef<ReturnType<typeof setTimeout> | null>(null);
@@ -220,8 +241,12 @@ export default function MarketplaceScreen({
       MarketplaceScreenService.getFavoriteProperties("Rent"),
     ]).then(([buyRes, rentRes]) => {
       const ids = [
-        ...(buyRes.success && buyRes.data?.status ? (buyRes.data.data ?? []) : []),
-        ...(rentRes.success && rentRes.data?.status ? (rentRes.data.data ?? []) : []),
+        ...(buyRes.success && buyRes.data?.status
+          ? (buyRes.data.data ?? [])
+          : []),
+        ...(rentRes.success && rentRes.data?.status
+          ? (rentRes.data.data ?? [])
+          : []),
       ].map((r) => r._id);
       setSaved(ids);
     });
@@ -251,7 +276,8 @@ export default function MarketplaceScreen({
   useEffect(() => {
     if (!showSuggestions) return;
     const onDocClick = (e: MouseEvent) => {
-      if (!locationFieldRef.current?.contains(e.target as Node)) setShowSuggestions(false);
+      if (!locationFieldRef.current?.contains(e.target as Node))
+        setShowSuggestions(false);
     };
     document.addEventListener("mousedown", onDocClick);
     return () => document.removeEventListener("mousedown", onDocClick);
@@ -260,7 +286,8 @@ export default function MarketplaceScreen({
   useEffect(() => {
     if (!showTypeMenu) return;
     const onDocClick = (e: MouseEvent) => {
-      if (!typeFieldRef.current?.contains(e.target as Node)) setShowTypeMenu(false);
+      if (!typeFieldRef.current?.contains(e.target as Node))
+        setShowTypeMenu(false);
     };
     const onKeyDown = (e: KeyboardEvent) => {
       if (e.key === "Escape") setShowTypeMenu(false);
@@ -272,6 +299,24 @@ export default function MarketplaceScreen({
       document.removeEventListener("keydown", onKeyDown);
     };
   }, [showTypeMenu]);
+
+  // Mirrors the property-type menu's close behavior above.
+  useEffect(() => {
+    if (!showSortMenu) return;
+    const onDocClick = (e: MouseEvent) => {
+      if (!sortFieldRef.current?.contains(e.target as Node))
+        setShowSortMenu(false);
+    };
+    const onKeyDown = (e: KeyboardEvent) => {
+      if (e.key === "Escape") setShowSortMenu(false);
+    };
+    document.addEventListener("mousedown", onDocClick);
+    document.addEventListener("keydown", onKeyDown);
+    return () => {
+      document.removeEventListener("mousedown", onDocClick);
+      document.removeEventListener("keydown", onKeyDown);
+    };
+  }, [showSortMenu]);
 
   // Fetches predictions as the user types (debounced) and renders them in
   // our own dropdown below the input — mirrors ProfessionalsScreen's
@@ -320,20 +365,23 @@ export default function MarketplaceScreen({
     setSuggestions([]);
     const google = googleMapsRef.current;
     if (!google) return;
-    new google.maps.Geocoder().geocode({ placeId: prediction.place_id }, (results, status) => {
-      if (status === "OK" && results?.[0]) {
-        setLocationError(false);
-        setLocationText(results[0].formatted_address);
-        setAppliedLocation({
-          address: results[0].formatted_address,
-          city: cityFromAddressComponents(results[0].address_components),
-          latitude: results[0].geometry.location.lat(),
-          longitude: results[0].geometry.location.lng(),
-        });
-      } else {
-        setLocationError(true);
-      }
-    });
+    new google.maps.Geocoder().geocode(
+      { placeId: prediction.place_id },
+      (results, status) => {
+        if (status === "OK" && results?.[0]) {
+          setLocationError(false);
+          setLocationText(results[0].formatted_address);
+          setAppliedLocation({
+            address: results[0].formatted_address,
+            city: cityFromAddressComponents(results[0].address_components),
+            latitude: results[0].geometry.location.lat(),
+            longitude: results[0].geometry.location.lng(),
+          });
+        } else {
+          setLocationError(true);
+        }
+      },
+    );
   };
 
   const locateCurrentPosition = () => {
@@ -385,20 +433,23 @@ export default function MarketplaceScreen({
     }
     const google = googleMapsRef.current;
     if (!google) return;
-    new google.maps.Geocoder().geocode({ address: trimmed }, (results, status) => {
-      if (status === "OK" && results?.[0]) {
-        setLocationError(false);
-        setLocationText(results[0].formatted_address);
-        setAppliedLocation({
-          address: results[0].formatted_address,
-          city: cityFromAddressComponents(results[0].address_components),
-          latitude: results[0].geometry.location.lat(),
-          longitude: results[0].geometry.location.lng(),
-        });
-      } else {
-        setLocationError(true);
-      }
-    });
+    new google.maps.Geocoder().geocode(
+      { address: trimmed },
+      (results, status) => {
+        if (status === "OK" && results?.[0]) {
+          setLocationError(false);
+          setLocationText(results[0].formatted_address);
+          setAppliedLocation({
+            address: results[0].formatted_address,
+            city: cityFromAddressComponents(results[0].address_components),
+            latitude: results[0].geometry.location.lat(),
+            longitude: results[0].geometry.location.lng(),
+          });
+        } else {
+          setLocationError(true);
+        }
+      },
+    );
   };
 
   // Enter/Search picks the top suggestion if the dropdown is open;
@@ -446,7 +497,14 @@ export default function MarketplaceScreen({
       cities: null,
       propertyType: selectedPropertyType?._id ?? null,
     };
-  }, [budget, activeBudgetRanges, beds, baths, selectedPropertyType, appliedLocation]);
+  }, [
+    budget,
+    activeBudgetRanges,
+    beds,
+    baths,
+    selectedPropertyType,
+    appliedLocation,
+  ]);
 
   // Skips its very first run — page.tsx already fetched this exact
   // default-filter first page server-side (see getInitialData.ts) and seeded
@@ -474,7 +532,9 @@ export default function MarketplaceScreen({
       if (res.success && res.data?.status) {
         const result = res.data.data[0];
         setApiProperties(
-          result ? result.data.map((r) => toMarketplaceProperty(r, purpose)) : [],
+          result
+            ? result.data.map((r) => toMarketplaceProperty(r, purpose))
+            : [],
         );
         setPage(result?.currentPage ?? 1);
         setTotalPages(result?.totalPages ?? 1);
@@ -545,11 +605,13 @@ export default function MarketplaceScreen({
     }
     const wasSaved = saved.includes(id);
     setSaved((s) => (wasSaved ? s.filter((x) => x !== id) : [...s, id]));
-    MarketplaceScreenService.toggleFavoriteProperty(id, purposeForId(id)).then((res) => {
-      if (!res.success || !res.data?.status) {
-        setSaved((s) => (wasSaved ? [...s, id] : s.filter((x) => x !== id)));
-      }
-    });
+    MarketplaceScreenService.toggleFavoriteProperty(id, purposeForId(id)).then(
+      (res) => {
+        if (!res.success || !res.data?.status) {
+          setSaved((s) => (wasSaved ? [...s, id] : s.filter((x) => x !== id)));
+        }
+      },
+    );
   };
 
   const list = useMemo(() => {
@@ -621,7 +683,9 @@ export default function MarketplaceScreen({
       if (record) setDetail(toMarketplacePropertyDetail(record, p.purpose));
       if (entry?.similarProperties?.length) {
         setDetailSimilar(
-          entry.similarProperties.map((r) => toMarketplaceProperty(r, p.purpose)),
+          entry.similarProperties.map((r) =>
+            toMarketplaceProperty(r, p.purpose),
+          ),
         );
       }
     });
@@ -671,9 +735,7 @@ export default function MarketplaceScreen({
             }
             checked={selectedPropertyType?._id === t._id}
             onChange={() =>
-              selectPropertyType(
-                selectedPropertyType?._id === t._id ? null : t,
-              )
+              selectPropertyType(selectedPropertyType?._id === t._id ? null : t)
             }
           />
         ))}
@@ -764,7 +826,13 @@ export default function MarketplaceScreen({
               <img
                 src="https://images.unsplash.com/photo-1564013799919-ab600027ffc6?auto=format&fit=crop&w=1600&q=80"
                 alt=""
-                style={{ position: "absolute", inset: 0, width: "100%", height: "100%", objectFit: "cover" }}
+                style={{
+                  position: "absolute",
+                  inset: 0,
+                  width: "100%",
+                  height: "100%",
+                  objectFit: "cover",
+                }}
               />
               <div
                 style={{
@@ -780,7 +848,8 @@ export default function MarketplaceScreen({
                   // wrapped heading grows the banner instead of being pushed
                   // against its top edge. Bottom padding clears the search card
                   // that overlaps the banner by 30px.
-                  padding: "40px clamp(22px, 3.5vw, 44px) clamp(48px, 3vw + 24px, 64px)",
+                  padding:
+                    "40px clamp(22px, 3.5vw, 44px) clamp(48px, 3vw + 24px, 64px)",
                   color: colors.white,
                 }}
               >
@@ -795,7 +864,7 @@ export default function MarketplaceScreen({
                 >
                   <span>Home</span>
                   <Icon name="arrow" size={13} />
-                  <span style={{ color: colors.white }}>Reality</span>
+                  <span style={{ color: colors.white }}>Realty</span>
                 </div>
                 <h1
                   style={{
@@ -859,7 +928,14 @@ export default function MarketplaceScreen({
                   </button>
                 ))}
               </div>
-              <div ref={locationFieldRef} style={{ position: "relative", flex: "1.4 1 200px", minWidth: 200 }}>
+              <div
+                ref={locationFieldRef}
+                style={{
+                  position: "relative",
+                  flex: "1.4 1 200px",
+                  minWidth: 200,
+                }}
+              >
                 <label
                   style={{
                     display: "flex",
@@ -871,16 +947,25 @@ export default function MarketplaceScreen({
                     padding: "0 14px",
                     color: colors.muted,
                     background: locationError ? "#FFF6F6" : "transparent",
-                    boxShadow: locationError ? "0 0 0 4px rgba(220,38,38,0.07)" : "none",
-                    transition: "border-color 0.2s ease, background 0.2s ease, box-shadow 0.2s ease",
+                    boxShadow: locationError
+                      ? "0 0 0 4px rgba(220,38,38,0.07)"
+                      : "none",
+                    transition:
+                      "border-color 0.2s ease, background 0.2s ease, box-shadow 0.2s ease",
                   }}
                 >
-                  <Icon name="location" size={18} color={locationError ? "#DC2626" : undefined} />
+                  <Icon
+                    name="location"
+                    size={18}
+                    color={locationError ? "#DC2626" : undefined}
+                  />
                   <input
                     ref={locationInputRef}
                     value={locationText}
                     onChange={(e) => onLocationInputChange(e.target.value)}
-                    onFocus={() => suggestions.length > 0 && setShowSuggestions(true)}
+                    onFocus={() =>
+                      suggestions.length > 0 && setShowSuggestions(true)
+                    }
                     onPaste={() => {
                       // A pasted address/plus-code often gets ZERO_RESULTS
                       // from AutocompleteService even though the Geocoding
@@ -915,7 +1000,11 @@ export default function MarketplaceScreen({
                       type="button"
                       onClick={clearLocation}
                       aria-label="Clear location"
-                      style={{ display: "flex", flexShrink: 0, color: colors.muted }}
+                      style={{
+                        display: "flex",
+                        flexShrink: 0,
+                        color: colors.muted,
+                      }}
                     >
                       <Icon name="close" size={14} />
                     </button>
@@ -953,9 +1042,11 @@ export default function MarketplaceScreen({
                       background: "linear-gradient(180deg, #FFF8F8, #FFFFFF)",
                       border: "1px solid #FBD5D5",
                       borderRadius: radius.md,
-                      boxShadow: "0 10px 24px rgba(220,38,38,0.12), 0 1px 2px rgba(220,38,38,0.06)",
+                      boxShadow:
+                        "0 10px 24px rgba(220,38,38,0.12), 0 1px 2px rgba(220,38,38,0.06)",
                       zIndex: 20,
-                      animation: "warnBannerIn 0.22s cubic-bezier(0.16, 1, 0.3, 1) both",
+                      animation:
+                        "warnBannerIn 0.22s cubic-bezier(0.16, 1, 0.3, 1) both",
                     }}
                   >
                     <div
@@ -974,11 +1065,26 @@ export default function MarketplaceScreen({
                       <Icon name="alertTriangle" size={14} color="#DC2626" />
                     </div>
                     <div>
-                      <p style={{ margin: 0, fontSize: fontSize.sm, fontWeight: 600, color: "#B91C1C" }}>
+                      <p
+                        style={{
+                          margin: 0,
+                          fontSize: fontSize.sm,
+                          fontWeight: 600,
+                          color: "#B91C1C",
+                        }}
+                      >
                         Location not found
                       </p>
-                      <p style={{ margin: "2px 0 0", fontSize: fontSize.xs, color: "#C0392B", lineHeight: 1.4 }}>
-                        We couldn&apos;t find that place. Try a city, locality, or landmark near you.
+                      <p
+                        style={{
+                          margin: "2px 0 0",
+                          fontSize: fontSize.xs,
+                          color: "#C0392B",
+                          lineHeight: 1.4,
+                        }}
+                      >
+                        We couldn&apos;t find that place. Try a city, locality,
+                        or landmark near you.
                       </p>
                     </div>
                   </div>
@@ -1016,17 +1122,31 @@ export default function MarketplaceScreen({
                           textAlign: "left",
                           fontSize: fontSize.sm + 0.5,
                           color: colors.ink2,
-                          borderBottom: i < suggestions.length - 1 ? `1px solid ${colors.line}` : "none",
+                          borderBottom:
+                            i < suggestions.length - 1
+                              ? `1px solid ${colors.line}`
+                              : "none",
                         }}
                       >
                         <Icon name="location" size={16} color={colors.accent} />
-                        <span style={{ overflow: "hidden", textOverflow: "ellipsis", whiteSpace: "nowrap" }}>{s.description}</span>
+                        <span
+                          style={{
+                            overflow: "hidden",
+                            textOverflow: "ellipsis",
+                            whiteSpace: "nowrap",
+                          }}
+                        >
+                          {s.description}
+                        </span>
                       </button>
                     ))}
                   </div>
                 )}
               </div>
-              <div ref={typeFieldRef} style={{ position: "relative", flexShrink: 0 }}>
+              <div
+                ref={typeFieldRef}
+                style={{ position: "relative", flexShrink: 0 }}
+              >
                 <button
                   type="button"
                   onClick={() => setShowTypeMenu((v) => !v)}
@@ -1042,7 +1162,9 @@ export default function MarketplaceScreen({
                     borderRadius: 12,
                     padding: "0 12px 0 14px",
                     background: colors.card,
-                    boxShadow: showTypeMenu ? `0 0 0 4px ${colors.primarySoft}` : "none",
+                    boxShadow: showTypeMenu
+                      ? `0 0 0 4px ${colors.primarySoft}`
+                      : "none",
                     transition: "border-color 0.2s ease, box-shadow 0.2s ease",
                   }}
                 >
@@ -1119,7 +1241,10 @@ export default function MarketplaceScreen({
           </section>
 
           {/* listings */}
-          <section ref={resultsRef} style={{ ...wrap, paddingTop: spacing.xxl + 6 }}>
+          <section
+            ref={resultsRef}
+            style={{ ...wrap, paddingTop: spacing.xxl + 6 }}
+          >
             <div
               className="grid grid-cols-1 lg:grid-cols-[262px_1fr]"
               style={{ gap: spacing.xxl, alignItems: "start" }}
@@ -1192,7 +1317,7 @@ export default function MarketplaceScreen({
                       marginTop: 5,
                     }}
                   >
-                    {`${list.length} ${list.length === 1 ? "property" : "properties"} found · updated today`}
+                    {`${list.length} ${list.length === 1 ? "property" : "properties"} found `}
                   </p>
                 </div>
 
@@ -1216,14 +1341,21 @@ export default function MarketplaceScreen({
                       border: `1px solid ${activeCount > 0 ? colors.primary : colors.line}`,
                       borderRadius: 10,
                       padding: "8px 12px",
-                      background: activeCount > 0 ? colors.primarySoft : colors.card,
+                      background:
+                        activeCount > 0 ? colors.primarySoft : colors.card,
                     }}
                   >
                     {/* the flex layout lives on this inner span, not the
                         button itself — an inline `display` on the button
                         would out-specificity `lg:hidden`'s display:none and
                         make it show up at desktop widths too */}
-                    <span style={{ display: "inline-flex", alignItems: "center", gap: 6 }}>
+                    <span
+                      style={{
+                        display: "inline-flex",
+                        alignItems: "center",
+                        gap: 6,
+                      }}
+                    >
                       <Icon name="filter" size={16} />
                       {activeCount > 0
                         ? `${activeCount} filters active`
@@ -1270,37 +1402,78 @@ export default function MarketplaceScreen({
                         </button>
                       ))}
                     </div>
-                    <label
-                      style={{
-                        display: "inline-flex",
-                        alignItems: "center",
-                        gap: 6,
-                        fontSize: fontSize.sm,
-                        color: colors.muted,
-                        border: `1px solid ${colors.line}`,
-                        borderRadius: 10,
-                        padding: "9px 12px",
-                        background: colors.card,
-                      }}
+                    <div
+                      ref={sortFieldRef}
+                      style={{ position: "relative", flexShrink: 0 }}
                     >
-                      Sort:
-                      <select
-                        value={sort}
-                        onChange={(e) => setSort(e.target.value as typeof sort)}
+                      <button
+                        type="button"
+                        onClick={() => setShowSortMenu((v) => !v)}
+                        aria-haspopup="listbox"
+                        aria-expanded={showSortMenu}
                         style={{
-                          border: "none",
-                          outline: "none",
-                          background: "none",
-                          fontWeight: 600,
-                          color: colors.ink,
+                          display: "inline-flex",
+                          alignItems: "center",
+                          gap: 6,
+                          fontSize: fontSize.sm,
+                          color: colors.muted,
+                          border: `1px solid ${showSortMenu ? colors.primary : colors.line}`,
+                          borderRadius: 10,
+                          padding: "9px 12px",
+                          background: colors.card,
+                          boxShadow: showSortMenu
+                            ? `0 0 0 4px ${colors.primarySoft}`
+                            : "none",
+                          transition:
+                            "border-color 0.2s ease, box-shadow 0.2s ease",
                         }}
                       >
-                        <option value="recommended">Recommended</option>
-                        <option value="low">Price: low to high</option>
-                        <option value="high">Price: high to low</option>
-                        <option value="area">Largest area</option>
-                      </select>
-                    </label>
+                        Sort:{" "}
+                        <span style={{ fontWeight: 600, color: colors.ink }}>
+                          {SORT_OPTIONS.find((o) => o.value === sort)?.label}
+                        </span>
+                        <span
+                          style={{
+                            display: "flex",
+                            transition: "transform 0.2s ease",
+                            transform: showSortMenu ? "rotate(180deg)" : "none",
+                          }}
+                        >
+                          <Icon name="chevronDown" size={14} />
+                        </span>
+                      </button>
+
+                      {showSortMenu && (
+                        <div
+                          role="listbox"
+                          style={{
+                            position: "absolute",
+                            top: "calc(100% + 6px)",
+                            right: 0,
+                            minWidth: 200,
+                            background: colors.card,
+                            border: `1px solid ${colors.line}`,
+                            borderRadius: radius.md,
+                            boxShadow: shadow.lg,
+                            zIndex: 20,
+                            overflow: "hidden",
+                            padding: 6,
+                          }}
+                        >
+                          {SORT_OPTIONS.map((opt) => (
+                            <TypeMenuOption
+                              key={opt.value}
+                              label={opt.label}
+                              selected={sort === opt.value}
+                              onClick={() => {
+                                setSort(opt.value);
+                                setShowSortMenu(false);
+                              }}
+                            />
+                          ))}
+                        </div>
+                      )}
+                    </div>
                   </div>
                 </div>
 
@@ -1454,7 +1627,12 @@ export default function MarketplaceScreen({
             // out-specificity `lg:hidden`'s display:none (see the filter
             // button above) and leave the sheet stuck open if the viewport
             // is ever resized past the desktop breakpoint.
-            <div className="lg:hidden" role="dialog" aria-modal="true" aria-label="Filters">
+            <div
+              className="lg:hidden"
+              role="dialog"
+              aria-modal="true"
+              aria-label="Filters"
+            >
               <div
                 style={{
                   position: "fixed",
@@ -1554,7 +1732,11 @@ export default function MarketplaceScreen({
             description="From the first photo to move-in day, HomeDot helps you find a place that truly feels like home."
             promiseHeading="Verified listings. Real photos. Zero guesswork."
             promiseDescription="Every listing is checked against ownership documents before it goes live. What you see in the photos is exactly what you'll find at the door."
-            checklist={["Ownership documents verified", "Photos matched to the property", "Genuine reviews from real visits"]}
+            checklist={[
+              "Ownership documents verified",
+              "Photos matched to the property",
+              "Genuine reviews from real visits",
+            ]}
             stats={[
               { value: "1,200+", label: "Verified listings across Kerala" },
               { value: "100%", label: "Listings checked before going live" },
@@ -1670,7 +1852,7 @@ function TypeMenuOption({
       role="option"
       aria-selected={selected}
       onClick={onClick}
-      className="mp-type-option"
+      className="dropdown-option"
       style={{
         display: "flex",
         alignItems: "center",
@@ -1696,7 +1878,14 @@ function TypeMenuOption({
         {label}
       </span>
       {typeof count === "number" && (
-        <span style={{ fontSize: fontSize.xs, fontWeight: 500, color: colors.muted, flexShrink: 0 }}>
+        <span
+          style={{
+            fontSize: fontSize.xs,
+            fontWeight: 500,
+            color: colors.muted,
+            flexShrink: 0,
+          }}
+        >
           {count.toLocaleString()}
         </span>
       )}

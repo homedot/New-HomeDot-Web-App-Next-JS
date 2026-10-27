@@ -18,6 +18,9 @@ import LoginModal, { type LoginModalHandle } from "@/components/LoginModal";
 import ContactModal, {
   type ContactModalHandle,
 } from "@/components/ContactModal";
+import JobEnquiryModal, {
+  type JobEnquiryModalHandle,
+} from "@/components/JobEnquiryModal";
 import NavShell from "@/components/NavShell";
 import NotificationBell from "@/components/NotificationBell";
 import { useNotificationsFeed } from "@/hooks/useNotificationsFeed";
@@ -40,7 +43,7 @@ const LINKS: { label: string; href?: string }[] = [
   { label: "Home", href: "/" },
   { label: "Professionals", href: "/professionals" },
   { label: "Blogs", href: "/blog" },
-  { label: "Reality", href: "/marketplace" },
+  { label: "Realty", href: "/marketplace" },
   { label: "Contact" },
 ];
 
@@ -49,6 +52,7 @@ export default function SiteNav() {
   const router = useRouter();
   const loginModalRef = useRef<LoginModalHandle>(null);
   const contactModalRef = useRef<ContactModalHandle>(null);
+  const jobEnquiryModalRef = useRef<JobEnquiryModalHandle>(null);
   const [menuOpen, setMenuOpen] = useState(false);
 
   // SiteNav is mounted on every user-facing page (Professional-mode accounts
@@ -71,9 +75,9 @@ export default function SiteNav() {
     return () => window.removeEventListener("keydown", onKey);
   }, [menuOpen]);
 
-  const onAddProperty = () => {
+  const onSubmitEnquiry = () => {
     if (getAuthToken()) {
-      router.push("/property/add");
+      jobEnquiryModalRef.current?.open();
     } else {
       loginModalRef.current?.open();
     }
@@ -183,7 +187,11 @@ export default function SiteNav() {
           }}
         >
           {profileId && (
-            <NotificationBell notifications={notifications} loading={notificationsLoading} debugUserId={profileId} />
+            <NotificationBell
+              notifications={notifications}
+              loading={notificationsLoading}
+              debugUserId={profileId}
+            />
           )}
           <button
             onClick={onFavorites}
@@ -206,10 +214,10 @@ export default function SiteNav() {
             <Button
               variant="outline"
               size="sm"
-              icon={<Icon name="house" size={16} />}
-              onClick={onAddProperty}
+              icon={<Icon name="chat" size={16} />}
+              onClick={onSubmitEnquiry}
             >
-              Add Property
+              Submit Enquiry
             </Button>
           </span>
           <LoginModal ref={loginModalRef} />
@@ -267,6 +275,7 @@ export default function SiteNav() {
         </nav>
       </div>
       <ContactModal ref={contactModalRef} />
+      <JobEnquiryModal ref={jobEnquiryModalRef} />
     </NavShell>
   );
 }

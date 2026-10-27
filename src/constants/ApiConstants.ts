@@ -245,10 +245,12 @@ export const API_ENDPOINTS = {
     // FILTER_SEARCH, just personalized for a signed-in user.
     FILTER_SEARCH_AUTH: "search/filter-professional-auth",
     // Requires a stored auth token. Mirrors homedot-mobile-app's
-    // ENQUIRE_SUBMIT ("v1/enquiry/submit-enquiry"), specifically the
-    // `directEnquiry` call from a professional's own detail screen — same
-    // endpoint also handles the untargeted "post a requirement" flow (no
-    // `professional` field), which this app doesn't implement.
+    // ENQUIRE_SUBMIT ("v1/enquiry/submit-enquiry"). Two callers share this
+    // one endpoint: ProfessionalsScreenService.submitDirectEnquiry below (a
+    // professional-targeted "Direct Enquiry", sends `professional`, no
+    // category) and EnquiryService.submitEnquiry (the untargeted "Job
+    // Enquiry" posted from the header's "Submit Enquiry" button — sends a
+    // category instead of `professional`).
     ENQUIRE_SUBMIT: "enquiry/submit-enquiry",
     // Requires a stored auth token. Mirrors homedot-mobile-app's
     // ADD_FAVORITE_PROFESSIONAL ("v1/user/add-favorite") — a single POST

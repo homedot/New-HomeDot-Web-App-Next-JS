@@ -14,15 +14,41 @@ export interface ProfessionalsInitialData {
   totalRows: number;
 }
 
+const NEUTRAL_FILTER_PAYLOAD = {
+  rating: "",
+  minExperience: "",
+  maxExperience: "",
+  professionalType: "",
+} as const;
+
+function fetchProfessionalsPage1(category: string | null) {
+  return ProfessionalsScreenService.getProfessionalsFilter(
+    1,
+    { category, lat: null, long: null, sqMin: null, sqMax: null },
+    NEUTRAL_FILTER_PAYLOAD,
+  );
+}
+
 // Fetches the category taxonomy and the first page of the (unfiltered, or
 // "?category="-filtered) professionals list server-side, reproducing exactly
 // what ProfessionalsScreen's own mount effects used to fetch client-side.
 // Guest-only: always hits the public FILTER_SEARCH endpoint (no auth token
 // exists server-side), same as a signed-out visitor would get today.
+//
+// The two backend calls have no real dependency on each other — the filter
+// call only needs `requestedCategoryId` validated against the taxonomy when
+// a "?category=" is actually present — so they're issued in parallel rather
+// than one after the other, which was roughly doubling this page's time to
+// first byte. The optimistic filter call is redone (serially, this once)
+// only in the rare case of a stale/unknown category id in the URL.
 export async function getProfessionalsInitialData(
   requestedCategoryId: string | undefined,
 ): Promise<ProfessionalsInitialData> {
-  const categoriesRes = await LandingScreenService.getServiceCategories();
+  const [categoriesRes, optimisticFilterRes] = await Promise.all([
+    LandingScreenService.getServiceCategories(),
+    fetchProfessionalsPage1(requestedCategoryId ?? null),
+  ]);
+
   const categoryOptions =
     categoriesRes.success &&
     categoriesRes.data?.status &&
@@ -30,23 +56,16 @@ export async function getProfessionalsInitialData(
       ? categoriesRes.data.data.map(toServiceCategoryCard)
       : [];
 
+  const requestedCategoryValid =
+    !requestedCategoryId ||
+    categoryOptions.some((c) => c.id === requestedCategoryId);
   const category =
-    requestedCategoryId &&
-    categoryOptions.some((c) => c.id === requestedCategoryId)
-      ? requestedCategoryId
-      : "all";
+    requestedCategoryValid && requestedCategoryId ? requestedCategoryId : "all";
 
-  const filterRes = await ProfessionalsScreenService.getProfessionalsFilter(
-    1,
-    {
-      category: category !== "all" ? category : null,
-      lat: null,
-      long: null,
-      sqMin: null,
-      sqMax: null,
-    },
-    { rating: "", minExperience: "", maxExperience: "", professionalType: "" },
-  );
+  const filterRes = requestedCategoryValid
+    ? optimisticFilterRes
+    : await fetchProfessionalsPage1(null);
+
   const result = filterRes.data?.data?.[0];
   const professionals =
     filterRes.success && filterRes.data?.status && result

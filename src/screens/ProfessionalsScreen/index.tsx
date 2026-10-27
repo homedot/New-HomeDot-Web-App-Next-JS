@@ -51,6 +51,15 @@ const wrap: CSSProperties = {
   padding: `0 ${spacing.xl}px`,
 };
 
+const SORT_OPTIONS: {
+  value: "recommended" | "rating" | "experience";
+  label: string;
+}[] = [
+  { value: "recommended", label: "Recommended" },
+  { value: "rating", label: "Highest rated" },
+  { value: "experience", label: "Most experienced" },
+];
+
 export default function ProfessionalsScreen({
   initialData,
 }: {
@@ -69,6 +78,8 @@ export default function ProfessionalsScreen({
   const [sort, setSort] = useState<"recommended" | "rating" | "experience">(
     "recommended",
   );
+  const [showSortMenu, setShowSortMenu] = useState(false);
+  const sortFieldRef = useRef<HTMLDivElement | null>(null);
   const [view, setView] = useState<"grid" | "list">("grid");
   const [saved, setSaved] = useState<string[]>([]);
   const loginModalRef = useRef<LoginModalHandle>(null);
@@ -173,6 +184,25 @@ export default function ProfessionalsScreen({
     document.addEventListener("mousedown", onDocClick);
     return () => document.removeEventListener("mousedown", onDocClick);
   }, [showSuggestions]);
+
+  // Closes the Sort menu the same way — outside click or Escape — mirrors
+  // MarketplaceScreen's identical property-type/sort menu behavior.
+  useEffect(() => {
+    if (!showSortMenu) return;
+    const onDocClick = (e: MouseEvent) => {
+      if (!sortFieldRef.current?.contains(e.target as Node))
+        setShowSortMenu(false);
+    };
+    const onKeyDown = (e: KeyboardEvent) => {
+      if (e.key === "Escape") setShowSortMenu(false);
+    };
+    document.addEventListener("mousedown", onDocClick);
+    document.addEventListener("keydown", onKeyDown);
+    return () => {
+      document.removeEventListener("mousedown", onDocClick);
+      document.removeEventListener("keydown", onKeyDown);
+    };
+  }, [showSortMenu]);
 
   // Fetches predictions as the user types (debounced) and renders them in
   // our own dropdown below the input — mirrors homedot-mobile-app's
@@ -1166,36 +1196,78 @@ export default function ProfessionalsScreen({
                         </button>
                       ))}
                     </div>
-                    <label
-                      style={{
-                        display: "inline-flex",
-                        alignItems: "center",
-                        gap: 6,
-                        fontSize: fontSize.sm,
-                        color: colors.muted,
-                        border: `1px solid ${colors.line}`,
-                        borderRadius: 10,
-                        padding: "9px 12px",
-                        background: colors.card,
-                      }}
+                    <div
+                      ref={sortFieldRef}
+                      style={{ position: "relative", flexShrink: 0 }}
                     >
-                      Sort:
-                      <select
-                        value={sort}
-                        onChange={(e) => setSort(e.target.value as typeof sort)}
+                      <button
+                        type="button"
+                        onClick={() => setShowSortMenu((v) => !v)}
+                        aria-haspopup="listbox"
+                        aria-expanded={showSortMenu}
                         style={{
-                          border: "none",
-                          outline: "none",
-                          background: "none",
-                          fontWeight: 600,
-                          color: colors.ink,
+                          display: "inline-flex",
+                          alignItems: "center",
+                          gap: 6,
+                          fontSize: fontSize.sm,
+                          color: colors.muted,
+                          border: `1px solid ${showSortMenu ? colors.primary : colors.line}`,
+                          borderRadius: 10,
+                          padding: "9px 12px",
+                          background: colors.card,
+                          boxShadow: showSortMenu
+                            ? `0 0 0 4px ${colors.primarySoft}`
+                            : "none",
+                          transition:
+                            "border-color 0.2s ease, box-shadow 0.2s ease",
                         }}
                       >
-                        <option value="recommended">Recommended</option>
-                        <option value="rating">Highest rated</option>
-                        <option value="experience">Most experienced</option>
-                      </select>
-                    </label>
+                        Sort:{" "}
+                        <span style={{ fontWeight: 600, color: colors.ink }}>
+                          {SORT_OPTIONS.find((o) => o.value === sort)?.label}
+                        </span>
+                        <span
+                          style={{
+                            display: "flex",
+                            transition: "transform 0.2s ease",
+                            transform: showSortMenu ? "rotate(180deg)" : "none",
+                          }}
+                        >
+                          <Icon name="chevronDown" size={14} />
+                        </span>
+                      </button>
+
+                      {showSortMenu && (
+                        <div
+                          role="listbox"
+                          style={{
+                            position: "absolute",
+                            top: "calc(100% + 6px)",
+                            right: 0,
+                            minWidth: 200,
+                            background: colors.card,
+                            border: `1px solid ${colors.line}`,
+                            borderRadius: radius.md,
+                            boxShadow: shadow.lg,
+                            zIndex: 20,
+                            overflow: "hidden",
+                            padding: 6,
+                          }}
+                        >
+                          {SORT_OPTIONS.map((opt) => (
+                            <SortMenuOption
+                              key={opt.value}
+                              label={opt.label}
+                              selected={sort === opt.value}
+                              onClick={() => {
+                                setSort(opt.value);
+                                setShowSortMenu(false);
+                              }}
+                            />
+                          ))}
+                        </div>
+                      )}
+                    </div>
                   </div>
                 </div>
 
@@ -1459,7 +1531,7 @@ export default function ProfessionalsScreen({
               { value: "98%", label: "Pass ID & license checks" },
               { value: "24 hrs", label: "Average first response time" },
             ]}
-            ctaLabel="Browse the reality"
+            ctaLabel="Browse the Realty"
             onCta={() => router.push("/marketplace")}
           />
         </>
@@ -1720,6 +1792,54 @@ function RadioRow({
       />
       {label}
     </label>
+  );
+}
+
+// Mirrors MarketplaceScreen's TypeMenuOption — same row styling/hover, just
+// without the property-count badge that screen's "All property types" menu
+// needs and this one doesn't.
+function SortMenuOption({
+  label,
+  selected,
+  onClick,
+}: {
+  label: string;
+  selected: boolean;
+  onClick: () => void;
+}) {
+  return (
+    <button
+      type="button"
+      role="option"
+      aria-selected={selected}
+      onClick={onClick}
+      className="dropdown-option"
+      style={{
+        display: "flex",
+        alignItems: "center",
+        gap: 10,
+        width: "100%",
+        padding: "10px 10px",
+        borderRadius: radius.sm,
+        textAlign: "left",
+        fontSize: fontSize.sm + 0.5,
+        fontWeight: selected ? 600 : 500,
+        color: selected ? colors.primary : colors.ink2,
+        background: selected ? colors.primarySoft : "transparent",
+      }}
+    >
+      <span
+        style={{
+          flex: 1,
+          overflow: "hidden",
+          textOverflow: "ellipsis",
+          whiteSpace: "nowrap",
+        }}
+      >
+        {label}
+      </span>
+      {selected && <Icon name="check" size={14} color={colors.primary} />}
+    </button>
   );
 }
 

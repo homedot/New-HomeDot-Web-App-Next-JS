@@ -4,8 +4,9 @@ import MarketplaceScreen from "@/screens/MarketplaceScreen";
 import { getMarketplaceInitialData } from "@/screens/MarketplaceScreen/getInitialData";
 
 export const metadata: Metadata = {
-  title: "Reality — Buy, rent & discover homes | HomeDot",
-  description: "Browse verified properties, villas, plots and rentals across Kochi with HomeDot's Reality.",
+  title: "Realty — Buy, rent & discover homes | HomeDot",
+  description:
+    "Browse verified properties, villas, plots and rentals across Kochi with HomeDot's Realty.",
 };
 
 export default async function MarketplacePage({
