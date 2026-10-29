@@ -6,6 +6,7 @@ export type ProfessionalRecord = Professional & {
   // The id a direct enquiry targets (see DirectEnquiryPayload) — absent on
   // the mock fallback professionals below, which aren't real accounts.
   userId?: string;
+  phone?: string;
   category: string;
   categoryName: string;
   slug: string;

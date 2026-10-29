@@ -84,6 +84,19 @@ export default function SiteNav() {
     }
   };
 
+  // On the Realty section, the header's enquiry CTA swaps to "Add Property"
+  // (same auth-gate pattern as onSubmitEnquiry) since job enquiries don't
+  // apply there.
+  const isRealty = pathname === "/marketplace";
+
+  const onAddProperty = () => {
+    if (getAuthToken()) {
+      router.push("/property/add");
+    } else {
+      loginModalRef.current?.open();
+    }
+  };
+
   const onFavorites = () => {
     if (getAuthToken()) {
       router.push("/favorites");
@@ -212,14 +225,25 @@ export default function SiteNav() {
             <Icon name="heart" size={17} filled={favoritesActive} />
           </button>
           <span className="hidden sm:inline-flex">
-            <Button
-              variant="outline"
-              size="sm"
-              icon={<Icon name="chat" size={16} />}
-              onClick={onSubmitEnquiry}
-            >
-              Submit Enquiry
-            </Button>
+            {isRealty ? (
+              <Button
+                variant="outline"
+                size="sm"
+                icon={<Icon name="briefcase" size={16} />}
+                onClick={onAddProperty}
+              >
+                Add Property
+              </Button>
+            ) : (
+              <Button
+                variant="outline"
+                size="sm"
+                icon={<Icon name="chat" size={16} />}
+                onClick={onSubmitEnquiry}
+              >
+                Submit Enquiry
+              </Button>
+            )}
           </span>
           <LoginModal ref={loginModalRef} />
           <button

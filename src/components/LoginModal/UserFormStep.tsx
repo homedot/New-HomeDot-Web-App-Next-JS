@@ -9,7 +9,13 @@ import LocationMapPicker, {
 } from "@/components/LocationMapPicker";
 import EmailField, { type EmailFieldHandle } from "@/components/EmailField";
 import CountryCodeSelect from "./CountryCodeSelect";
-import { inputWrap, fieldInputStyle, Field, digitLimitFor, type Method } from "./shared";
+import {
+  inputWrap,
+  fieldInputStyle,
+  Field,
+  digitLimitFor,
+  type Method,
+} from "./shared";
 
 export interface UserFormValues {
   name: string;
@@ -48,7 +54,8 @@ export default function UserFormStep({
   const digitLimit = digitLimitFor(cc);
   const mobileValid = mobile.replace(/\D/g, "").length === digitLimit;
   const emailValid = /\S+@\S+\.\S+/.test(email);
-  const valid = name.trim().length > 1 && mobileValid && emailValid && !!location;
+  const valid =
+    name.trim().length > 1 && mobileValid && emailValid && !!location;
 
   const handleSubmit = async () => {
     if (!valid || !location || submitting) return;
@@ -112,7 +119,9 @@ export default function UserFormStep({
         Just a few details and you&apos;re in.
       </p>
 
-      <div style={{ display: "flex", flexDirection: "column", gap: spacing.lg }}>
+      <div
+        style={{ display: "flex", flexDirection: "column", gap: spacing.lg }}
+      >
         <Field label="Name">
           <div style={inputWrap}>
             <input
@@ -127,15 +136,21 @@ export default function UserFormStep({
 
         <Field label="Mobile Number">
           <div style={inputWrap}>
-            <CountryCodeSelect value={cc} onChange={setCc} disabled={method === "phone"} />
+            <CountryCodeSelect
+              value={cc}
+              onChange={setCc}
+              disabled={method === "phone"}
+            />
             <input
               type="tel"
               inputMode="numeric"
-              placeholder="98470 11223"
+              placeholder="Enter your mobile number"
               value={mobile}
               readOnly={method === "phone"}
               onChange={(e) =>
-                setMobile(e.target.value.replace(/\D/g, "").slice(0, digitLimit))
+                setMobile(
+                  e.target.value.replace(/\D/g, "").slice(0, digitLimit),
+                )
               }
               style={{
                 ...fieldInputStyle,
@@ -158,7 +173,10 @@ export default function UserFormStep({
             readOnly={method === "email"}
             placeholder="Email address"
             wrapStyle={inputWrap}
-            inputStyle={{ ...fieldInputStyle, opacity: method === "email" ? 0.7 : 1 }}
+            inputStyle={{
+              ...fieldInputStyle,
+              opacity: method === "email" ? 0.7 : 1,
+            }}
           />
         </Field>
 
@@ -168,7 +186,14 @@ export default function UserFormStep({
       </div>
 
       {error && (
-        <p style={{ fontSize: fontSize.sm, color: "#C0392B", marginTop: spacing.md, marginBottom: 0 }}>
+        <p
+          style={{
+            fontSize: fontSize.sm,
+            color: "#C0392B",
+            marginTop: spacing.md,
+            marginBottom: 0,
+          }}
+        >
           {error}
         </p>
       )}

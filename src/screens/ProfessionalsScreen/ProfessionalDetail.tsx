@@ -12,7 +12,9 @@ import {
   type GoogleMapsNamespace,
   type GoogleMapsPlacePrediction,
 } from "@/utils/loadGoogleMapsScript";
-import ProfessionalsScreenService, { type ProfessionalReviewRecord } from "@/services/ProfessionalsScreenService";
+import ProfessionalsScreenService, {
+  type ProfessionalReviewRecord,
+} from "@/services/ProfessionalsScreenService";
 import { type ProfessionalRecord } from "./data";
 
 // `createdAt` isn't confirmed present on every review record (see
@@ -23,7 +25,11 @@ function formatReviewDate(iso: string | undefined): string | undefined {
   if (!iso) return undefined;
   const d = new Date(iso);
   if (Number.isNaN(d.getTime())) return undefined;
-  return d.toLocaleDateString("en-GB", { day: "2-digit", month: "short", year: "numeric" });
+  return d.toLocaleDateString("en-GB", {
+    day: "2-digit",
+    month: "short",
+    year: "numeric",
+  });
 }
 
 type Tab = "portfolio" | "services" | "reviews";
@@ -58,7 +64,9 @@ export default function ProfessionalDetail({
   // professionalRating call, replacing the previous hardcoded mock list
   // (every professional showed the same 3 fake reviews and the same fake
   // 78/16/4/1/1 star breakdown regardless of who was open).
-  const [reviewsData, setReviewsData] = useState<ProfessionalReviewRecord[]>([]);
+  const [reviewsData, setReviewsData] = useState<ProfessionalReviewRecord[]>(
+    [],
+  );
   const [reviewsLoading, setReviewsLoading] = useState(false);
   const reviewsRequestId = useRef(0);
 
@@ -83,9 +91,15 @@ export default function ProfessionalDetail({
   // pro.userId and the requester by their auth token, so there's no
   // name/phone field here.
   const [locationText, setLocationText] = useState("");
-  const [appliedLocation, setAppliedLocation] = useState<{ address: string; lat: number; long: number } | null>(null);
+  const [appliedLocation, setAppliedLocation] = useState<{
+    address: string;
+    lat: number;
+    long: number;
+  } | null>(null);
   const [requirement, setRequirement] = useState("");
-  const [suggestions, setSuggestions] = useState<GoogleMapsPlacePrediction[]>([]);
+  const [suggestions, setSuggestions] = useState<GoogleMapsPlacePrediction[]>(
+    [],
+  );
   const [showSuggestions, setShowSuggestions] = useState(false);
   const [locationError, setLocationError] = useState(false);
   const [locatingMe, setLocatingMe] = useState(false);
@@ -124,13 +138,15 @@ export default function ProfessionalDetail({
     const requestId = ++reviewsRequestId.current;
     // eslint-disable-next-line react-hooks/set-state-in-effect -- fetch triggered by a prop change (pro.userId), not derivable during render; mirrors MarketplaceScreen's openDetail fetch-in-progress flag
     setReviewsLoading(true);
-    ProfessionalsScreenService.getProfessionalReviews(pro.userId).then((res) => {
-      if (reviewsRequestId.current !== requestId) return;
-      setReviewsLoading(false);
-      if (res.success && res.data?.status && res.data.data) {
-        setReviewsData(res.data.data);
-      }
-    });
+    ProfessionalsScreenService.getProfessionalReviews(pro.userId).then(
+      (res) => {
+        if (reviewsRequestId.current !== requestId) return;
+        setReviewsLoading(false);
+        if (res.success && res.data?.status && res.data.data) {
+          setReviewsData(res.data.data);
+        }
+      },
+    );
   }, [pro.userId]);
 
   useEffect(() => {
@@ -151,7 +167,8 @@ export default function ProfessionalDetail({
   useEffect(() => {
     if (!showSuggestions) return;
     const onDocClick = (e: MouseEvent) => {
-      if (!locationFieldRef.current?.contains(e.target as Node)) setShowSuggestions(false);
+      if (!locationFieldRef.current?.contains(e.target as Node))
+        setShowSuggestions(false);
     };
     document.addEventListener("mousedown", onDocClick);
     return () => document.removeEventListener("mousedown", onDocClick);
@@ -193,19 +210,22 @@ export default function ProfessionalDetail({
     setSuggestions([]);
     const google = googleMapsRef.current;
     if (!google) return;
-    new google.maps.Geocoder().geocode({ placeId: prediction.place_id }, (results, status) => {
-      if (status === "OK" && results?.[0]) {
-        setLocationError(false);
-        setLocationText(results[0].formatted_address);
-        setAppliedLocation({
-          address: results[0].formatted_address,
-          lat: results[0].geometry.location.lat(),
-          long: results[0].geometry.location.lng(),
-        });
-      } else {
-        setLocationError(true);
-      }
-    });
+    new google.maps.Geocoder().geocode(
+      { placeId: prediction.place_id },
+      (results, status) => {
+        if (status === "OK" && results?.[0]) {
+          setLocationError(false);
+          setLocationText(results[0].formatted_address);
+          setAppliedLocation({
+            address: results[0].formatted_address,
+            lat: results[0].geometry.location.lat(),
+            long: results[0].geometry.location.lng(),
+          });
+        } else {
+          setLocationError(true);
+        }
+      },
+    );
   };
 
   const locateCurrentPosition = () => {
@@ -219,14 +239,21 @@ export default function ProfessionalDetail({
         if (!google) {
           setLocatingMe(false);
           setLocationText("Current location");
-          setAppliedLocation({ address: "Current location", lat: latitude, long: longitude });
+          setAppliedLocation({
+            address: "Current location",
+            lat: latitude,
+            long: longitude,
+          });
           return;
         }
         new google.maps.Geocoder().geocode(
           { location: { lat: latitude, lng: longitude } },
           (results, status) => {
             setLocatingMe(false);
-            const address = status === "OK" && results?.[0] ? results[0].formatted_address : "Current location";
+            const address =
+              status === "OK" && results?.[0]
+                ? results[0].formatted_address
+                : "Current location";
             setLocationText(address);
             setAppliedLocation({ address, lat: latitude, long: longitude });
           },
@@ -247,7 +274,9 @@ export default function ProfessionalDetail({
   const submitEnquiry = async (e: React.FormEvent) => {
     e.preventDefault();
     if (!pro.userId) {
-      setSubmitError("This professional isn't available for enquiries right now.");
+      setSubmitError(
+        "This professional isn't available for enquiries right now.",
+      );
       return;
     }
     if (!appliedLocation) {
@@ -273,7 +302,11 @@ export default function ProfessionalDetail({
       setSuccessMessage(res.data.message || "");
       setSent(true);
     } else {
-      setSubmitError(res.data?.message || res.message || "Something went wrong. Please try again.");
+      setSubmitError(
+        res.data?.message ||
+          res.message ||
+          "Something went wrong. Please try again.",
+      );
     }
   };
 
@@ -286,8 +319,12 @@ export default function ProfessionalDetail({
     if (lightbox === null) return;
     function onKey(e: KeyboardEvent) {
       if (e.key === "Escape") setLightbox(null);
-      else if (e.key === "ArrowRight") setLightbox((i) => (i === null ? i : (i + 1) % pro.gallery.length));
-      else if (e.key === "ArrowLeft") setLightbox((i) => (i === null ? i : (i - 1 + pro.gallery.length) % pro.gallery.length));
+      else if (e.key === "ArrowRight")
+        setLightbox((i) => (i === null ? i : (i + 1) % pro.gallery.length));
+      else if (e.key === "ArrowLeft")
+        setLightbox((i) =>
+          i === null ? i : (i - 1 + pro.gallery.length) % pro.gallery.length,
+        );
     }
     window.addEventListener("keydown", onKey);
     return () => window.removeEventListener("keydown", onKey);
@@ -307,7 +344,10 @@ export default function ProfessionalDetail({
   }
 
   function focusContactForm() {
-    contactCardRef.current?.scrollIntoView({ behavior: "smooth", block: "start" });
+    contactCardRef.current?.scrollIntoView({
+      behavior: "smooth",
+      block: "start",
+    });
     window.setTimeout(() => locationInputRef.current?.focus(), 450);
   }
 
@@ -322,10 +362,13 @@ export default function ProfessionalDetail({
     const stars = Math.round(r.rating ?? 0);
     if (stars >= 1 && stars <= 5) starCounts[stars - 1] += 1;
   }
-  const starPct = (n: number) => (reviewCount > 0 ? Math.round((starCounts[n - 1] / reviewCount) * 100) : 0);
+  const starPct = (n: number) =>
+    reviewCount > 0 ? Math.round((starCounts[n - 1] / reviewCount) * 100) : 0;
 
   return (
-    <section style={{ padding: `${spacing.xl}px ${spacing.xl}px ${spacing.huge}px` }}>
+    <section
+      style={{ padding: `${spacing.xl}px ${spacing.xl}px ${spacing.huge}px` }}
+    >
       <div style={{ maxWidth: 1200, margin: "0 auto" }}>
         {/* back + breadcrumb + actions */}
         <div
@@ -338,7 +381,14 @@ export default function ProfessionalDetail({
             flexWrap: "wrap",
           }}
         >
-          <div style={{ display: "flex", alignItems: "center", gap: spacing.lg, flexWrap: "wrap" }}>
+          <div
+            style={{
+              display: "flex",
+              alignItems: "center",
+              gap: spacing.lg,
+              flexWrap: "wrap",
+            }}
+          >
             <button
               onClick={onBack}
               style={{
@@ -357,12 +407,25 @@ export default function ProfessionalDetail({
             >
               <Icon name="arrowLeft" size={16} /> Back
             </button>
-            <div style={{ display: "flex", alignItems: "center", gap: 6, fontSize: fontSize.sm, color: colors.muted }}>
-              <button onClick={onBack} style={{ color: colors.muted, cursor: "pointer" }}>
+            <div
+              style={{
+                display: "flex",
+                alignItems: "center",
+                gap: 6,
+                fontSize: fontSize.sm,
+                color: colors.muted,
+              }}
+            >
+              <button
+                onClick={onBack}
+                style={{ color: colors.muted, cursor: "pointer" }}
+              >
                 Professionals
               </button>
               <Icon name="arrow" size={13} />
-              <span style={{ color: colors.ink, fontWeight: 600 }}>{pro.categoryName}</span>
+              <span style={{ color: colors.ink, fontWeight: 600 }}>
+                {pro.categoryName}
+              </span>
             </div>
           </div>
           <div style={{ display: "flex", gap: spacing.sm }}>
@@ -424,7 +487,11 @@ export default function ProfessionalDetail({
                 cursor: "pointer",
               }}
             >
-              <span key={isSaved ? "saved" : "unsaved"} className={isSaved ? "pd-heart-pop" : undefined} style={{ display: "inline-flex" }}>
+              <span
+                key={isSaved ? "saved" : "unsaved"}
+                className={isSaved ? "pd-heart-pop" : undefined}
+                style={{ display: "inline-flex" }}
+              >
                 <Icon name="heart" size={17} filled={isSaved} />
               </span>
               {isSaved ? "Saved" : "Save"}
@@ -445,18 +512,37 @@ export default function ProfessionalDetail({
           >
             {pro.cover && (
               // eslint-disable-next-line @next/next/no-img-element
-              <img src={pro.cover} alt={pro.name} style={{ width: "100%", height: "100%", objectFit: "cover" }} />
+              <img
+                src={pro.cover}
+                alt={pro.name}
+                style={{ width: "100%", height: "100%", objectFit: "cover" }}
+              />
             )}
             <div
               style={{
                 position: "absolute",
                 inset: 0,
-                background: "linear-gradient(180deg, rgba(10,20,34,0.05) 0%, rgba(10,20,34,0.1) 55%, rgba(10,20,34,0.55) 100%)",
+                background:
+                  "linear-gradient(180deg, rgba(10,20,34,0.05) 0%, rgba(10,20,34,0.1) 55%, rgba(10,20,34,0.55) 100%)",
               }}
             />
           </div>
-          <div style={{ position: "absolute", left: "clamp(20px, 4vw, 40px)", bottom: -48, zIndex: 3 }}>
-            <div className="pf-avatar" style={{ position: "relative", width: "clamp(96px, 12vw, 128px)", height: "clamp(96px, 12vw, 128px)" }}>
+          <div
+            style={{
+              position: "absolute",
+              left: "clamp(20px, 4vw, 40px)",
+              bottom: -48,
+              zIndex: 3,
+            }}
+          >
+            <div
+              className="pf-avatar"
+              style={{
+                position: "relative",
+                width: "clamp(96px, 12vw, 128px)",
+                height: "clamp(96px, 12vw, 128px)",
+              }}
+            >
               <span
                 className="pf-avatar-glow"
                 style={{
@@ -520,8 +606,23 @@ export default function ProfessionalDetail({
           }}
         >
           <div style={{ flex: 1, minWidth: 260 }}>
-            <div style={{ display: "flex", flexWrap: "wrap", alignItems: "center", gap: spacing.sm }}>
-              <h1 style={{ fontFamily: "var(--font-display)", fontSize: "clamp(24px, 3vw, 34px)", letterSpacing: "-0.02em" }}>{pro.name}</h1>
+            <div
+              style={{
+                display: "flex",
+                flexWrap: "wrap",
+                alignItems: "center",
+                gap: spacing.sm,
+              }}
+            >
+              <h1
+                style={{
+                  fontFamily: "var(--font-display)",
+                  fontSize: "clamp(24px, 3vw, 34px)",
+                  letterSpacing: "-0.02em",
+                }}
+              >
+                {pro.name}
+              </h1>
               {pro.verified && (
                 <span
                   className="pd-badge-pulse"
@@ -537,38 +638,97 @@ export default function ProfessionalDetail({
                     borderRadius: radius.full,
                   }}
                 >
-                  <Icon name="verified" size={13} filled color={colors.white} /> Verified
+                  <Icon name="verified" size={13} filled color={colors.white} />{" "}
+                  Verified
                 </span>
               )}
             </div>
-            <p style={{ fontSize: fontSize.md - 1, color: colors.ink2, marginTop: 6, fontWeight: 500 }}>
+            <p
+              style={{
+                fontSize: fontSize.md - 1,
+                color: colors.ink2,
+                marginTop: 6,
+                fontWeight: 500,
+              }}
+            >
               {pro.profession} · {pro.categoryName}
             </p>
-            <div style={{ display: "flex", flexWrap: "wrap", alignItems: "center", gap: spacing.md, marginTop: spacing.sm + 2, fontSize: fontSize.sm, color: colors.muted }}>
-              <span style={{ display: "inline-flex", alignItems: "center", gap: 5, fontWeight: 700, color: colors.ink }}>
-                <Icon name="star" size={15} filled color={colors.gold} /> {pro.rating.toFixed(1)}
+            <div
+              style={{
+                display: "flex",
+                flexWrap: "wrap",
+                alignItems: "center",
+                gap: spacing.md,
+                marginTop: spacing.sm + 2,
+                fontSize: fontSize.sm,
+                color: colors.muted,
+              }}
+            >
+              <span
+                style={{
+                  display: "inline-flex",
+                  alignItems: "center",
+                  gap: 5,
+                  fontWeight: 700,
+                  color: colors.ink,
+                }}
+              >
+                <Icon name="star" size={15} filled color={colors.gold} />{" "}
+                {pro.rating.toFixed(1)}
               </span>
-              <span>({reviewCount} review{reviewCount === 1 ? "" : "s"})</span>
-              <span style={{ display: "inline-flex", alignItems: "center", gap: 5 }}>
+              <span>
+                ({reviewCount} review{reviewCount === 1 ? "" : "s"})
+              </span>
+              <span
+                style={{ display: "inline-flex", alignItems: "center", gap: 5 }}
+              >
                 <Icon name="location" size={15} /> {pro.location}
               </span>
-              <span style={{ display: "inline-flex", alignItems: "center", gap: 5 }}>
+              <span
+                style={{ display: "inline-flex", alignItems: "center", gap: 5 }}
+              >
                 <Icon name="clock" size={15} /> Responds {pro.responds}
               </span>
             </div>
-            <div style={{ display: "flex", flexWrap: "wrap", gap: 8, marginTop: spacing.md }}>
+            <div
+              style={{
+                display: "flex",
+                flexWrap: "wrap",
+                gap: 8,
+                marginTop: spacing.md,
+              }}
+            >
               {pro.tags.map((t) => (
                 <span
                   key={t}
-                  style={{ fontSize: fontSize.xs, fontWeight: 600, color: colors.primary, background: colors.primarySoft, padding: "6px 12px", borderRadius: 8 }}
+                  style={{
+                    fontSize: fontSize.xs,
+                    fontWeight: 600,
+                    color: colors.primary,
+                    background: colors.primarySoft,
+                    padding: "6px 12px",
+                    borderRadius: 8,
+                  }}
                 >
                   {t}
                 </span>
               ))}
             </div>
           </div>
-          <div style={{ display: "flex", flexDirection: "column", gap: spacing.sm, minWidth: 200 }}>
-            <Button variant="primary" size="lg" icon={<Icon name="chat" size={18} />} onClick={focusContactForm}>
+          <div
+            style={{
+              display: "flex",
+              flexDirection: "column",
+              gap: spacing.sm,
+              minWidth: 200,
+            }}
+          >
+            <Button
+              variant="primary"
+              size="lg"
+              icon={<Icon name="chat" size={18} />}
+              onClick={focusContactForm}
+            >
               Send Your Inquiry
             </Button>
             <div style={{ display: "flex", gap: spacing.sm }}>
@@ -580,8 +740,12 @@ export default function ProfessionalDetail({
                   icon={<Icon name="whatsapp" size={16} color="#25D366" />}
                   onClick={() => {
                     const message = `Hi, I'm interested in your services on HomeDot (${pro.profession}).`;
+                    const digits = pro.phone ? pro.phone.replace(/\D/g, "") : "";
+                    const number = digits
+                      ? (digits.startsWith("91") ? digits : `91${digits}`)
+                      : "917012303017";
                     window.open(
-                      `https://wa.me/917012303017?text=${encodeURIComponent(message)}`,
+                      `https://wa.me/${number}?text=${encodeURIComponent(message)}`,
                       "_blank",
                       "noopener,noreferrer",
                     );
@@ -595,14 +759,44 @@ export default function ProfessionalDetail({
         </Reveal>
 
         {/* stat strip */}
-        <Reveal stagger className="grid grid-cols-2 lg:grid-cols-4" style={{ gap: spacing.md, margin: `${spacing.xl}px 0 4px` }}>
+        <Reveal
+          stagger
+          className="grid grid-cols-2 lg:grid-cols-4"
+          style={{ gap: spacing.md, margin: `${spacing.xl}px 0 4px` }}
+        >
           {[
-            { icon: "calendar" as const, label: "Experience", value: `${pro.experience} yrs`, tint: colors.primarySoft, ink: colors.primary },
+            {
+              icon: "calendar" as const,
+              label: "Experience",
+              value: `${pro.experience} yrs`,
+              tint: colors.primarySoft,
+              ink: colors.primary,
+            },
             ...(pro.projects > 0
-              ? [{ icon: "briefcase" as const, label: "Projects completed", value: `${pro.projects}+`, tint: "rgba(41,151,255,0.12)", ink: colors.accent }]
+              ? [
+                  {
+                    icon: "briefcase" as const,
+                    label: "Projects completed",
+                    value: `${pro.projects}+`,
+                    tint: "rgba(41,151,255,0.12)",
+                    ink: colors.accent,
+                  },
+                ]
               : []),
-            { icon: "star" as const, label: "Average rating", value: pro.rating > 0 ? pro.rating.toFixed(1) : "New", tint: "rgba(245,166,35,0.14)", ink: colors.gold },
-            { icon: "sparkle" as const, label: pro.priceUnit || "Pricing", value: pro.price === "₹0" ? "Free" : pro.price, tint: "rgba(31,138,91,0.13)", ink: "#1F8A5B" },
+            {
+              icon: "star" as const,
+              label: "Average rating",
+              value: pro.rating > 0 ? pro.rating.toFixed(1) : "New",
+              tint: "rgba(245,166,35,0.14)",
+              ink: colors.gold,
+            },
+            {
+              icon: "sparkle" as const,
+              label: pro.priceUnit || "Pricing",
+              value: pro.price === "₹0" ? "Free" : pro.price,
+              tint: "rgba(31,138,91,0.13)",
+              ink: "#1F8A5B",
+            },
           ].map((k) => (
             <div
               key={k.label}
@@ -620,21 +814,63 @@ export default function ProfessionalDetail({
             >
               <span
                 className="pd-key-fact-icon"
-                style={{ width: 44, height: 44, borderRadius: 12, background: k.tint, color: k.ink, display: "grid", placeItems: "center", flexShrink: 0 }}
+                style={{
+                  width: 44,
+                  height: 44,
+                  borderRadius: 12,
+                  background: k.tint,
+                  color: k.ink,
+                  display: "grid",
+                  placeItems: "center",
+                  flexShrink: 0,
+                }}
               >
                 <Icon name={k.icon} size={20} />
               </span>
               <div>
-                <b style={{ display: "block", fontFamily: "var(--font-display)", fontSize: fontSize.md + 1 }}>{k.value}</b>
-                <em style={{ fontStyle: "normal", fontSize: fontSize.xs, color: colors.muted }}>{k.label}</em>
+                <b
+                  style={{
+                    display: "block",
+                    fontFamily: "var(--font-display)",
+                    fontSize: fontSize.md + 1,
+                  }}
+                >
+                  {k.value}
+                </b>
+                <em
+                  style={{
+                    fontStyle: "normal",
+                    fontSize: fontSize.xs,
+                    color: colors.muted,
+                  }}
+                >
+                  {k.label}
+                </em>
               </div>
             </div>
           ))}
         </Reveal>
 
         {/* tabs — sliding pill indicator behind the active label */}
-        <div className="pd-subnav" style={{ borderRadius: radius.full, border: `1px solid ${colors.line}`, boxShadow: shadow.sm, padding: 6, margin: `${spacing.lg}px 0` }}>
-          <div className="pd-subnav-row" style={{ position: "relative", display: "flex", gap: 6, overflowX: "auto" }}>
+        <div
+          className="pd-subnav"
+          style={{
+            borderRadius: radius.full,
+            border: `1px solid ${colors.line}`,
+            boxShadow: shadow.sm,
+            padding: 6,
+            margin: `${spacing.lg}px 0`,
+          }}
+        >
+          <div
+            className="pd-subnav-row"
+            style={{
+              position: "relative",
+              display: "flex",
+              gap: 6,
+              overflowX: "auto",
+            }}
+          >
             <span
               className="pf-tab-thumb"
               style={{
@@ -675,11 +911,21 @@ export default function ProfessionalDetail({
           </div>
         </div>
 
-        <div className="grid grid-cols-1 lg:grid-cols-[1fr_350px]" style={{ gap: spacing.xxl, marginTop: spacing.md, alignItems: "start" }}>
+        <div
+          className="grid grid-cols-1 lg:grid-cols-[1fr_350px]"
+          style={{
+            gap: spacing.xxl,
+            marginTop: spacing.md,
+            alignItems: "start",
+          }}
+        >
           {/* main column */}
           <div>
             {tab === "portfolio" && (
-              <Reveal className="grid grid-cols-2 sm:grid-cols-2" style={{ gap: 10 }}>
+              <Reveal
+                className="grid grid-cols-2 sm:grid-cols-2"
+                style={{ gap: 10 }}
+              >
                 {pro.gallery.map((g, i) => (
                   <button
                     key={i}
@@ -700,14 +946,21 @@ export default function ProfessionalDetail({
                       src={g}
                       alt={`${pro.name} — project ${i + 1}`}
                       className="card-hover-img"
-                      style={{ position: "absolute", inset: 0, width: "100%", height: "100%", objectFit: "cover" }}
+                      style={{
+                        position: "absolute",
+                        inset: 0,
+                        width: "100%",
+                        height: "100%",
+                        objectFit: "cover",
+                      }}
                     />
                     <div
                       className="pf-portfolio-overlay"
                       style={{
                         position: "absolute",
                         inset: 0,
-                        background: "linear-gradient(180deg, transparent 55%, rgba(10,20,34,0.55) 100%)",
+                        background:
+                          "linear-gradient(180deg, transparent 55%, rgba(10,20,34,0.55) 100%)",
                         display: "flex",
                         alignItems: "flex-end",
                         justifyContent: "flex-end",
@@ -734,7 +987,14 @@ export default function ProfessionalDetail({
             )}
 
             {tab === "services" && (
-              <Reveal stagger style={{ display: "flex", flexDirection: "column", gap: spacing.md }}>
+              <Reveal
+                stagger
+                style={{
+                  display: "flex",
+                  flexDirection: "column",
+                  gap: spacing.md,
+                }}
+              >
                 {pro.services.map((s, i) => (
                   <div
                     key={s}
@@ -751,20 +1011,58 @@ export default function ProfessionalDetail({
                       boxShadow: shadow.sm,
                     }}
                   >
-                    <div style={{ display: "flex", alignItems: "center", gap: spacing.md }}>
+                    <div
+                      style={{
+                        display: "flex",
+                        alignItems: "center",
+                        gap: spacing.md,
+                      }}
+                    >
                       <span
-                        style={{ width: 38, height: 38, borderRadius: 10, background: colors.primarySoft, color: colors.primary, display: "grid", placeItems: "center", flexShrink: 0 }}
+                        style={{
+                          width: 38,
+                          height: 38,
+                          borderRadius: 10,
+                          background: colors.primarySoft,
+                          color: colors.primary,
+                          display: "grid",
+                          placeItems: "center",
+                          flexShrink: 0,
+                        }}
                       >
                         <Icon name="briefcase" size={17} />
                       </span>
                       <div>
-                        <div style={{ fontWeight: 700, fontSize: fontSize.base + 1 }}>{s}</div>
-                        <div style={{ fontSize: fontSize.sm, color: colors.muted, marginTop: 2 }}>
-                          {["Inspection & quote included", "Materials billed separately", "Backed by HomeDot guarantee"][i % 3]}
+                        <div
+                          style={{
+                            fontWeight: 700,
+                            fontSize: fontSize.base + 1,
+                          }}
+                        >
+                          {s}
+                        </div>
+                        <div
+                          style={{
+                            fontSize: fontSize.sm,
+                            color: colors.muted,
+                            marginTop: 2,
+                          }}
+                        >
+                          {
+                            [
+                              "Inspection & quote included",
+                              "Materials billed separately",
+                              "Backed by HomeDot guarantee",
+                            ][i % 3]
+                          }
                         </div>
                       </div>
                     </div>
-                    <Button variant="ghost" size="sm" onClick={focusContactForm}>
+                    <Button
+                      variant="ghost"
+                      size="sm"
+                      onClick={focusContactForm}
+                    >
                       Enquire
                     </Button>
                   </div>
@@ -773,8 +1071,24 @@ export default function ProfessionalDetail({
             )}
 
             {tab === "reviews" && (
-              <Reveal style={{ display: "flex", flexDirection: "column", gap: spacing.lg }}>
-                <div style={{ display: "flex", gap: spacing.xxl - 6, alignItems: "center", background: colors.card, border: `1px solid ${colors.line}`, borderRadius: radius.md, padding: spacing.xl }}>
+              <Reveal
+                style={{
+                  display: "flex",
+                  flexDirection: "column",
+                  gap: spacing.lg,
+                }}
+              >
+                <div
+                  style={{
+                    display: "flex",
+                    gap: spacing.xxl - 6,
+                    alignItems: "center",
+                    background: colors.card,
+                    border: `1px solid ${colors.line}`,
+                    borderRadius: radius.md,
+                    padding: spacing.xl,
+                  }}
+                >
                   <div
                     style={{
                       width: 88,
@@ -786,34 +1100,121 @@ export default function ProfessionalDetail({
                       flexShrink: 0,
                     }}
                   >
-                    <div style={{ width: 70, height: 70, borderRadius: "50%", background: colors.card, display: "flex", flexDirection: "column", alignItems: "center", justifyContent: "center", gap: 2 }}>
-                      <b style={{ fontFamily: "var(--font-display)", fontSize: 22, fontWeight: 800, color: colors.primary, lineHeight: 1 }}>{pro.rating.toFixed(1)}</b>
+                    <div
+                      style={{
+                        width: 70,
+                        height: 70,
+                        borderRadius: "50%",
+                        background: colors.card,
+                        display: "flex",
+                        flexDirection: "column",
+                        alignItems: "center",
+                        justifyContent: "center",
+                        gap: 2,
+                      }}
+                    >
+                      <b
+                        style={{
+                          fontFamily: "var(--font-display)",
+                          fontSize: 22,
+                          fontWeight: 800,
+                          color: colors.primary,
+                          lineHeight: 1,
+                        }}
+                      >
+                        {pro.rating.toFixed(1)}
+                      </b>
                       <Icon name="star" size={11} filled color={colors.gold} />
                     </div>
                   </div>
-                  <div style={{ flex: 1, display: "flex", flexDirection: "column", gap: 6 }}>
-                    <span style={{ fontSize: fontSize.xs, color: colors.muted, marginBottom: 2 }}>
+                  <div
+                    style={{
+                      flex: 1,
+                      display: "flex",
+                      flexDirection: "column",
+                      gap: 6,
+                    }}
+                  >
+                    <span
+                      style={{
+                        fontSize: fontSize.xs,
+                        color: colors.muted,
+                        marginBottom: 2,
+                      }}
+                    >
                       {reviewCount} review{reviewCount === 1 ? "" : "s"}
                     </span>
                     {[5, 4, 3, 2, 1].map((n) => (
-                      <div key={n} style={{ display: "flex", alignItems: "center", gap: 10, fontSize: 12.5 }}>
-                        <span style={{ width: 10, color: colors.muted }}>{n}</span>
-                        <span style={{ flex: 1, height: 7, background: "#EFEFF2", borderRadius: radius.full, overflow: "hidden" }}>
-                          <span style={{ display: "block", width: `${starPct(n)}%`, height: "100%", background: colors.gold }} />
+                      <div
+                        key={n}
+                        style={{
+                          display: "flex",
+                          alignItems: "center",
+                          gap: 10,
+                          fontSize: 12.5,
+                        }}
+                      >
+                        <span style={{ width: 10, color: colors.muted }}>
+                          {n}
                         </span>
-                        <span style={{ width: 32, color: colors.muted, textAlign: "right" }}>{starPct(n)}%</span>
+                        <span
+                          style={{
+                            flex: 1,
+                            height: 7,
+                            background: "#EFEFF2",
+                            borderRadius: radius.full,
+                            overflow: "hidden",
+                          }}
+                        >
+                          <span
+                            style={{
+                              display: "block",
+                              width: `${starPct(n)}%`,
+                              height: "100%",
+                              background: colors.gold,
+                            }}
+                          />
+                        </span>
+                        <span
+                          style={{
+                            width: 32,
+                            color: colors.muted,
+                            textAlign: "right",
+                          }}
+                        >
+                          {starPct(n)}%
+                        </span>
                       </div>
                     ))}
                   </div>
                 </div>
                 {reviewsLoading ? (
-                  <div style={{ display: "flex", flexDirection: "column", gap: spacing.md }}>
+                  <div
+                    style={{
+                      display: "flex",
+                      flexDirection: "column",
+                      gap: spacing.md,
+                    }}
+                  >
                     {[0, 1].map((i) => (
-                      <div key={i} className="skeleton-shimmer" style={{ height: 100, borderRadius: radius.md }} />
+                      <div
+                        key={i}
+                        className="skeleton-shimmer"
+                        style={{ height: 100, borderRadius: radius.md }}
+                      />
                     ))}
                   </div>
                 ) : reviewsData.length === 0 ? (
-                  <div style={{ textAlign: "center", padding: "40px 20px", border: `1px dashed ${colors.line}`, borderRadius: radius.md, color: colors.muted, fontSize: fontSize.sm }}>
+                  <div
+                    style={{
+                      textAlign: "center",
+                      padding: "40px 20px",
+                      border: `1px dashed ${colors.line}`,
+                      borderRadius: radius.md,
+                      color: colors.muted,
+                      fontSize: fontSize.sm,
+                    }}
+                  >
                     No reviews yet for {pro.name}.
                   </div>
                 ) : (
@@ -822,12 +1223,44 @@ export default function ProfessionalDetail({
                     const name = reviewer?.name?.trim() || "HomeDot user";
                     const date = formatReviewDate(r.createdAt);
                     return (
-                      <div key={r._id ?? i} className="card-hover" style={{ background: colors.card, border: `1px solid ${colors.line}`, borderRadius: radius.md, padding: spacing.lg + 2, boxShadow: shadow.sm }}>
-                        <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center", marginBottom: spacing.sm }}>
-                          <div style={{ display: "flex", alignItems: "center", gap: 10 }}>
+                      <div
+                        key={r._id ?? i}
+                        className="card-hover"
+                        style={{
+                          background: colors.card,
+                          border: `1px solid ${colors.line}`,
+                          borderRadius: radius.md,
+                          padding: spacing.lg + 2,
+                          boxShadow: shadow.sm,
+                        }}
+                      >
+                        <div
+                          style={{
+                            display: "flex",
+                            justifyContent: "space-between",
+                            alignItems: "center",
+                            marginBottom: spacing.sm,
+                          }}
+                        >
+                          <div
+                            style={{
+                              display: "flex",
+                              alignItems: "center",
+                              gap: 10,
+                            }}
+                          >
                             {reviewer?.profileImage ? (
                               // eslint-disable-next-line @next/next/no-img-element
-                              <img src={reviewer.profileImage} alt={name} style={{ width: 38, height: 38, borderRadius: "50%", objectFit: "cover" }} />
+                              <img
+                                src={reviewer.profileImage}
+                                alt={name}
+                                style={{
+                                  width: 38,
+                                  height: 38,
+                                  borderRadius: "50%",
+                                  objectFit: "cover",
+                                }}
+                              />
                             ) : (
                               <div
                                 style={{
@@ -846,15 +1279,54 @@ export default function ProfessionalDetail({
                               </div>
                             )}
                             <div>
-                              <div style={{ fontWeight: 700, fontSize: fontSize.base - 1 }}>{name}</div>
-                              {date && <div style={{ fontSize: fontSize.xs, color: colors.muted }}>{date}</div>}
+                              <div
+                                style={{
+                                  fontWeight: 700,
+                                  fontSize: fontSize.base - 1,
+                                }}
+                              >
+                                {name}
+                              </div>
+                              {date && (
+                                <div
+                                  style={{
+                                    fontSize: fontSize.xs,
+                                    color: colors.muted,
+                                  }}
+                                >
+                                  {date}
+                                </div>
+                              )}
                             </div>
                           </div>
-                          <span style={{ display: "inline-flex", alignItems: "center", gap: 4, fontSize: fontSize.sm, fontWeight: 700 }}>
-                            <Icon name="star" size={13} filled color={colors.gold} /> {(r.rating ?? 0).toFixed(1)}
+                          <span
+                            style={{
+                              display: "inline-flex",
+                              alignItems: "center",
+                              gap: 4,
+                              fontSize: fontSize.sm,
+                              fontWeight: 700,
+                            }}
+                          >
+                            <Icon
+                              name="star"
+                              size={13}
+                              filled
+                              color={colors.gold}
+                            />{" "}
+                            {(r.rating ?? 0).toFixed(1)}
                           </span>
                         </div>
-                        <p style={{ margin: 0, fontSize: fontSize.base - 1, lineHeight: 1.6, color: colors.ink2 }}>{r.review || "No review text."}</p>
+                        <p
+                          style={{
+                            margin: 0,
+                            fontSize: fontSize.base - 1,
+                            lineHeight: 1.6,
+                            color: colors.ink2,
+                          }}
+                        >
+                          {r.review || "No review text."}
+                        </p>
                       </div>
                     );
                   })
@@ -864,35 +1336,144 @@ export default function ProfessionalDetail({
           </div>
 
           {/* sidebar */}
-          <Reveal delay={100} style={{ display: "flex", flexDirection: "column", gap: spacing.lg, position: "sticky", top: 100 }}>
-            <div ref={contactCardRef} style={{ background: colors.card, border: `1px solid ${colors.line}`, borderRadius: radius.lg, overflow: "hidden", boxShadow: shadow.md }}>
-              <div style={{ height: 6, background: `linear-gradient(90deg, ${colors.primary}, ${colors.accent})` }} />
-              <div style={{ padding: spacing.xl, display: "flex", flexDirection: "column", gap: spacing.md }}>
-                <div style={{ display: "flex", alignItems: "baseline", justifyContent: "space-between" }}>
-                  <span style={{ fontSize: fontSize.xs, color: colors.muted }}>Starting at</span>
-                  <span style={{ display: "inline-flex", alignItems: "center", gap: 5, fontSize: fontSize.xs, fontWeight: 700, color: colors.primary, background: colors.primarySoft, padding: "5px 11px", borderRadius: radius.full }}>
+          <Reveal
+            delay={100}
+            style={{
+              display: "flex",
+              flexDirection: "column",
+              gap: spacing.lg,
+              position: "sticky",
+              top: 100,
+            }}
+          >
+            <div
+              ref={contactCardRef}
+              style={{
+                background: colors.card,
+                border: `1px solid ${colors.line}`,
+                borderRadius: radius.lg,
+                overflow: "hidden",
+                boxShadow: shadow.md,
+              }}
+            >
+              <div
+                style={{
+                  height: 6,
+                  background: `linear-gradient(90deg, ${colors.primary}, ${colors.accent})`,
+                }}
+              />
+              <div
+                style={{
+                  padding: spacing.xl,
+                  display: "flex",
+                  flexDirection: "column",
+                  gap: spacing.md,
+                }}
+              >
+                <div
+                  style={{
+                    display: "flex",
+                    alignItems: "baseline",
+                    justifyContent: "space-between",
+                  }}
+                >
+                  <span style={{ fontSize: fontSize.xs, color: colors.muted }}>
+                    Starting at
+                  </span>
+                  <span
+                    style={{
+                      display: "inline-flex",
+                      alignItems: "center",
+                      gap: 5,
+                      fontSize: fontSize.xs,
+                      fontWeight: 700,
+                      color: colors.primary,
+                      background: colors.primarySoft,
+                      padding: "5px 11px",
+                      borderRadius: radius.full,
+                    }}
+                  >
                     <Icon name="clock" size={13} /> {pro.responds}
                   </span>
                 </div>
-                <div style={{ fontFamily: "var(--font-display)", fontSize: fontSize.xxl - 2, fontWeight: 700 }}>
-                  {pro.price === "₹0" ? "Free" : pro.price}
+                <div
+                  style={{ display: "flex", alignItems: "baseline", gap: 6 }}
+                >
+                  <span
+                    style={{
+                      fontFamily: "var(--font-display)",
+                      fontSize: fontSize.xxl - 2,
+                      fontWeight: 700,
+                    }}
+                  >
+                    {pro.price === "₹0" ? "Free" : pro.price}
+                  </span>
+                  {pro.price !== "₹0" && pro.priceUnit && (
+                    <span
+                      style={{ fontSize: fontSize.sm, color: colors.muted }}
+                    >
+                      / {pro.priceUnit}
+                    </span>
+                  )}
                 </div>
 
                 {sent ? (
-                  <div style={{ display: "flex", flexDirection: "column", alignItems: "center", textAlign: "center", gap: 6, padding: "14px 0" }}>
-                    <span className="pf-success-pop" style={{ width: 52, height: 52, borderRadius: "50%", background: "rgba(31,138,91,0.13)", color: "#1F8A5B", display: "grid", placeItems: "center", marginBottom: 4 }}>
+                  <div
+                    style={{
+                      display: "flex",
+                      flexDirection: "column",
+                      alignItems: "center",
+                      textAlign: "center",
+                      gap: 6,
+                      padding: "14px 0",
+                    }}
+                  >
+                    <span
+                      className="pf-success-pop"
+                      style={{
+                        width: 52,
+                        height: 52,
+                        borderRadius: "50%",
+                        background: "rgba(31,138,91,0.13)",
+                        color: "#1F8A5B",
+                        display: "grid",
+                        placeItems: "center",
+                        marginBottom: 4,
+                      }}
+                    >
                       <Icon name="check" size={26} strokeWidth={2.4} />
                     </span>
                     <b style={{ fontSize: fontSize.base }}>Inquiry sent!</b>
-                    <span style={{ fontSize: fontSize.sm, color: colors.muted }}>
-                      {successMessage || `${pro.name} will get back to you shortly.`}
+                    <span
+                      style={{ fontSize: fontSize.sm, color: colors.muted }}
+                    >
+                      {successMessage ||
+                        `${pro.name} will get back to you shortly.`}
                     </span>
                   </div>
                 ) : (
-                  <form onSubmit={submitEnquiry} style={{ display: "flex", flexDirection: "column", gap: spacing.sm + 2 }}>
-                    <h3 style={{ fontSize: fontSize.base + 1, fontWeight: 700, margin: 0 }}>Send Your Inquiry</h3>
+                  <form
+                    onSubmit={submitEnquiry}
+                    style={{
+                      display: "flex",
+                      flexDirection: "column",
+                      gap: spacing.sm + 2,
+                    }}
+                  >
+                    <h3
+                      style={{
+                        fontSize: fontSize.base + 1,
+                        fontWeight: 700,
+                        margin: 0,
+                      }}
+                    >
+                      Send Your Inquiry
+                    </h3>
 
-                    <div ref={locationFieldRef} style={{ position: "relative" }}>
+                    <div
+                      ref={locationFieldRef}
+                      style={{ position: "relative" }}
+                    >
                       <div
                         className={`pf-field${locationError ? " pf-field--error" : ""}`}
                         style={{
@@ -903,12 +1484,20 @@ export default function ProfessionalDetail({
                           padding: "0 13px",
                         }}
                       >
-                        <Icon name="location" size={16} color={locationError ? "#DC2626" : colors.muted} />
+                        <Icon
+                          name="location"
+                          size={16}
+                          color={locationError ? "#DC2626" : colors.muted}
+                        />
                         <input
                           ref={locationInputRef}
                           value={locationText}
-                          onChange={(e) => onLocationInputChange(e.target.value)}
-                          onFocus={() => suggestions.length > 0 && setShowSuggestions(true)}
+                          onChange={(e) =>
+                            onLocationInputChange(e.target.value)
+                          }
+                          onFocus={() =>
+                            suggestions.length > 0 && setShowSuggestions(true)
+                          }
                           placeholder="Where do you need this service?"
                           autoComplete="off"
                           style={{
@@ -922,7 +1511,16 @@ export default function ProfessionalDetail({
                           }}
                         />
                         {appliedLocation ? (
-                          <button type="button" onClick={clearLocation} aria-label="Clear location" style={{ display: "flex", flexShrink: 0, color: colors.muted }}>
+                          <button
+                            type="button"
+                            onClick={clearLocation}
+                            aria-label="Clear location"
+                            style={{
+                              display: "flex",
+                              flexShrink: 0,
+                              color: colors.muted,
+                            }}
+                          >
                             <Icon name="close" size={13} />
                           </button>
                         ) : (
@@ -931,7 +1529,12 @@ export default function ProfessionalDetail({
                             onClick={locateCurrentPosition}
                             disabled={locatingMe}
                             aria-label="Use my current location"
-                            style={{ display: "flex", flexShrink: 0, color: colors.primary, opacity: locatingMe ? 0.5 : 1 }}
+                            style={{
+                              display: "flex",
+                              flexShrink: 0,
+                              color: colors.primary,
+                              opacity: locatingMe ? 0.5 : 1,
+                            }}
                           >
                             <Icon name="compass" size={16} />
                           </button>
@@ -950,12 +1553,15 @@ export default function ProfessionalDetail({
                             alignItems: "flex-start",
                             gap: 10,
                             padding: "12px 14px",
-                            background: "linear-gradient(180deg, #FFF8F8, #FFFFFF)",
+                            background:
+                              "linear-gradient(180deg, #FFF8F8, #FFFFFF)",
                             border: "1px solid #FBD5D5",
                             borderRadius: radius.md,
-                            boxShadow: "0 10px 24px rgba(220,38,38,0.12), 0 1px 2px rgba(220,38,38,0.06)",
+                            boxShadow:
+                              "0 10px 24px rgba(220,38,38,0.12), 0 1px 2px rgba(220,38,38,0.06)",
                             zIndex: 20,
-                            animation: "warnBannerIn 0.22s cubic-bezier(0.16, 1, 0.3, 1) both",
+                            animation:
+                              "warnBannerIn 0.22s cubic-bezier(0.16, 1, 0.3, 1) both",
                           }}
                         >
                           <div
@@ -971,14 +1577,33 @@ export default function ProfessionalDetail({
                               marginTop: 1,
                             }}
                           >
-                            <Icon name="alertTriangle" size={14} color="#DC2626" />
+                            <Icon
+                              name="alertTriangle"
+                              size={14}
+                              color="#DC2626"
+                            />
                           </div>
                           <div>
-                            <p style={{ margin: 0, fontSize: fontSize.sm, fontWeight: 600, color: "#B91C1C" }}>
+                            <p
+                              style={{
+                                margin: 0,
+                                fontSize: fontSize.sm,
+                                fontWeight: 600,
+                                color: "#B91C1C",
+                              }}
+                            >
                               Location not found
                             </p>
-                            <p style={{ margin: "2px 0 0", fontSize: fontSize.xs, color: "#C0392B", lineHeight: 1.4 }}>
-                              We couldn&apos;t find that place. Try a city, locality, or landmark near you.
+                            <p
+                              style={{
+                                margin: "2px 0 0",
+                                fontSize: fontSize.xs,
+                                color: "#C0392B",
+                                lineHeight: 1.4,
+                              }}
+                            >
+                              We couldn&apos;t find that place. Try a city,
+                              locality, or landmark near you.
                             </p>
                           </div>
                         </div>
@@ -1014,11 +1639,26 @@ export default function ProfessionalDetail({
                                 textAlign: "left",
                                 fontSize: fontSize.sm,
                                 color: colors.ink2,
-                                borderBottom: i < suggestions.length - 1 ? `1px solid ${colors.line}` : "none",
+                                borderBottom:
+                                  i < suggestions.length - 1
+                                    ? `1px solid ${colors.line}`
+                                    : "none",
                               }}
                             >
-                              <Icon name="location" size={15} color={colors.accent} />
-                              <span style={{ overflow: "hidden", textOverflow: "ellipsis", whiteSpace: "nowrap" }}>{s.description}</span>
+                              <Icon
+                                name="location"
+                                size={15}
+                                color={colors.accent}
+                              />
+                              <span
+                                style={{
+                                  overflow: "hidden",
+                                  textOverflow: "ellipsis",
+                                  whiteSpace: "nowrap",
+                                }}
+                              >
+                                {s.description}
+                              </span>
                             </button>
                           ))}
                         </div>
@@ -1031,14 +1671,40 @@ export default function ProfessionalDetail({
                       value={requirement}
                       onChange={(e) => setRequirement(e.target.value)}
                       placeholder={`Tell ${pro.name} what you need — e.g. "${pro.tags[0] ?? pro.profession} for a 3BHK renovation"…`}
-                      style={{ borderRadius: radius.sm + 1, padding: "11px 13px", fontSize: fontSize.sm + 1, resize: "vertical", fontFamily: "inherit" }}
+                      style={{
+                        borderRadius: radius.sm + 1,
+                        padding: "11px 13px",
+                        fontSize: fontSize.sm + 1,
+                        resize: "vertical",
+                        fontFamily: "inherit",
+                      }}
                     />
 
                     {submitError && (
-                      <p style={{ fontSize: fontSize.xs + 0.5, color: "#C0392B", margin: 0 }}>{submitError}</p>
+                      <p
+                        style={{
+                          fontSize: fontSize.xs + 0.5,
+                          color: "#C0392B",
+                          margin: 0,
+                        }}
+                      >
+                        {submitError}
+                      </p>
                     )}
 
-                    <Button variant="primary" size="lg" full icon={submitting ? <span className="pf-spinner" /> : <Icon name="chat" size={18} />} type="submit">
+                    <Button
+                      variant="primary"
+                      size="lg"
+                      full
+                      icon={
+                        submitting ? (
+                          <span className="pf-spinner" />
+                        ) : (
+                          <Icon name="chat" size={18} />
+                        )
+                      }
+                      type="submit"
+                    >
                       {submitting ? "Sending…" : "Send Your Inquiry"}
                     </Button>
                   </form>
@@ -1051,18 +1717,56 @@ export default function ProfessionalDetail({
         {/* similar professionals */}
         {similar.length > 0 && (
           <div style={{ marginTop: spacing.huge - 20 }}>
-            <div style={{ marginBottom: spacing.xl, display: "flex", alignItems: "center", gap: spacing.md }}>
-              <span style={{ width: 4, height: 26, borderRadius: 4, background: `linear-gradient(180deg, ${colors.primary}, ${colors.accent})` }} />
+            <div
+              style={{
+                marginBottom: spacing.xl,
+                display: "flex",
+                alignItems: "center",
+                gap: spacing.md,
+              }}
+            >
+              <span
+                style={{
+                  width: 4,
+                  height: 26,
+                  borderRadius: 4,
+                  background: `linear-gradient(180deg, ${colors.primary}, ${colors.accent})`,
+                }}
+              />
               <div>
-                <h2 style={{ fontFamily: "var(--font-display)", fontSize: fontSize.xxl - 4, fontWeight: 600 }}>Similar pros nearby</h2>
-                <p style={{ color: colors.muted, fontSize: fontSize.base, marginTop: 4 }}>
+                <h2
+                  style={{
+                    fontFamily: "var(--font-display)",
+                    fontSize: fontSize.xxl - 4,
+                    fontWeight: 600,
+                  }}
+                >
+                  Similar pros nearby
+                </h2>
+                <p
+                  style={{
+                    color: colors.muted,
+                    fontSize: fontSize.base,
+                    marginTop: 4,
+                  }}
+                >
                   More {pro.categoryName.toLowerCase()} you may like.
                 </p>
               </div>
             </div>
-            <Reveal stagger className="grid grid-cols-1 md:grid-cols-3" style={{ gap: spacing.xl }}>
+            <Reveal
+              stagger
+              className="grid grid-cols-1 md:grid-cols-3"
+              style={{ gap: spacing.xl }}
+            >
               {similar.map((p) => (
-                <ProCard key={p.id} pro={p} saved={!!p.userId && saved.includes(p.userId)} onSave={onSave} onOpen={() => onOpen(p)} />
+                <ProCard
+                  key={p.id}
+                  pro={p}
+                  saved={!!p.userId && saved.includes(p.userId)}
+                  onSave={onSave}
+                  onOpen={() => onOpen(p)}
+                />
               ))}
             </Reveal>
           </div>
@@ -1089,20 +1793,45 @@ export default function ProfessionalDetail({
         }}
       >
         <div style={{ flex: 1, minWidth: 0 }}>
-          <div style={{ fontFamily: "var(--font-display)", fontSize: fontSize.lg, fontWeight: 700, lineHeight: 1.1 }}>
+          <div
+            style={{
+              fontFamily: "var(--font-display)",
+              fontSize: fontSize.lg,
+              fontWeight: 700,
+              lineHeight: 1.1,
+            }}
+          >
             {pro.price === "₹0" ? "Free" : pro.price}
           </div>
-          {pro.priceUnit && <div style={{ fontSize: fontSize.xs, color: colors.muted }}>/ {pro.priceUnit}</div>}
+          {pro.priceUnit && (
+            <div style={{ fontSize: fontSize.xs, color: colors.muted }}>
+              / {pro.priceUnit}
+            </div>
+          )}
         </div>
         <button
           onClick={() => onSave(pro.id)}
           aria-label={isSaved ? "Remove from saved" : "Save professional"}
-          style={{ width: 46, height: 46, borderRadius: "50%", border: `1.5px solid ${colors.line}`, display: "grid", placeItems: "center", color: isSaved ? "#E5484D" : colors.ink2, flexShrink: 0 }}
+          style={{
+            width: 46,
+            height: 46,
+            borderRadius: "50%",
+            border: `1.5px solid ${colors.line}`,
+            display: "grid",
+            placeItems: "center",
+            color: isSaved ? "#E5484D" : colors.ink2,
+            flexShrink: 0,
+          }}
         >
           <Icon name="heart" size={19} filled={isSaved} />
         </button>
         <span style={{ flexShrink: 0 }}>
-          <Button variant="primary" size="md" icon={<Icon name="chat" size={16} />} onClick={focusContactForm}>
+          <Button
+            variant="primary"
+            size="md"
+            icon={<Icon name="chat" size={16} />}
+            onClick={focusContactForm}
+          >
             Send Inquiry
           </Button>
         </span>
@@ -1112,20 +1841,53 @@ export default function ProfessionalDetail({
         <div
           onClick={() => setLightbox(null)}
           className="pd-lightbox-overlay"
-          style={{ position: "fixed", inset: 0, zIndex: 1000, background: "rgba(10,20,34,0.92)", backdropFilter: "blur(4px)", display: "grid", placeItems: "center", padding: 40, cursor: "zoom-out" }}
+          style={{
+            position: "fixed",
+            inset: 0,
+            zIndex: 1000,
+            background: "rgba(10,20,34,0.92)",
+            backdropFilter: "blur(4px)",
+            display: "grid",
+            placeItems: "center",
+            padding: 40,
+            cursor: "zoom-out",
+          }}
         >
           <button
             onClick={() => setLightbox(null)}
             aria-label="Close"
             className="pd-lightbox-arrow"
-            style={{ position: "absolute", zIndex: 2, top: 24, right: 28, width: 46, height: 46, borderRadius: "50%", background: "rgba(255,255,255,0.14)", color: colors.white, display: "grid", placeItems: "center" }}
+            style={{
+              position: "absolute",
+              zIndex: 2,
+              top: 24,
+              right: 28,
+              width: 46,
+              height: 46,
+              borderRadius: "50%",
+              background: "rgba(255,255,255,0.14)",
+              color: colors.white,
+              display: "grid",
+              placeItems: "center",
+            }}
           >
             <Icon name="close" size={22} color={colors.white} />
           </button>
 
           {pro.gallery.length > 1 && (
             <span
-              style={{ position: "absolute", zIndex: 2, top: 30, left: 28, color: colors.white, fontWeight: 600, fontSize: fontSize.sm, background: "rgba(255,255,255,0.14)", padding: "7px 14px", borderRadius: radius.full }}
+              style={{
+                position: "absolute",
+                zIndex: 2,
+                top: 30,
+                left: 28,
+                color: colors.white,
+                fontWeight: 600,
+                fontSize: fontSize.sm,
+                background: "rgba(255,255,255,0.14)",
+                padding: "7px 14px",
+                borderRadius: radius.full,
+              }}
             >
               {lightbox + 1} / {pro.gallery.length}
             </span>
@@ -1136,22 +1898,54 @@ export default function ProfessionalDetail({
               <button
                 onClick={(e) => {
                   e.stopPropagation();
-                  setLightbox((i) => (i === null ? i : (i - 1 + pro.gallery.length) % pro.gallery.length));
+                  setLightbox((i) =>
+                    i === null
+                      ? i
+                      : (i - 1 + pro.gallery.length) % pro.gallery.length,
+                  );
                 }}
                 aria-label="Previous photo"
                 className="pd-lightbox-arrow"
-                style={{ position: "absolute", zIndex: 2, left: 18, top: "50%", transform: "translateY(-50%)", width: 50, height: 50, borderRadius: "50%", background: "rgba(255,255,255,0.14)", color: colors.white, display: "grid", placeItems: "center" }}
+                style={{
+                  position: "absolute",
+                  zIndex: 2,
+                  left: 18,
+                  top: "50%",
+                  transform: "translateY(-50%)",
+                  width: 50,
+                  height: 50,
+                  borderRadius: "50%",
+                  background: "rgba(255,255,255,0.14)",
+                  color: colors.white,
+                  display: "grid",
+                  placeItems: "center",
+                }}
               >
                 <Icon name="arrowLeft" size={22} color={colors.white} />
               </button>
               <button
                 onClick={(e) => {
                   e.stopPropagation();
-                  setLightbox((i) => (i === null ? i : (i + 1) % pro.gallery.length));
+                  setLightbox((i) =>
+                    i === null ? i : (i + 1) % pro.gallery.length,
+                  );
                 }}
                 aria-label="Next photo"
                 className="pd-lightbox-arrow"
-                style={{ position: "absolute", zIndex: 2, right: 18, top: "50%", transform: "translateY(-50%)", width: 50, height: 50, borderRadius: "50%", background: "rgba(255,255,255,0.14)", color: colors.white, display: "grid", placeItems: "center" }}
+                style={{
+                  position: "absolute",
+                  zIndex: 2,
+                  right: 18,
+                  top: "50%",
+                  transform: "translateY(-50%)",
+                  width: 50,
+                  height: 50,
+                  borderRadius: "50%",
+                  background: "rgba(255,255,255,0.14)",
+                  color: colors.white,
+                  display: "grid",
+                  placeItems: "center",
+                }}
               >
                 <Icon name="arrow" size={22} color={colors.white} />
               </button>
@@ -1165,7 +1959,14 @@ export default function ProfessionalDetail({
             alt="Project"
             onClick={(e) => e.stopPropagation()}
             className="pd-lightbox-img"
-            style={{ position: "relative", zIndex: 1, maxWidth: "90vw", maxHeight: "78vh", borderRadius: radius.md, boxShadow: shadow.lg }}
+            style={{
+              position: "relative",
+              zIndex: 1,
+              maxWidth: "90vw",
+              maxHeight: "78vh",
+              borderRadius: radius.md,
+              boxShadow: shadow.lg,
+            }}
           />
         </div>
       )}

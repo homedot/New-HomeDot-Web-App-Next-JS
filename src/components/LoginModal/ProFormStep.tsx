@@ -221,7 +221,7 @@ export default function ProFormStep({
             <input
               type="tel"
               inputMode="numeric"
-              placeholder="98470 11223"
+              placeholder="Enter your mobile number"
               value={mobile}
               readOnly={method === "phone"}
               onChange={(e) =>

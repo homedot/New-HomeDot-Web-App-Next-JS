@@ -26,7 +26,6 @@ export default function EnquiriesPanel() {
   const [loading, setLoading] = useState(true);
   const [loadingMore, setLoadingMore] = useState(false);
   const [toast, setToast] = useState<string | null>(null);
-
   const [editingId, setEditingId] = useState<string | null>(null);
   const [respondingId, setRespondingId] = useState<string | null>(null);
   const [deletingId, setDeletingId] = useState<string | null>(null);

@@ -187,7 +187,11 @@ export interface ProfessionalDetailInfo {
 export interface ProfessionalDetailRecord {
   name: string;
   email?: string;
-  phone?: string;
+  // Confirmed against a live professional-details-auth/:slug response —
+  // the contact number is this top-level field, not professionalInfo[0]
+  // .phoneNumber (not present on the live response, kept below only as a
+  // defensive fallback in case another variant of this endpoint sends it).
+  mobile?: string;
   location?: string;
   city?: string;
   profileImage?: string;
@@ -455,6 +459,7 @@ export function mergeProfessionalDetail(
     rating: info?.rating ?? base.rating,
     verified: info?.verified ?? base.verified,
     experience: info?.experience ?? base.experience,
+    phone: record.mobile || info?.phoneNumber || base.phone,
     price: rate ? `₹${rate}` : base.price,
     priceUnit: rate ? "sq.ft" : base.priceUnit,
     tagline: info?.description ? truncate(info.description, 110) : base.tagline,
@@ -511,6 +516,7 @@ export function toProfessionalRecordFromDetail(
     verified: info?.verified ?? false,
     experience: info?.experience ?? 0,
     projects: 0,
+    phone: record.mobile || info?.phoneNumber,
     price: rate ? `₹${rate}` : "Contact",
     priceUnit: rate ? "sq.ft" : "",
     responds: "within a day",

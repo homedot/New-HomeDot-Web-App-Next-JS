@@ -54,7 +54,10 @@ export default function ContactUpdateModal({
 
   const digitLimit = digitLimitFor(cc);
   const digits = value.replace(/\D/g, "");
-  const valid = mode === "phone" ? digits.length === digitLimit : /\S+@\S+\.\S+/.test(value);
+  const valid =
+    mode === "phone"
+      ? digits.length === digitLimit
+      : /\S+@\S+\.\S+/.test(value);
   const otpFull = otp.every((d) => d !== "");
 
   const doShake = () => {
@@ -63,7 +66,9 @@ export default function ContactUpdateModal({
   };
 
   const requestOtp = () =>
-    mode === "phone" ? ProfileService.sendPhoneUpdateOtp(digits, cc) : ProfileService.sendEmailUpdateOtp(value.trim());
+    mode === "phone"
+      ? ProfileService.sendPhoneUpdateOtp(digits, cc)
+      : ProfileService.sendEmailUpdateOtp(value.trim());
 
   const sendOtp = async () => {
     if (!valid) return doShake();
@@ -82,7 +87,11 @@ export default function ContactUpdateModal({
     const res = await requestOtp();
     setSending(false);
     if (!res.success || !res.data?.status) {
-      setError(res.data?.message || res.message || "Couldn't send the OTP. Please try again.");
+      setError(
+        res.data?.message ||
+          res.message ||
+          "Couldn't send the OTP. Please try again.",
+      );
       return doShake();
     }
     setSecs(120);
@@ -94,7 +103,11 @@ export default function ContactUpdateModal({
     setError(null);
     const res = await requestOtp();
     if (!res.success || !res.data?.status) {
-      setError(res.data?.message || res.message || "Couldn't resend the OTP. Please try again.");
+      setError(
+        res.data?.message ||
+          res.message ||
+          "Couldn't resend the OTP. Please try again.",
+      );
       return;
     }
     setSecs(120);
@@ -111,7 +124,8 @@ export default function ContactUpdateModal({
   };
 
   const onOtpKey = (i: number, e: React.KeyboardEvent<HTMLInputElement>) => {
-    if (e.key === "Backspace" && !otp[i] && i > 0) otpRefs.current[i - 1]?.focus();
+    if (e.key === "Backspace" && !otp[i] && i > 0)
+      otpRefs.current[i - 1]?.focus();
   };
 
   const verify = async () => {
@@ -124,10 +138,15 @@ export default function ContactUpdateModal({
         : await ProfileService.verifyEmailUpdateOtp(value.trim(), otp.join(""));
     setVerifying(false);
     if (!res.success || !res.data?.status) {
-      setError(res.data?.message || res.message || "Invalid code. Please try again.");
+      setError(
+        res.data?.message || res.message || "Invalid code. Please try again.",
+      );
       return doShake();
     }
-    onSuccess(mode === "phone" ? digits : value.trim(), mode === "phone" ? cc : undefined);
+    onSuccess(
+      mode === "phone" ? digits : value.trim(),
+      mode === "phone" ? cc : undefined,
+    );
   };
 
   return (
@@ -192,10 +211,26 @@ export default function ContactUpdateModal({
             >
               <Icon name={mode === "phone" ? "phone" : "mail"} size={22} />
             </span>
-            <h2 style={{ fontFamily: "var(--font-display)", fontSize: 22, letterSpacing: "-0.02em", marginBottom: spacing.sm }}>
-              {mode === "phone" ? "Update phone number" : "Update email address"}
+            <h2
+              style={{
+                fontFamily: "var(--font-display)",
+                fontSize: 22,
+                letterSpacing: "-0.02em",
+                marginBottom: spacing.sm,
+              }}
+            >
+              {mode === "phone"
+                ? "Update phone number"
+                : "Update email address"}
             </h2>
-            <p style={{ color: colors.muted, fontSize: fontSize.sm, lineHeight: 1.5, marginBottom: spacing.lg }}>
+            <p
+              style={{
+                color: colors.muted,
+                fontSize: fontSize.sm,
+                lineHeight: 1.5,
+                marginBottom: spacing.lg,
+              }}
+            >
               {mode === "phone"
                 ? "We'll text a one-time code to confirm your new number."
                 : "We'll email a one-time code to confirm your new address."}
@@ -218,12 +253,23 @@ export default function ContactUpdateModal({
                 <input
                   type="tel"
                   inputMode="numeric"
-                  placeholder="98470 11223"
+                  placeholder="Enter your mobile number"
                   value={value}
-                  onChange={(e) => setValue(e.target.value.replace(/\D/g, "").slice(0, digitLimit))}
+                  onChange={(e) =>
+                    setValue(
+                      e.target.value.replace(/\D/g, "").slice(0, digitLimit),
+                    )
+                  }
                   onKeyDown={(e) => e.key === "Enter" && sendOtp()}
                   autoFocus
-                  style={{ border: "none", outline: "none", background: "none", width: "100%", fontSize: fontSize.md - 0.5, color: colors.ink }}
+                  style={{
+                    border: "none",
+                    outline: "none",
+                    background: "none",
+                    width: "100%",
+                    fontSize: fontSize.md - 0.5,
+                    color: colors.ink,
+                  }}
                 />
               </div>
             ) : (
@@ -246,11 +292,28 @@ export default function ContactUpdateModal({
                     borderRadius: radius.md,
                     padding: "0 16px",
                   }}
-                  inputStyle={{ border: "none", outline: "none", background: "none", width: "100%", fontSize: fontSize.md - 0.5, color: colors.ink }}
+                  inputStyle={{
+                    border: "none",
+                    outline: "none",
+                    background: "none",
+                    width: "100%",
+                    fontSize: fontSize.md - 0.5,
+                    color: colors.ink,
+                  }}
                 />
               </div>
             )}
-            {error && <p style={{ color: "#C0392B", fontSize: fontSize.sm, marginBottom: spacing.md }}>{error}</p>}
+            {error && (
+              <p
+                style={{
+                  color: "#C0392B",
+                  fontSize: fontSize.sm,
+                  marginBottom: spacing.md,
+                }}
+              >
+                {error}
+              </p>
+            )}
             <button
               onClick={sendOtp}
               disabled={sending}
@@ -278,17 +341,45 @@ export default function ContactUpdateModal({
           <div className="login-step">
             <button
               onClick={() => setStep("enter")}
-              style={{ display: "inline-flex", alignItems: "center", gap: 6, fontSize: fontSize.sm + 0.5, fontWeight: 600, color: colors.muted, marginBottom: spacing.lg }}
+              style={{
+                display: "inline-flex",
+                alignItems: "center",
+                gap: 6,
+                fontSize: fontSize.sm + 0.5,
+                fontWeight: 600,
+                color: colors.muted,
+                marginBottom: spacing.lg,
+              }}
             >
               <Icon name="arrowLeft" size={17} /> Back
             </button>
-            <h2 style={{ fontFamily: "var(--font-display)", fontSize: 22, letterSpacing: "-0.02em", marginBottom: spacing.sm }}>
+            <h2
+              style={{
+                fontFamily: "var(--font-display)",
+                fontSize: 22,
+                letterSpacing: "-0.02em",
+                marginBottom: spacing.sm,
+              }}
+            >
               Enter the code
             </h2>
-            <p style={{ color: colors.muted, fontSize: fontSize.sm, lineHeight: 1.5, marginBottom: spacing.lg }}>
-              We sent a 6-digit code to <b style={{ color: colors.ink }}>{mode === "phone" ? `${cc} ${digits}` : value}</b>
+            <p
+              style={{
+                color: colors.muted,
+                fontSize: fontSize.sm,
+                lineHeight: 1.5,
+                marginBottom: spacing.lg,
+              }}
+            >
+              We sent a 6-digit code to{" "}
+              <b style={{ color: colors.ink }}>
+                {mode === "phone" ? `${cc} ${digits}` : value}
+              </b>
             </p>
-            <div className={shake ? "login-shake" : undefined} style={{ display: "flex", gap: 9, marginBottom: spacing.md }}>
+            <div
+              className={shake ? "login-shake" : undefined}
+              style={{ display: "flex", gap: 9, marginBottom: spacing.md }}
+            >
               {otp.map((d, i) => (
                 <input
                   key={i}
@@ -317,7 +408,17 @@ export default function ContactUpdateModal({
                 />
               ))}
             </div>
-            {error && <p style={{ color: "#C0392B", fontSize: fontSize.sm, marginBottom: spacing.md }}>{error}</p>}
+            {error && (
+              <p
+                style={{
+                  color: "#C0392B",
+                  fontSize: fontSize.sm,
+                  marginBottom: spacing.md,
+                }}
+              >
+                {error}
+              </p>
+            )}
             <button
               onClick={verify}
               disabled={verifying}
@@ -338,17 +439,36 @@ export default function ContactUpdateModal({
               }}
             >
               {verifying ? "Verifying…" : "Verify & update"}
-              {!verifying && <Icon name="check" size={18} color={colors.white} />}
+              {!verifying && (
+                <Icon name="check" size={18} color={colors.white} />
+              )}
             </button>
-            <p style={{ fontSize: fontSize.sm, color: colors.muted, marginTop: spacing.lg, textAlign: "center" }}>
+            <p
+              style={{
+                fontSize: fontSize.sm,
+                color: colors.muted,
+                marginTop: spacing.lg,
+                textAlign: "center",
+              }}
+            >
               {secs > 0 ? (
                 <>
-                  Resend code in <b style={{ color: colors.ink }}>0:{String(secs).padStart(2, "0")}</b>
+                  Resend code in{" "}
+                  <b style={{ color: colors.ink }}>
+                    0:{String(secs).padStart(2, "0")}
+                  </b>
                 </>
               ) : (
                 <>
                   Didn&apos;t get it?{" "}
-                  <a onClick={resendOtp} style={{ color: colors.primary, fontWeight: 600, cursor: "pointer" }}>
+                  <a
+                    onClick={resendOtp}
+                    style={{
+                      color: colors.primary,
+                      fontWeight: 600,
+                      cursor: "pointer",
+                    }}
+                  >
                     Resend OTP
                   </a>
                 </>

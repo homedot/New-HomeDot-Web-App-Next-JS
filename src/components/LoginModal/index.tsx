@@ -28,6 +28,16 @@ import ProFormStep, { type ProFormValues } from "./ProFormStep";
 import CountryCodeSelect from "./CountryCodeSelect";
 import { inputWrap, digitLimitFor, type Method } from "./shared";
 
+// SiteNav isn't hoisted into a shared layout (see its own comment on why),
+// so this component fully unmounts/remounts on every page navigation. Only
+// the very first mount of the whole session is a real SSR hydration (where
+// `loggedIn` must start false to match the server markup, then flip a tick
+// later); every later remount is a client-only render with no markup to
+// match, so it can read the token immediately. Without this flag, each nav
+// would re-run that one-tick "Log in" → avatar flash, shoving the header's
+// fixed-width icons sideways on every click.
+let hasHydratedLoginModalOnce = false;
+
 type Step =
   | "method"
   | "otp"
@@ -82,7 +92,9 @@ const LoginModal = forwardRef<LoginModalHandle, LoginModalProps>(
     const router = useRouter();
     const profile = useProfileStore((s) => s.profile);
     const [open, setOpen] = useState(false);
-    const [loggedIn, setLoggedIn] = useState(false);
+    const [loggedIn, setLoggedIn] = useState(
+      () => hasHydratedLoginModalOnce && !!useAuthStore.getState().token,
+    );
     const [step, setStep] = useState<Step>("method");
     const [method, setMethod] = useState<Method>("phone");
     const [value, setValue] = useState("");
@@ -122,6 +134,7 @@ const LoginModal = forwardRef<LoginModalHandle, LoginModalProps>(
     // "Log in" on the server but "My account" on the client and trigger a
     // hydration mismatch.
     useEffect(() => {
+      hasHydratedLoginModalOnce = true;
       if (useAuthStore.getState().token) {
         // eslint-disable-next-line react-hooks/set-state-in-effect -- see comment above; this mirrors an external (localStorage-backed) system, not derivable render state
         setLoggedIn(true);
@@ -953,7 +966,7 @@ function MethodStep({
           <input
             type="tel"
             inputMode="numeric"
-            placeholder="98470 11223"
+            placeholder="Enter your mobile number"
             value={value}
             onChange={(e) =>
               setValue(e.target.value.replace(/\D/g, "").slice(0, digitLimit))

@@ -4,12 +4,21 @@ import { useEffect, useState } from "react";
 import { colors } from "@/constants/colors";
 import { spacing, radius, fontSize } from "@/utils/size";
 import Icon from "@/components/Icon";
-import EnquiryService, { type EnquiryProfessionalResponse, type EnquiryResponseDetail } from "@/services/EnquiryService";
+import EnquiryService, {
+  type EnquiryProfessionalResponse,
+  type EnquiryResponseDetail,
+} from "@/services/EnquiryService";
 
 function formatDate(iso: string): string {
   const d = new Date(iso);
   if (Number.isNaN(d.getTime())) return "—";
-  return d.toLocaleString("en-GB", { day: "2-digit", month: "short", year: "numeric", hour: "numeric", minute: "2-digit" });
+  return d.toLocaleString("en-GB", {
+    day: "2-digit",
+    month: "short",
+    year: "numeric",
+    hour: "numeric",
+    minute: "2-digit",
+  });
 }
 
 /** Web counterpart of homedot-mobile-app's response + decline-reason modals
@@ -35,9 +44,8 @@ export default function EnquiryResponseModal({
   const [reason, setReason] = useState("");
   const [reasonError, setReasonError] = useState(false);
   const [submitting, setSubmitting] = useState(false);
-
   const professionalId = professionalResponse[0]?.professional;
-
+  console.log("EnquiryResponseModal professionalId", professionalId, professionalResponse);
   useEffect(() => {
     let cancelled = false;
     EnquiryService.getResponseDetail(enquiryId).then((res) => {
@@ -75,7 +83,11 @@ export default function EnquiryResponseModal({
     }
     if (!professionalId) return;
     setSubmitting(true);
-    const res = await EnquiryService.rejectResponse(enquiryId, professionalId, reason.trim());
+    const res = await EnquiryService.rejectResponse(
+      enquiryId,
+      professionalId,
+      reason.trim(),
+    );
     setSubmitting(false);
     if (res.success) {
       onActionComplete(res.data?.message || "Response declined.");
@@ -84,61 +96,237 @@ export default function EnquiryResponseModal({
 
   return (
     <div className="eq-modal-overlay" onClick={onClose} style={overlayStyle}>
-      <div onClick={(e) => e.stopPropagation()} className="eq-modal-card" style={cardStyle}>
+      <div
+        onClick={(e) => e.stopPropagation()}
+        className="eq-modal-card"
+        style={cardStyle}
+      >
         {step === "view" ? (
           <>
-            <div style={{ background: `linear-gradient(150deg, ${colors.primaryDeep}, ${colors.primary})`, padding: "18px 20px", display: "flex", alignItems: "center", justifyContent: "space-between", gap: spacing.md }}>
+            <div
+              style={{
+                background: `linear-gradient(150deg, ${colors.primaryDeep}, ${colors.primary})`,
+                padding: "18px 20px",
+                display: "flex",
+                alignItems: "center",
+                justifyContent: "space-between",
+                gap: spacing.md,
+              }}
+            >
               <div style={{ display: "flex", alignItems: "center", gap: 12 }}>
-                <span style={{ width: 40, height: 40, borderRadius: 20, background: "rgba(255,255,255,0.18)", display: "grid", placeItems: "center", flexShrink: 0 }}>
+                <span
+                  style={{
+                    width: 40,
+                    height: 40,
+                    borderRadius: 20,
+                    background: "rgba(255,255,255,0.18)",
+                    display: "grid",
+                    placeItems: "center",
+                    flexShrink: 0,
+                  }}
+                >
                   <Icon name="mail" size={19} color="#fff" />
                 </span>
                 <div>
-                  <p style={{ color: "#fff", fontSize: fontSize.md - 1, fontWeight: 700, margin: 0 }}>Professional response</p>
-                  <p style={{ color: "rgba(255,255,255,0.72)", fontSize: fontSize.xs, margin: 0, marginTop: 1 }}>Your enquiry has a reply</p>
+                  <p
+                    style={{
+                      color: "#fff",
+                      fontSize: fontSize.md - 1,
+                      fontWeight: 700,
+                      margin: 0,
+                    }}
+                  >
+                    Professional response
+                  </p>
+                  <p
+                    style={{
+                      color: "rgba(255,255,255,0.72)",
+                      fontSize: fontSize.xs,
+                      margin: 0,
+                      marginTop: 1,
+                    }}
+                  >
+                    Your enquiry has a reply
+                  </p>
                 </div>
               </div>
-              <button onClick={onClose} aria-label="Close" style={{ color: "rgba(255,255,255,0.8)", flexShrink: 0 }}>
+              <button
+                onClick={onClose}
+                aria-label="Close"
+                style={{ color: "rgba(255,255,255,0.8)", flexShrink: 0 }}
+              >
                 <Icon name="close" size={18} color="rgba(255,255,255,0.8)" />
               </button>
             </div>
 
             <div style={{ padding: "18px 20px 4px" }}>
               {loading ? (
-                <p style={{ color: colors.muted, fontSize: fontSize.sm, textAlign: "center", padding: "24px 0" }}>Loading response…</p>
+                <p
+                  style={{
+                    color: colors.muted,
+                    fontSize: fontSize.sm,
+                    textAlign: "center",
+                    padding: "24px 0",
+                  }}
+                >
+                  Loading response…
+                </p>
               ) : !detail ? (
-                <p style={{ color: colors.muted, fontSize: fontSize.sm, textAlign: "center", padding: "24px 0" }}>Couldn&apos;t load this response.</p>
+                <p
+                  style={{
+                    color: colors.muted,
+                    fontSize: fontSize.sm,
+                    textAlign: "center",
+                    padding: "24px 0",
+                  }}
+                >
+                  Couldn&apos;t load this response.
+                </p>
               ) : (
                 <>
-                  <div style={{ display: "flex", alignItems: "center", gap: 12, marginBottom: 16 }}>
-                    <span style={{ width: 44, height: 44, borderRadius: 22, background: colors.primarySoft, display: "grid", placeItems: "center", flexShrink: 0 }}>
-                      <span style={{ fontSize: fontSize.md, fontWeight: 700, color: colors.primary }}>
+                  <div
+                    style={{
+                      display: "flex",
+                      alignItems: "center",
+                      gap: 12,
+                      marginBottom: 16,
+                    }}
+                  >
+                    <span
+                      style={{
+                        width: 44,
+                        height: 44,
+                        borderRadius: 22,
+                        background: colors.primarySoft,
+                        display: "grid",
+                        placeItems: "center",
+                        flexShrink: 0,
+                      }}
+                    >
+                      <span
+                        style={{
+                          fontSize: fontSize.md,
+                          fontWeight: 700,
+                          color: colors.primary,
+                        }}
+                      >
                         {detail.professional?.charAt(0).toUpperCase() || "P"}
                       </span>
                     </span>
                     <div style={{ flex: 1, minWidth: 0 }}>
-                      <p style={{ fontSize: fontSize.base, fontWeight: 700, color: colors.ink, margin: 0 }}>{detail.professional}</p>
-                      <p style={{ fontSize: fontSize.xs, color: colors.muted, margin: 0, marginTop: 2 }}>Professional service provider</p>
+                      <p
+                        style={{
+                          fontSize: fontSize.base,
+                          fontWeight: 700,
+                          color: colors.ink,
+                          margin: 0,
+                        }}
+                      >
+                        {detail.professional}
+                      </p>
+                      <p
+                        style={{
+                          fontSize: fontSize.xs,
+                          color: colors.muted,
+                          margin: 0,
+                          marginTop: 2,
+                        }}
+                      >
+                        Professional service provider
+                      </p>
                     </div>
-                    <span style={{ display: "inline-flex", alignItems: "center", gap: 4, background: "#DCFCE7", borderRadius: radius.full, padding: "4px 8px", flexShrink: 0 }}>
+                    <span
+                      style={{
+                        display: "inline-flex",
+                        alignItems: "center",
+                        gap: 4,
+                        background: "#DCFCE7",
+                        borderRadius: radius.full,
+                        padding: "4px 8px",
+                        flexShrink: 0,
+                      }}
+                    >
                       <Icon name="check" size={11} color="#059669" />
-                      <span style={{ fontSize: 11, fontWeight: 600, color: "#059669" }}>Responded</span>
+                      <span
+                        style={{
+                          fontSize: 11,
+                          fontWeight: 600,
+                          color: "#059669",
+                        }}
+                      >
+                        Responded
+                      </span>
                     </span>
                   </div>
 
-                  <div style={{ height: 1, background: colors.line, marginBottom: 16 }} />
+                  <div
+                    style={{
+                      height: 1,
+                      background: colors.line,
+                      marginBottom: 16,
+                    }}
+                  />
 
-                  <div style={{ display: "flex", flexDirection: "column", gap: 10, marginBottom: 14 }}>
-                    <DetailRow icon="briefcase" label="Category" value={detail.professionalInfo?.professionalCategoryName || "—"} />
-                    <DetailRow icon="location" label="Location" value={detail.location || "—"} />
-                    <DetailRow icon="calendar" label="Date" value={formatDate(enquiryDate)} />
+                  <div
+                    style={{
+                      display: "flex",
+                      flexDirection: "column",
+                      gap: 10,
+                      marginBottom: 14,
+                    }}
+                  >
+                    <DetailRow
+                      icon="briefcase"
+                      label="Category"
+                      value={
+                        detail.professionalInfo?.professionalCategoryName || "—"
+                      }
+                    />
+                    <DetailRow
+                      icon="location"
+                      label="Location"
+                      value={detail.location || "—"}
+                    />
+                    <DetailRow
+                      icon="calendar"
+                      label="Date"
+                      value={formatDate(enquiryDate)}
+                    />
                   </div>
 
                   {!!detail.responseText && (
-                    <div style={{ background: colors.primary + "08", borderLeft: `3px solid ${colors.primary}`, borderRadius: radius.md, padding: 14, marginBottom: 4 }}>
-                      <p style={{ fontSize: 10.5, fontWeight: 700, color: colors.primary, textTransform: "uppercase", letterSpacing: 0.6, margin: 0, marginBottom: 6 }}>
+                    <div
+                      style={{
+                        background: colors.primary + "08",
+                        borderLeft: `3px solid ${colors.primary}`,
+                        borderRadius: radius.md,
+                        padding: 14,
+                        marginBottom: 4,
+                      }}
+                    >
+                      <p
+                        style={{
+                          fontSize: 10.5,
+                          fontWeight: 700,
+                          color: colors.primary,
+                          textTransform: "uppercase",
+                          letterSpacing: 0.6,
+                          margin: 0,
+                          marginBottom: 6,
+                        }}
+                      >
                         Message from professional
                       </p>
-                      <p style={{ fontSize: fontSize.sm, color: colors.ink2, lineHeight: 1.6, margin: 0 }}>{detail.responseText}</p>
+                      <p
+                        style={{
+                          fontSize: fontSize.sm,
+                          color: colors.ink2,
+                          lineHeight: 1.6,
+                          margin: 0,
+                        }}
+                      >
+                        {detail.responseText}
+                      </p>
                     </div>
                   )}
                 </>
@@ -147,18 +335,38 @@ export default function EnquiryResponseModal({
 
             <div style={{ padding: "16px 20px 20px" }}>
               {professionalResponse[0]?.userReject ? (
-                <Notice icon="close" color="#F87171" bg="#FFF5F5" border="#FCA5A5" text="You declined this response" />
+                <Notice
+                  icon="close"
+                  color="#F87171"
+                  bg="#FFF5F5"
+                  border="#FCA5A5"
+                  text="You declined this response"
+                />
               ) : detail?.userAccepted ? (
-                <Notice icon="check" color="#059669" bg="#F0FDF4" border="#86EFAC" text="You accepted this project" />
+                <Notice
+                  icon="check"
+                  color="#059669"
+                  bg="#F0FDF4"
+                  border="#86EFAC"
+                  text="You accepted this project"
+                />
               ) : (
                 !loading &&
                 detail && (
                   <div style={{ display: "flex", gap: 12 }}>
-                    <button onClick={() => setStep("decline")} style={declineBtnStyle}>
+                    <button
+                      onClick={() => setStep("decline")}
+                      style={declineBtnStyle}
+                    >
                       <Icon name="close" size={15} color="#64748b" /> Decline
                     </button>
-                    <button onClick={accept} disabled={submitting} style={acceptBtnStyle}>
-                      <Icon name="check" size={15} color="#fff" /> {submitting ? "Accepting…" : "Accept project"}
+                    <button
+                      onClick={accept}
+                      disabled={submitting}
+                      style={acceptBtnStyle}
+                    >
+                      <Icon name="check" size={15} color="#fff" />{" "}
+                      {submitting ? "Accepting…" : "Accept project"}
                     </button>
                   </div>
                 )
@@ -167,12 +375,42 @@ export default function EnquiryResponseModal({
           </>
         ) : (
           <>
-            <div style={{ display: "flex", justifyContent: "space-between", alignItems: "flex-start", padding: "18px 20px", borderBottom: `1px solid ${colors.line}` }}>
+            <div
+              style={{
+                display: "flex",
+                justifyContent: "space-between",
+                alignItems: "flex-start",
+                padding: "18px 20px",
+                borderBottom: `1px solid ${colors.line}`,
+              }}
+            >
               <div style={{ paddingRight: 12 }}>
-                <p style={{ fontSize: fontSize.md - 1, fontWeight: 700, color: colors.ink, margin: 0 }}>Decline response</p>
-                <p style={{ fontSize: fontSize.xs, color: colors.muted, margin: 0, marginTop: 2 }}>Share your reason so the professional can improve</p>
+                <p
+                  style={{
+                    fontSize: fontSize.md - 1,
+                    fontWeight: 700,
+                    color: colors.ink,
+                    margin: 0,
+                  }}
+                >
+                  Decline response
+                </p>
+                <p
+                  style={{
+                    fontSize: fontSize.xs,
+                    color: colors.muted,
+                    margin: 0,
+                    marginTop: 2,
+                  }}
+                >
+                  Share your reason so the professional can improve
+                </p>
               </div>
-              <button onClick={() => setStep("view")} aria-label="Back" style={{ color: colors.muted, flexShrink: 0 }}>
+              <button
+                onClick={() => setStep("view")}
+                aria-label="Back"
+                style={{ color: colors.muted, flexShrink: 0 }}
+              >
                 <Icon name="close" size={18} />
               </button>
             </div>
@@ -199,7 +437,16 @@ export default function EnquiryResponseModal({
                 }}
               />
               {reasonError && (
-                <p style={{ display: "flex", alignItems: "center", gap: 5, color: "#F87171", fontSize: fontSize.xs, marginTop: 6 }}>
+                <p
+                  style={{
+                    display: "flex",
+                    alignItems: "center",
+                    gap: 5,
+                    color: "#F87171",
+                    fontSize: fontSize.xs,
+                    marginTop: 6,
+                  }}
+                >
                   Please enter your reason before submitting
                 </p>
               )}
@@ -212,7 +459,8 @@ export default function EnquiryResponseModal({
                   disabled={submitting}
                   style={{ ...acceptBtnStyle, background: "#DC2626" }}
                 >
-                  <Icon name="close" size={15} color="#fff" /> {submitting ? "Submitting…" : "Submit decline"}
+                  <Icon name="close" size={15} color="#fff" />{" "}
+                  {submitting ? "Submitting…" : "Submit decline"}
                 </button>
               </div>
             </div>
@@ -223,21 +471,82 @@ export default function EnquiryResponseModal({
   );
 }
 
-function DetailRow({ icon, label, value }: { icon: "briefcase" | "location" | "calendar"; label: string; value: string }) {
+function DetailRow({
+  icon,
+  label,
+  value,
+}: {
+  icon: "briefcase" | "location" | "calendar";
+  label: string;
+  value: string;
+}) {
   return (
-    <div style={{ display: "flex", alignItems: "flex-start", gap: 10, background: colors.bg, borderRadius: radius.md, padding: 12 }}>
+    <div
+      style={{
+        display: "flex",
+        alignItems: "flex-start",
+        gap: 10,
+        background: colors.bg,
+        borderRadius: radius.md,
+        padding: 12,
+      }}
+    >
       <Icon name={icon} size={15} color={colors.primary} />
-      <span style={{ fontSize: fontSize.xs, color: colors.muted, fontWeight: 500, width: 62, flexShrink: 0, marginTop: 1 }}>{label}</span>
-      <span style={{ flex: 1, fontSize: fontSize.sm - 0.5, fontWeight: 600, color: colors.ink }}>{value}</span>
+      <span
+        style={{
+          fontSize: fontSize.xs,
+          color: colors.muted,
+          fontWeight: 500,
+          width: 62,
+          flexShrink: 0,
+          marginTop: 1,
+        }}
+      >
+        {label}
+      </span>
+      <span
+        style={{
+          flex: 1,
+          fontSize: fontSize.sm - 0.5,
+          fontWeight: 600,
+          color: colors.ink,
+        }}
+      >
+        {value}
+      </span>
     </div>
   );
 }
 
-function Notice({ icon, color, bg, border, text }: { icon: "check" | "close"; color: string; bg: string; border: string; text: string }) {
+function Notice({
+  icon,
+  color,
+  bg,
+  border,
+  text,
+}: {
+  icon: "check" | "close";
+  color: string;
+  bg: string;
+  border: string;
+  text: string;
+}) {
   return (
-    <div style={{ display: "flex", alignItems: "center", gap: 8, background: bg, border: `1px solid ${border}`, borderRadius: radius.md, padding: 12 }}>
+    <div
+      style={{
+        display: "flex",
+        alignItems: "center",
+        gap: 8,
+        background: bg,
+        border: `1px solid ${border}`,
+        borderRadius: radius.md,
+        padding: 12,
+      }}
+    >
       <Icon name={icon} size={16} color={color} />
-      <span style={{ fontSize: fontSize.sm, fontWeight: 600, color }}>{text}</span>
+      <span style={{ fontSize: fontSize.sm, fontWeight: 600, color }}>
+        {text}
+      </span>
     </div>
   );
 }
