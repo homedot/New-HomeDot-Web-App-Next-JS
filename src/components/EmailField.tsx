@@ -7,14 +7,14 @@ import Icon from "@/components/Icon";
 import { useEmailValidation } from "@/hooks/useEmailValidation";
 
 export interface EmailFieldHandle {
-  /** Runs (or re-runs) ZeroBounce validation immediately and resolves
-   * whether the email is usable — call this right before a form submits. */
+  /** Runs (or re-runs) email validation immediately and resolves whether
+   * the email is usable — call this right before a form submits. */
   validate: () => Promise<boolean>;
 }
 
-/** Email input wired to ZeroBounce validation (mirrors homedot-mobile-app's
- * handleEmailChange/performZeroBounceValidation): debounced live feedback
- * while typing, plus an imperative `validate()` for submit-time gating.
+/** Email input wired to self-hosted email validation (mirrors
+ * homedot-mobile-app's handleEmailChange/performEmailValidation): debounced
+ * live feedback while typing, plus an imperative `validate()` for submit-time gating.
  * `readOnly` fields (an email already OTP-verified earlier in a flow) skip
  * validation entirely. */
 const EmailField = forwardRef<

@@ -58,7 +58,7 @@ export default function PropertyAddScreen() {
       return;
     }
     setStep("success");
-    setTimeout(() => router.push("/marketplace"), 1600);
+    setTimeout(() => router.push("/realty"), 1600);
   };
 
   return (

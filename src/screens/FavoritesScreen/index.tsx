@@ -335,7 +335,7 @@ export default function FavoritesScreen() {
                 variant="primary"
                 size="lg"
                 icon={<Icon name="search" size={18} />}
-                onClick={() => router.push("/marketplace")}
+                onClick={() => router.push("/realty")}
               >
                 Browse marketplace
               </Button>
@@ -351,7 +351,7 @@ export default function FavoritesScreen() {
                   property={p}
                   saved
                   onSave={unfavorite}
-                  onOpen={() => router.push(p.propertySlug ? `/marketplace?property=${p.propertySlug}` : "/marketplace")}
+                  onOpen={() => router.push(p.propertySlug ? `/realty?property=${p.propertySlug}` : "/realty")}
                 />
               </div>
             ))}

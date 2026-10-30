@@ -35,6 +35,7 @@ import { useProfileStore } from "@/store/useProfileStore";
 import { useAuthStore } from "@/store/useAuthStore";
 import { useRoleSwitchStore } from "@/store/useRoleSwitchStore";
 import SwitchProfessionalService from "@/services/SwitchProfessionalService";
+import ProfessionalsScreenService from "@/services/ProfessionalsScreenService";
 import type {
   Testimonial,
   BlogPost,
@@ -263,7 +264,7 @@ function Hero() {
               icon="house"
               title="Browse properties"
               subtitle="240+ verified homes, villas & plots"
-              href="/marketplace"
+              href="/realty"
             />
             <HeroSegment
               icon="hardhat"
@@ -465,7 +466,7 @@ const FEATURES: {
     image:
       "https://images.unsplash.com/photo-1522708323590-d24dbb6b0267?auto=format&fit=crop&w=1600&q=80",
     cta: "Explore listings",
-    href: "/marketplace",
+    href: "/realty",
   },
   {
     id: "hire",
@@ -921,7 +922,7 @@ function FeaturedProperties() {
           </p>
         </div>
         <Link
-          href="/marketplace"
+          href="/realty"
           style={{
             display: "inline-flex",
             alignItems: "center",
@@ -951,7 +952,7 @@ function FeaturedProperties() {
           <PropertyCard
             key={p.id}
             property={p}
-            onOpen={() => router.push("/marketplace")}
+            onOpen={() => router.push("/realty")}
           />
         ))}
       </Reveal>
@@ -970,6 +971,44 @@ function Categories({
   // of its own API-sourced options, so a card must not link with a mock id.
   loaded: boolean;
 }) {
+  // This page is ISR'd (`revalidate = 300` on app/(home)/page.tsx), so the
+  // `count` baked into `items` can be up to 5 minutes stale, while
+  // ProfessionalsScreen fetches its own total fresh on every visit — re-
+  // querying the same endpoint on mount keeps this card from showing a
+  // number ("72 pros") that no longer matches what the listing page it
+  // links to shows ("68 professionals found"). Keeps the server-rendered
+  // count until this resolves, and silently keeps it if a re-fetch fails.
+  const [freshCounts, setFreshCounts] = useState<Record<string, number>>({});
+
+  useEffect(() => {
+    if (!loaded) return;
+    let cancelled = false;
+    Promise.all(
+      items.map(async (c) => {
+        const res = await ProfessionalsScreenService.getProfessionalsFilter(
+          1,
+          { category: c.id, lat: null, long: null, sqMin: null, sqMax: null },
+          { rating: "", minExperience: "", maxExperience: "", professionalType: "" },
+        );
+        const total = res.data?.data?.[0]?.totalCount?.total_rows;
+        return res.success && res.data?.status && typeof total === "number"
+          ? ([c.id, total] as const)
+          : null;
+      }),
+    ).then((results) => {
+      if (cancelled) return;
+      const fresh: Record<string, number> = {};
+      for (const r of results) if (r) fresh[r[0]] = r[1];
+      setFreshCounts(fresh);
+    });
+    return () => {
+      cancelled = true;
+    };
+    // Re-runs only when `items` stops being the placeholder mock — not on
+    // every render, since `items`/`loaded` come from server-fetched props.
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [loaded]);
+
   return (
     <section style={{ ...wrap, padding: `${spacing.xxl}px ${spacing.xl}px` }}>
       <ScrollScrub className="scrub-rise">
@@ -1030,7 +1069,7 @@ function Categories({
               {c.name}
             </span>
             <span style={{ fontSize: fontSize.xs, color: colors.muted }}>
-              {c.count.toLocaleString()} pros
+              {(freshCounts[c.id] ?? c.count).toLocaleString()} pros
             </span>
           </Link>
         ))}
@@ -1061,7 +1100,7 @@ function PropertyCategories({ items }: { items: PropertyCategoryCard[] }) {
         {items.map((s) => (
           <Link
             key={s.id}
-            href={`/marketplace?propertyType=${encodeURIComponent(s.id)}`}
+            href={`/realty?propertyType=${encodeURIComponent(s.id)}`}
             className="card-hover"
             style={{
               display: "flex",
@@ -2906,8 +2945,8 @@ function ContactSection() {
   );
   const emailFieldRef = useRef<EmailFieldHandle>(null);
 
-  // Format-level check only (the ZeroBounce round trip runs on submit, via
-  // emailFieldRef) — cheap enough to run on every keystroke so the submit
+  // Format-level check only (the full validation round trip runs on submit,
+  // via emailFieldRef) — cheap enough to run on every keystroke so the submit
   // button can stay greyed out until all three fields look valid, matching
   // the CTA pattern in LoginModal/UserFormStep.
   const formValid =
@@ -2932,8 +2971,8 @@ function ContactSection() {
     if (form.message.trim().length < CONTACT_MESSAGE_MIN_LENGTH)
       next.message = `Please write a message of at least ${CONTACT_MESSAGE_MIN_LENGTH} characters.`;
 
-    // ZeroBounce round trip (same check the login/signup flows run) — do
-    // this even if the fields above already failed, so a resubmit after
+    // Email validation round trip (same check the login/signup flows run) —
+    // do this even if the fields above already failed, so a resubmit after
     // fixing them doesn't need a second pass to discover a bad email too.
     setSubmitting(true);
     const emailOk = await emailFieldRef.current?.validate();

@@ -1532,7 +1532,7 @@ export default function ProfessionalsScreen({
               { value: "24 hrs", label: "Average first response time" },
             ]}
             ctaLabel="Browse the Realty"
-            onCta={() => router.push("/marketplace")}
+            onCta={() => router.push("/realty")}
           />
         </>
       )}

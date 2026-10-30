@@ -120,8 +120,8 @@ export default function ProFormStep({
     if (!valid || !selectedType || submitting) return;
     setSubmitting(true);
     setError(null);
-    // The email step's own OTP flow already ran it through ZeroBounce; only
-    // a freshly-typed email (phone signup) needs validating here.
+    // The email step's own OTP flow already ran email validation; only a
+    // freshly-typed email (phone signup) needs validating here.
     if (method === "phone") {
       const emailOk = await emailFieldRef.current?.validate();
       if (!emailOk) {

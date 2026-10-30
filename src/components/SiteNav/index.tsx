@@ -41,7 +41,7 @@ const wrap: CSSProperties = {
 
 const LINKS: { label: string; href?: string }[] = [
   { label: "Home", href: "/" },
-  { label: "Realty", href: "/marketplace" },
+  { label: "Realty", href: "/realty" },
   { label: "Professionals", href: "/professionals" },
   { label: "Blogs", href: "/blog" },
 
@@ -87,7 +87,7 @@ export default function SiteNav() {
   // On the Realty section, the header's enquiry CTA swaps to "Add Property"
   // (same auth-gate pattern as onSubmitEnquiry) since job enquiries don't
   // apply there.
-  const isRealty = pathname === "/marketplace";
+  const isRealty = pathname === "/realty";
 
   const onAddProperty = () => {
     if (getAuthToken()) {

@@ -18,6 +18,14 @@ if (missingEnvVars.length > 0) {
 
 const nextConfig: NextConfig = {
   output: "standalone",
+  // /marketplace was renamed to /realty (nav/metadata already said "Realty";
+  // the URL hadn't caught up) — redirect old links/bookmarks instead of
+  // 404ing them. Query params (e.g. ?property=slug) carry over automatically.
+  async redirects() {
+    return [
+      { source: "/marketplace", destination: "/realty", permanent: true },
+    ];
+  },
   experimental: {
     serverActions: {
       // Every API call (including file uploads) is routed through the

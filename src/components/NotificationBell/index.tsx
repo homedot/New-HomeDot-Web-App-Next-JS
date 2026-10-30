@@ -71,7 +71,14 @@ export default function NotificationBell({
     // frame behind the actual scroll position. Closing on scroll is the same
     // pattern most notification dropdowns use (Gmail, Twitter, etc.) and
     // avoids the follow-jitter entirely.
-    const onScroll = () => setOpen(false);
+    // Scrolling *within* the panel's own notification list also fires a
+    // "scroll" event that this capture-phase listener would otherwise catch,
+    // closing the panel the instant the user tries to scroll it — so scrolls
+    // whose target is inside the panel are excluded from the page-scroll check.
+    const onScroll = (e: Event) => {
+      if (panelRef.current?.contains(e.target as Node)) return;
+      setOpen(false);
+    };
     document.addEventListener("mousedown", onOutside);
     document.addEventListener("keydown", onKey);
     window.addEventListener("resize", updatePanelPos);

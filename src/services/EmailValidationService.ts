@@ -1,35 +1,34 @@
 export type EmailValidationStatus =
   | "valid"
   | "invalid"
-  | "catch-all"
-  | "unknown"
-  | "spamtrap"
-  | "abuse"
-  | "do_not_mail"
-  | string;
+  | "disposable"
+  | "no_mx"
+  | "role_based"
+  | "unknown";
 
 export interface EmailValidationResult {
   status: EmailValidationStatus;
-  subStatus: string | null;
+  isValid: boolean;
+  message: string;
+  suggestion?: string;
 }
 
-// Calls our own /api/validate-email route rather than ZeroBounce directly —
-// that route holds the API key server-side. Never call ZeroBounce from the
-// browser. Not routed through ApiService since this hits a same-origin Next.js
-// route, not the BASE_URL backend, and needs no auth token.
+// Calls our own /api/validate-email route, which runs the self-hosted
+// validation (format, disposable domain, typo suggestion, MX lookup,
+// role-based mailbox) — no third-party API or key involved.
 export const EmailValidationService = {
   validate: async (email: string): Promise<EmailValidationResult> => {
     try {
-      const res = await fetch(
-        `/api/validate-email?email=${encodeURIComponent(email)}`,
-      );
+      const res = await fetch(`/api/validate-email?email=${encodeURIComponent(email)}`);
       const data = (await res.json()) as EmailValidationResult;
       return {
         status: data.status ?? "unknown",
-        subStatus: data.subStatus ?? null,
+        isValid: data.isValid ?? true,
+        message: data.message ?? "",
+        suggestion: data.suggestion,
       };
     } catch {
-      return { status: "unknown", subStatus: null };
+      return { status: "unknown", isValid: true, message: "" };
     }
   },
 };

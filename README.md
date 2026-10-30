@@ -32,7 +32,6 @@ docker run --rm -p 3000:3000 \
   -e NEXT_PUBLIC_API_STAGING_BASE_URL=https://stg-api.homedotapp.com/api/v1 \
   -e NEXT_PUBLIC_RECAPTCHA_SITE_KEY=your_recaptcha_site_key \
   -e NEXT_PUBLIC_GOOGLE_MAPS_API_KEY=your_google_maps_api_key \
-  -e ZEROBOUNCE_API_KEY=your_zerobounce_api_key \
   homedot-web
 ```
 
@@ -41,7 +40,6 @@ Dokploy environment variables:
 - `NEXT_PUBLIC_API_STAGING_BASE_URL`
 - `NEXT_PUBLIC_RECAPTCHA_SITE_KEY`
 - `NEXT_PUBLIC_GOOGLE_MAPS_API_KEY`
-- `ZEROBOUNCE_API_KEY`
 
 The container listens on port `3000` and uses Next.js standalone output.
 

@@ -33,7 +33,7 @@ const SUPPORT_EMAIL = "mail@homedotapp.com";
 // reachable — for a User-mode account: RoleGate bounces a Professional-mode
 // account straight back to /professional/dashboard from any route outside
 // /professional/* (and a small exempt list), so showing live links into
-// /marketplace, /favorites etc. on the professional-side footer would just
+// /realty, /favorites etc. on the professional-side footer would just
 // be dead clicks. `proOnly` is the mirror image, for the one column that
 // only makes sense on the professional-side footer. variant (see below)
 // filters both.
@@ -52,7 +52,7 @@ const COLS: {
     icon: "house",
     userOnly: true,
     links: [
-      { label: "Browse properties", href: "/marketplace" },
+      { label: "Browse properties", href: "/realty" },
       { label: "Find professionals", href: "/professionals" },
       { label: "Read our blog", href: "/blog" },
       { label: "List a property", href: "/property/add" },
