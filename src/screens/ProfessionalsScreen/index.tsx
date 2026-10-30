@@ -19,6 +19,7 @@ import SiteFooter from "@/components/SiteFooter";
 import AmbientBackground from "@/components/AmbientBackground";
 import ScrollProgress from "@/components/ScrollProgress";
 import Reveal from "@/components/Reveal";
+import SkeletonGrid from "@/components/SkeletonGrid";
 import LoginModal, { type LoginModalHandle } from "@/components/LoginModal";
 import StoryBand from "@/components/StoryBand";
 import { getAuthToken } from "@/utils/authStorage";
@@ -118,7 +119,28 @@ export default function ProfessionalsScreen({
   >(initialData.professionals);
   const [page, setPage] = useState(1);
   const [totalRows, setTotalRows] = useState(initialData.totalRows);
+  // The count a home-page card was showing when the visitor clicked it
+  // (carried over via "?count="), shown here until a real fetch resolves.
+  // `totalRows` above is always a *guest* SSR total (no auth token exists
+  // server-side) and can also trail a few minutes behind the home page's
+  // own ISR-cached cards, so without this a click could jump from "71 pros"
+  // straight to a same-screen "70 professionals found" — same category,
+  // two different numbers, which reads as the count being made up. Cleared
+  // the moment any real fetch resolves (see skippedInitialFilterFetch
+  // below), after which `totalRows` is authoritative again.
+  const [pendingDisplayCount, setPendingDisplayCount] = useState<
+    number | null
+  >(() => {
+    const raw = searchParams.get("count");
+    const n = raw !== null ? Number(raw) : NaN;
+    return Number.isFinite(n) && n >= 0 ? n : null;
+  });
   const [loading, setLoading] = useState(false);
+  // True only while a user-driven filter/category change (not the initial
+  // mount) is in flight — separate from `loading`, which `loadMore` also
+  // sets, so appending a page via "Show more" never triggers the full-grid
+  // skeleton this drives below.
+  const [filterLoading, setFilterLoading] = useState(false);
   const [detail, setDetail] = useState<ProfessionalRecord | null>(null);
   const initialSlugHandled = useRef(false);
   const detailRequestId = useRef(0);
@@ -140,6 +162,19 @@ export default function ProfessionalsScreen({
     // read during render without reintroducing the hydration mismatch above.
     // eslint-disable-next-line react-hooks/set-state-in-effect
     if (getAuthToken()) setPendingSlug(searchParams.get("professional"));
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, []);
+
+  // Drops "?count=" from the address bar right after reading it into
+  // `pendingDisplayCount` above, so a later refresh or a bookmarked link
+  // can't replay a number that's since gone stale — it only ever applies
+  // to the single click that carried it over from the home page.
+  useEffect(() => {
+    if (searchParams.get("count") === null) return;
+    const params = new URLSearchParams(searchParams.toString());
+    params.delete("count");
+    const qs = params.toString();
+    router.replace(qs ? `${pathname}?${qs}` : pathname, { scroll: false });
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, []);
 
@@ -393,16 +428,31 @@ export default function ProfessionalsScreen({
   }, [rating, experience]);
 
   // Reset to page 1 and refetch whenever a server-side filter changes —
-  // mirrors MarketplaceScreen's equivalent effect. Skips its very first run:
-  // page.tsx already fetched this exact default-filter first page server-side
-  // (see getInitialData.ts) and seeded apiProfessionals/totalRows from it, so
-  // firing again here on mount would just repeat the same request from the
-  // browser.
+  // mirrors MarketplaceScreen's equivalent effect. Skips its very first run
+  // for guests only: page.tsx already fetched this exact default-filter
+  // first page server-side (see getInitialData.ts) using the public
+  // endpoint (SSR has no access to the browser's auth token), so firing
+  // again here on mount would just repeat the same guest request. A
+  // signed-in visitor's SSR fetch used that same public endpoint even
+  // though they're authed, so it must refetch now with the real auth
+  // state — otherwise this screen's count would show the public total
+  // while the home page's category cards (which always refetch
+  // client-side with the real auth state) show the personalized one.
   const skippedInitialFilterFetch = useRef(false);
   useEffect(() => {
-    if (!skippedInitialFilterFetch.current) {
+    const isInitialRun = !skippedInitialFilterFetch.current;
+    if (isInitialRun) {
       skippedInitialFilterFetch.current = true;
-      return;
+      if (!getAuthToken()) return;
+    } else {
+      // A real filter/category change — the count carried over from the
+      // home-page card no longer describes what's being requested, so stop
+      // showing it now rather than leaving it visible under a different
+      // selection until this fetch happens to resolve. Also covers the
+      // listing itself with a skeleton so switching categories/filters
+      // reads as something happening, not a frozen screen.
+      setPendingDisplayCount(null);
+      setFilterLoading(true);
     }
     let cancelled = false;
     const load = async () => {
@@ -414,6 +464,7 @@ export default function ProfessionalsScreen({
       );
       if (cancelled) return;
       setLoading(false);
+      setFilterLoading(false);
       const result = res.data?.data?.[0];
       if (res.success && res.data?.status) {
         setApiProfessionals(
@@ -421,6 +472,7 @@ export default function ProfessionalsScreen({
         );
         setTotalRows(result?.totalCount?.total_rows ?? 0);
         setPage(1);
+        setPendingDisplayCount(null);
       }
     };
     load();
@@ -1111,7 +1163,10 @@ export default function ProfessionalsScreen({
                       marginTop: 5,
                     }}
                   >
-                    {`${totalRows} ${totalRows === 1 ? "professional" : "professionals"} found · sorted by ${sort}`}
+                    {(() => {
+                      const shown = pendingDisplayCount ?? totalRows;
+                      return `${shown} ${shown === 1 ? "professional" : "professionals"} found · sorted by ${sort}`;
+                    })()}
                   </p>
                 </div>
 
@@ -1320,7 +1375,9 @@ export default function ProfessionalsScreen({
                   </div>
                 )}
 
-                {list.length === 0 ? (
+                {filterLoading ? (
+                  <SkeletonGrid count={6} />
+                ) : list.length === 0 ? (
                   <div
                     style={{
                       textAlign: "center",
@@ -1393,7 +1450,7 @@ export default function ProfessionalsScreen({
                   </Reveal>
                 )}
 
-                {hasMore && list.length > 0 && (
+                {!filterLoading && hasMore && list.length > 0 && (
                   <div
                     style={{
                       display: "flex",
@@ -1498,8 +1555,10 @@ export default function ProfessionalsScreen({
                     </div>
                     <div style={{ flex: 1 }}>
                       <Button full onClick={() => setShowMobileFilters(false)}>
-                        Show {totalRows}{" "}
-                        {totalRows === 1 ? "professional" : "professionals"}
+                        Show {pendingDisplayCount ?? totalRows}{" "}
+                        {(pendingDisplayCount ?? totalRows) === 1
+                          ? "professional"
+                          : "professionals"}
                       </Button>
                     </div>
                   </div>

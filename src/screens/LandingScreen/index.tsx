@@ -979,6 +979,12 @@ function Categories({
   // links to shows ("68 professionals found"). Keeps the server-rendered
   // count until this resolves, and silently keeps it if a re-fetch fails.
   const [freshCounts, setFreshCounts] = useState<Record<string, number>>({});
+  // Whether the re-fetch above has resolved. The server-rendered `count` is
+  // never shown while this is false and `loaded` is true: rendering it first
+  // and swapping it a few seconds later (this re-fetch can take a couple of
+  // seconds for the largest categories) reads as the number having been made
+  // up, so a shimmer placeholder covers that window instead.
+  const [freshCountsResolved, setFreshCountsResolved] = useState(false);
 
   useEffect(() => {
     if (!loaded) return;
@@ -1000,6 +1006,7 @@ function Categories({
       const fresh: Record<string, number> = {};
       for (const r of results) if (r) fresh[r[0]] = r[1];
       setFreshCounts(fresh);
+      setFreshCountsResolved(true);
     });
     return () => {
       cancelled = true;
@@ -1027,7 +1034,11 @@ function Categories({
             key={c.id}
             href={
               loaded
-                ? `/professionals?category=${encodeURIComponent(c.id)}`
+                ? `/professionals?category=${encodeURIComponent(c.id)}${
+                    freshCountsResolved
+                      ? `&count=${freshCounts[c.id] ?? c.count}`
+                      : ""
+                  }`
                 : "/professionals"
             }
             className="card-hover"
@@ -1069,7 +1080,21 @@ function Categories({
               {c.name}
             </span>
             <span style={{ fontSize: fontSize.xs, color: colors.muted }}>
-              {(freshCounts[c.id] ?? c.count).toLocaleString()} pros
+              {loaded && !freshCountsResolved ? (
+                <span
+                  className="skeleton-shimmer"
+                  style={{
+                    display: "inline-block",
+                    width: 46,
+                    height: 11,
+                    borderRadius: 4,
+                    verticalAlign: "middle",
+                  }}
+                  aria-hidden="true"
+                />
+              ) : (
+                `${(freshCounts[c.id] ?? c.count).toLocaleString()} pros`
+              )}
             </span>
           </Link>
         ))}
