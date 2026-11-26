@@ -1201,6 +1201,17 @@ body {
   animation: pfSpin 0.7s linear infinite;
 }
 
+/* Same spinner, dark-on-light variant — for use on light/white buttons
+   where .pf-spinner's white border would be invisible. */
+.pf-spinner-dark {
+  width: 15px;
+  height: 15px;
+  border-radius: 50%;
+  border: 2px solid rgba(16, 28, 48, 0.18);
+  border-top-color: #101c30;
+  animation: pfSpin 0.7s linear infinite;
+}
+
 /* Success checkmark: pop in with a soft overshoot. */
 @keyframes pfSuccessPop {
   0% {
@@ -1224,6 +1235,7 @@ body {
   .pf-avatar,
   .pf-avatar-glow,
   .pf-spinner,
+  .pf-spinner-dark,
   .pf-success-pop {
     animation: none;
   }

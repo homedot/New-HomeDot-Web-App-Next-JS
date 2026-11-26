@@ -20,9 +20,11 @@ import LocationMapPicker, {
   type LocationValue,
 } from "@/components/LocationMapPicker";
 import ManageSkillsModal from "./ManageSkillsModal";
+import ContactUpdateModal from "@/screens/ProfileScreen/ContactUpdateModal";
+import AvatarCropModal from "@/components/AvatarCropModal";
 import { getAuthToken, setActiveRole } from "@/utils/authStorage";
 import { useAuthStore } from "@/store/useAuthStore";
-import { useProfileStore } from "@/store/useProfileStore";
+import { useProfileStore, deriveHasProfessionalRole } from "@/store/useProfileStore";
 import { useProfessionalHomeStore } from "@/store/useProfessionalHomeStore";
 import { useRoleSwitchStore } from "@/store/useRoleSwitchStore";
 import ProfileService, { resolveLatLng } from "@/services/ProfileService";
@@ -46,8 +48,8 @@ const wrap: CSSProperties = {
  * exactly), photo uploads immediately on pick, and skills are managed via
  * their own modal — all matching mobile's own split between one big form
  * and its two independent sub-flows. Category/subCategory are shown but not
- * editable here, matching mobile; phone/email are read-only (OTP-based
- * editing is a separate deferred task). No stats/certifications/completion
+ * editable here, matching mobile; phone/email change via the shared OTP
+ * ContactUpdateModal (professional endpoints). No stats/certifications/completion
  * bar — no real data backs those, so none are shown (see plan). */
 export default function ProfessionalProfileScreen() {
   const router = useRouter();
@@ -79,8 +81,12 @@ export default function ProfessionalProfileScreen() {
   };
 
   const [editing, setEditing] = useState(false);
+  const [contactModal, setContactModal] = useState<"phone" | "email" | null>(
+    null,
+  );
   const [saving, setSaving] = useState(false);
   const [saveError, setSaveError] = useState<string | null>(null);
+  const [formBaseline, setFormBaseline] = useState("");
 
   const [name, setName] = useState("");
   const [professionalType, setProfessionalType] = useState<number | null>(null);
@@ -91,6 +97,7 @@ export default function ProfessionalProfileScreen() {
   const [location, setLocation] = useState<LocationValue | null>(null);
 
   const [uploadingAvatar, setUploadingAvatar] = useState(false);
+  const [cropFile, setCropFile] = useState<File | null>(null);
   const [avatarExpanded, setAvatarExpanded] = useState(false);
   const [removingAvatar, setRemovingAvatar] = useState(false);
   const avatarInputRef = useRef<HTMLInputElement>(null);
@@ -122,26 +129,45 @@ export default function ProfessionalProfileScreen() {
   const info = home?.professionalInfo?.[0];
 
   const resetForm = () => {
-    setName(home?.name || "");
-    setProfessionalType(
-      PROFESSIONAL_TYPES.find((t) => t.title === info?.professionalType)?.id ??
-        null,
-    );
-    setExperience(info?.experience != null ? String(info.experience) : "");
-    setSquareFeetRate(
-      info?.squareFeetRate != null ? String(info.squareFeetRate) : "",
-    );
-    setWorkingArea(info?.workingArea || "");
-    setDescription(info?.description || "");
-    setLocation(
-      profile?.location
+    const next = {
+      name: home?.name || "",
+      professionalType:
+        PROFESSIONAL_TYPES.find((t) => t.title === info?.professionalType)
+          ?.id ?? null,
+      experience: info?.experience != null ? String(info.experience) : "",
+      squareFeetRate:
+        info?.squareFeetRate != null ? String(info.squareFeetRate) : "",
+      workingArea: info?.workingArea || "",
+      description: info?.description || "",
+      location: profile?.location
         ? {
             address: profile.location,
             ...resolveLatLng(profile.locationKey?.coordinates ?? [0, 0]),
           }
         : null,
-    );
+    };
+    setName(next.name);
+    setProfessionalType(next.professionalType);
+    setExperience(next.experience);
+    setSquareFeetRate(next.squareFeetRate);
+    setWorkingArea(next.workingArea);
+    setDescription(next.description);
+    setLocation(next.location);
+    setFormBaseline(proFormKey(next));
   };
+
+  // Save is only enabled once the form actually differs from what it was
+  // populated with on entering edit mode.
+  const isDirty =
+    proFormKey({
+      name,
+      professionalType,
+      experience,
+      squareFeetRate,
+      workingArea,
+      description,
+      location,
+    }) !== formBaseline;
 
   const startEdit = () => {
     resetForm();
@@ -179,6 +205,7 @@ export default function ProfessionalProfileScreen() {
   });
 
   const saveEdit = async () => {
+    if (!isDirty) return;
     if (!name.trim()) {
       setSaveError("Name can't be empty.");
       return;
@@ -228,10 +255,20 @@ export default function ProfessionalProfileScreen() {
     refreshHome();
   };
 
-  const onAvatarSelected = async (e: React.ChangeEvent<HTMLInputElement>) => {
+  // Picking a file opens the 1:1 crop step first (mobile's
+  // `allowsEditing: true, aspect: [1, 1]`); the cropped file is uploaded.
+  const onAvatarSelected = (e: React.ChangeEvent<HTMLInputElement>) => {
     const file = e.target.files?.[0];
     e.target.value = "";
     if (!file) return;
+    if (!file.type.startsWith("image/")) {
+      setToast({ text: "Please choose an image file.", tone: "error" });
+      return;
+    }
+    setCropFile(file);
+  };
+
+  const uploadAvatar = async (file: File) => {
     setUploadingAvatar(true);
     const res = await ProfessionalDashboardService.updateProfileImage(file);
     setUploadingAvatar(false);
@@ -241,12 +278,13 @@ export default function ProfessionalProfileScreen() {
         tone: "success",
       });
       refreshHome();
-    } else {
-      setToast({
-        text: res.data?.message || res.message || "Couldn't update your photo.",
-        tone: "error",
-      });
+      return true;
     }
+    setToast({
+      text: res.data?.message || res.message || "Couldn't update your photo.",
+      tone: "error",
+    });
+    return false;
   };
   // Shared auth endpoint (ProfileService, not ProfessionalDashboardService)
   // — there's only one photo on the account regardless of which side
@@ -317,12 +355,17 @@ export default function ProfessionalProfileScreen() {
 
   // Mirrors ProfessionalDashboardScreen's switchToUser exactly — same
   // "SWITCH TO USER"/"BECOME A USER" action mobile's ProfessionalProfileScreen
-  // puts front-and-center on its profile hub card.
+  // puts front-and-center on its profile hub card. switchRole only works once
+  // the account already has both roles (see becomeUser's comment); a
+  // professional-only account hits becomeUser first.
   const switchToUser = async () => {
     setSwitchingRole(true);
     setRoleError(null);
+    const alreadyHasUserRole = deriveHasProfessionalRole(home);
     await useRoleSwitchStore.getState().runSwitch("user", async () => {
-      const res = await SwitchProfessionalService.switchRole();
+      const res = await (alreadyHasUserRole
+        ? SwitchProfessionalService.switchRole()
+        : SwitchProfessionalService.becomeUser());
       if (!res.success || res.data?.status === false) {
         setRoleError(
           res.data?.message ||
@@ -337,6 +380,10 @@ export default function ProfessionalProfileScreen() {
           .getState()
           .setTokens({ token: pair.token, refreshToken: pair.reToken });
       setActiveRole("user");
+      // The cached profile was fetched under the professional token — clear
+      // it so the user-side screens' mount-time fetch() (guarded to run
+      // once per session) re-runs instead of serving stale role data.
+      useProfileStore.getState().clear();
       router.push("/");
       return true;
     });
@@ -768,9 +815,9 @@ export default function ProfessionalProfileScreen() {
                   >
                     {switchingRole
                       ? "Switching…"
-                      : home.userType && home.userType.length === 1
-                        ? "Become a Home Owner"
-                        : "Switch to Home Owner"}
+                      : deriveHasProfessionalRole(home)
+                        ? "Switch to Home Owner"
+                        : "Become a Home Owner"}
                     <Icon name="arrow" size={14} />
                   </button>
                 </div>
@@ -808,8 +855,13 @@ export default function ProfessionalProfileScreen() {
                       </button>
                       <button
                         onClick={saveEdit}
-                        disabled={saving}
-                        style={primaryBtnStyle}
+                        disabled={saving || !isDirty}
+                        style={{
+                          ...primaryBtnStyle,
+                          opacity: saving || !isDirty ? 0.5 : 1,
+                          cursor:
+                            saving || !isDirty ? "not-allowed" : "pointer",
+                        }}
                       >
                         <Icon name="check" size={14} color="#fff" />{" "}
                         {saving ? "Saving…" : "Save changes"}
@@ -877,10 +929,16 @@ export default function ProfessionalProfileScreen() {
                     )}
                   </Field>
                   <Field label="Phone">
-                    <FieldValue muted>{profile?.mobile || "—"}</FieldValue>
+                    <ContactValue
+                      value={profile?.mobile || "—"}
+                      onChange={() => setContactModal("phone")}
+                    />
                   </Field>
                   <Field label="Email">
-                    <FieldValue muted>{profile?.email || "—"}</FieldValue>
+                    <ContactValue
+                      value={profile?.email || "—"}
+                      onChange={() => setContactModal("email")}
+                    />
                   </Field>
                   <Field label="Experience (years)">
                     {editing ? (
@@ -1050,6 +1108,41 @@ export default function ProfessionalProfileScreen() {
         )}
       </section>
 
+      {cropFile && (
+        <AvatarCropModal
+          file={cropFile}
+          busy={uploadingAvatar}
+          onCancel={() => setCropFile(null)}
+          onConfirm={async (cropped) => {
+            if (await uploadAvatar(cropped)) setCropFile(null);
+          }}
+        />
+      )}
+      {contactModal && (
+        <ContactUpdateModal
+          mode={contactModal}
+          side="professional"
+          currentCountryCode={profile?.countryCode}
+          onClose={() => setContactModal(null)}
+          onSuccess={(value, cc) => {
+            if (profile) {
+              useProfileStore
+                .getState()
+                .setProfile(
+                  contactModal === "phone"
+                    ? { ...profile, mobile: value, countryCode: cc }
+                    : { ...profile, email: value },
+                );
+            }
+            setContactModal(null);
+            ProfileService.getProfileDetails().then((r) => {
+              if (r.success && r.data?.status && r.data.data)
+                useProfileStore.getState().setProfile(r.data.data);
+            });
+          }}
+        />
+      )}
+
       {managingSkills && info && (
         <ManageSkillsModal
           categoryId={info.professionalCategory || ""}
@@ -1134,6 +1227,34 @@ function Field({
   );
 }
 
+function ContactValue({
+  value,
+  onChange,
+}: {
+  value: string;
+  onChange: () => void;
+}) {
+  return (
+    <span style={{ display: "flex", alignItems: "center", gap: 8 }}>
+      <FieldValue muted>{value}</FieldValue>
+      <button
+        type="button"
+        onClick={onChange}
+        style={{
+          fontSize: 11.5,
+          fontWeight: 700,
+          color: colors.primary,
+          background: colors.primarySoft,
+          borderRadius: 999,
+          padding: "3px 10px",
+        }}
+      >
+        Change
+      </button>
+    </span>
+  );
+}
+
 function FieldValue({
   children,
   muted,
@@ -1179,6 +1300,30 @@ const ghostBtnStyle: CSSProperties = {
   fontSize: fontSize.xs,
   fontWeight: 600,
 };
+
+// Stable comparison key for the Basic Details/About form — trims text and
+// rounds coordinates so whitespace or float noise don't count as an edit.
+function proFormKey(f: {
+  name: string;
+  professionalType: number | null;
+  experience: string;
+  squareFeetRate: string;
+  workingArea: string;
+  description: string;
+  location: LocationValue | null;
+}): string {
+  return JSON.stringify([
+    f.name.trim(),
+    f.professionalType,
+    f.experience.trim(),
+    f.squareFeetRate.trim(),
+    f.workingArea.trim(),
+    f.description.trim(),
+    f.location
+      ? [f.location.address, f.location.lat.toFixed(6), f.location.lng.toFixed(6)]
+      : null,
+  ]);
+}
 
 const primaryBtnStyle: CSSProperties = {
   display: "inline-flex",

@@ -156,6 +156,13 @@ export const SwitchProfessionalService = {
   // has both roles — toggles which role the current session is scoped to.
   switchRole: (): Promise<ApiResponse<RoleSwitchBody>> =>
     ApiService.post<RoleSwitchBody>(API_ENDPOINTS.AUTH.SWITCH_ROLE),
+
+  // Requires a stored auth token. Adds the "user" role to a
+  // professional-only account — the counterpart to becomeProfessional
+  // above. Call this instead of switchRole when the account doesn't have
+  // the "user" role yet (see BECOME_A_USER's comment in ApiConstants).
+  becomeUser: (): Promise<ApiResponse<RoleSwitchBody>> =>
+    ApiService.post<RoleSwitchBody>(API_ENDPOINTS.AUTH.BECOME_A_USER),
 };
 
 export default SwitchProfessionalService;

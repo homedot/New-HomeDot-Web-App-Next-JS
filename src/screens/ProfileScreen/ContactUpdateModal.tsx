@@ -7,9 +7,18 @@ import Icon from "@/components/Icon";
 import CountryCodeSelect from "@/components/LoginModal/CountryCodeSelect";
 import { digitLimitFor } from "@/components/LoginModal/shared";
 import EmailField, { type EmailFieldHandle } from "@/components/EmailField";
-import ProfileService from "@/services/ProfileService";
+import ProfileService, { type ContactSide } from "@/services/ProfileService";
 
 type Mode = "phone" | "email";
+
+// Profile records may store the code as "91" — CountryCodeSelect and
+// digitLimitFor key on "+91", and mobile always sends the "+" form.
+// The backend sometimes returns countryCode as a number (91), not a string.
+function normalizeDialCode(code?: string | number | null): string {
+  const c = code == null ? "" : String(code).trim();
+  if (!c) return "+91";
+  return c.startsWith("+") ? c : `+${c}`;
+}
 
 /** Change-phone / change-email OTP flow, mirroring homedot-mobile-app's
  * EditProfile (userlNumberUpdateOtpSent/userNumberUpdateOtpVerify and their
@@ -17,17 +26,19 @@ type Mode = "phone" | "email";
  * feels like the same product, not a bolted-on flow. */
 export default function ContactUpdateModal({
   mode,
+  side = "user",
   currentCountryCode,
   onClose,
   onSuccess,
 }: {
   mode: Mode;
-  currentCountryCode?: string;
+  side?: ContactSide;
+  currentCountryCode?: string | number;
   onClose: () => void;
   onSuccess: (value: string, countryCode?: string) => void;
 }) {
   const [step, setStep] = useState<"enter" | "otp">("enter");
-  const [cc, setCc] = useState(currentCountryCode || "+91");
+  const [cc, setCc] = useState(normalizeDialCode(currentCountryCode));
   const [value, setValue] = useState("");
   const [otp, setOtp] = useState<string[]>(["", "", "", "", "", ""]);
   const [secs, setSecs] = useState(0);
@@ -67,8 +78,8 @@ export default function ContactUpdateModal({
 
   const requestOtp = () =>
     mode === "phone"
-      ? ProfileService.sendPhoneUpdateOtp(digits, cc)
-      : ProfileService.sendEmailUpdateOtp(value.trim());
+      ? ProfileService.sendPhoneUpdateOtp(digits, cc, side)
+      : ProfileService.sendEmailUpdateOtp(value.trim(), side);
 
   const sendOtp = async () => {
     if (!valid) return doShake();
@@ -86,7 +97,10 @@ export default function ContactUpdateModal({
 
     const res = await requestOtp();
     setSending(false);
-    if (!res.success || !res.data?.status) {
+    // Mobile's sendOTP/resendOTP only check the HTTP status here — the send
+    // response body doesn't carry `status: true` (only verify does), so
+    // requiring it made every send look like a failure.
+    if (!res.success) {
       setError(
         res.data?.message ||
           res.message ||
@@ -102,7 +116,7 @@ export default function ContactUpdateModal({
   const resendOtp = async () => {
     setError(null);
     const res = await requestOtp();
-    if (!res.success || !res.data?.status) {
+    if (!res.success) {
       setError(
         res.data?.message ||
           res.message ||
@@ -134,8 +148,8 @@ export default function ContactUpdateModal({
     setError(null);
     const res =
       mode === "phone"
-        ? await ProfileService.verifyPhoneUpdateOtp(digits, otp.join(""), cc)
-        : await ProfileService.verifyEmailUpdateOtp(value.trim(), otp.join(""));
+        ? await ProfileService.verifyPhoneUpdateOtp(digits, otp.join(""), cc, side)
+        : await ProfileService.verifyEmailUpdateOtp(value.trim(), otp.join(""), side);
     setVerifying(false);
     if (!res.success || !res.data?.status) {
       setError(

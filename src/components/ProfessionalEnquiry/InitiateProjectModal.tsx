@@ -2,12 +2,17 @@
 
 import { useEffect, useRef, useState } from "react";
 import { colors } from "@/constants/colors";
-import { spacing, radius, fontSize } from "@/utils/size";
+import { spacing, radius, fontSize, shadow } from "@/utils/size";
 import Icon from "@/components/Icon";
 import ProfessionalDashboardService, {
   type InitiateProjectPayload,
   type ProfessionalEnquiryRecord,
 } from "@/services/ProfessionalDashboardService";
+import {
+  loadGoogleMapsScript,
+  type GoogleMapsNamespace,
+  type GoogleMapsPlacePrediction,
+} from "@/utils/loadGoogleMapsScript";
 
 interface ImageItem {
   key: string;
@@ -38,6 +43,11 @@ export default function InitiateProjectModal({
 }) {
   const [projectName, setProjectName] = useState("");
   const [location, setLocation] = useState(enquiry.location || "");
+  const [suggestions, setSuggestions] = useState<GoogleMapsPlacePrediction[]>([]);
+  const [showSuggestions, setShowSuggestions] = useState(false);
+  const locationFieldRef = useRef<HTMLDivElement | null>(null);
+  const googleMapsRef = useRef<GoogleMapsNamespace | null>(null);
+  const suggestTimer = useRef<ReturnType<typeof setTimeout> | null>(null);
   const [startDate, setStartDate] = useState("");
   const [endDate, setEndDate] = useState("");
   const [touched, setTouched] = useState(false);
@@ -53,6 +63,71 @@ export default function InitiateProjectModal({
     window.addEventListener("keydown", onKey);
     return () => window.removeEventListener("keydown", onKey);
   }, [onClose]);
+
+  // Modal only mounts once opened, so this is the right time to lazily pull
+  // in the Maps SDK — loadGoogleMapsScript is a cached singleton, so it's a
+  // no-op if some other screen already loaded it.
+  useEffect(() => {
+    let cancelled = false;
+    loadGoogleMapsScript()
+      .then((google) => {
+        if (!cancelled) googleMapsRef.current = google;
+      })
+      .catch(() => {
+        // Degrade silently — the field still accepts free text.
+      });
+    return () => {
+      cancelled = true;
+    };
+  }, []);
+
+  useEffect(() => {
+    if (!showSuggestions) return;
+    const onDocClick = (e: MouseEvent) => {
+      if (!locationFieldRef.current?.contains(e.target as Node)) setShowSuggestions(false);
+    };
+    document.addEventListener("mousedown", onDocClick);
+    return () => document.removeEventListener("mousedown", onDocClick);
+  }, [showSuggestions]);
+
+  const onLocationInputChange = (value: string) => {
+    setLocation(value);
+    if (suggestTimer.current) clearTimeout(suggestTimer.current);
+    const q = value.trim();
+    if (q.length < 1) {
+      setSuggestions([]);
+      setShowSuggestions(false);
+      return;
+    }
+    suggestTimer.current = setTimeout(() => {
+      const google = googleMapsRef.current;
+      if (!google) return;
+      new google.maps.places.AutocompleteService().getPlacePredictions(
+        { input: q, componentRestrictions: { country: "in" } },
+        (predictions, status) => {
+          if (status === "OK" && predictions?.length) {
+            setSuggestions(predictions);
+            setShowSuggestions(true);
+          } else {
+            setSuggestions([]);
+            setShowSuggestions(false);
+          }
+        },
+      );
+    }, 300);
+  };
+
+  const selectSuggestion = (prediction: GoogleMapsPlacePrediction) => {
+    setLocation(prediction.description);
+    setSuggestions([]);
+    setShowSuggestions(false);
+  };
+
+  const clearLocation = () => {
+    setLocation("");
+    setSuggestions([]);
+    setShowSuggestions(false);
+  };
 
   const uploadOne = async (item: ImageItem) => {
     if (!item.file) return;
@@ -141,7 +216,75 @@ export default function InitiateProjectModal({
           </Field>
 
           <Field label="Location" error={touched && !location.trim() ? "Required" : undefined}>
-            <input value={location} onChange={(e) => setLocation(e.target.value)} placeholder="Site address" style={inputStyle(touched && !location.trim())} />
+            <div ref={locationFieldRef} style={{ position: "relative" }}>
+              <input
+                value={location}
+                onChange={(e) => onLocationInputChange(e.target.value)}
+                onFocus={() => suggestions.length > 0 && setShowSuggestions(true)}
+                placeholder="Search site address"
+                autoComplete="off"
+                style={{ ...inputStyle(touched && !location.trim()), paddingRight: 36 }}
+              />
+              {location.trim().length > 0 && (
+                <button
+                  type="button"
+                  onClick={clearLocation}
+                  aria-label="Clear location"
+                  style={{
+                    position: "absolute",
+                    right: 12,
+                    top: "50%",
+                    transform: "translateY(-50%)",
+                    display: "flex",
+                    color: colors.muted,
+                  }}
+                >
+                  <Icon name="close" size={14} />
+                </button>
+              )}
+
+              {showSuggestions && suggestions.length > 0 && (
+                <div
+                  style={{
+                    position: "absolute",
+                    top: "calc(100% + 6px)",
+                    left: 0,
+                    right: 0,
+                    background: colors.card,
+                    border: `1px solid ${colors.line}`,
+                    borderRadius: radius.md,
+                    boxShadow: shadow.lg,
+                    zIndex: 20,
+                    maxHeight: 220,
+                    overflowY: "auto",
+                  }}
+                >
+                  {suggestions.map((s, i) => (
+                    <button
+                      key={s.place_id}
+                      type="button"
+                      onClick={() => selectSuggestion(s)}
+                      style={{
+                        display: "flex",
+                        alignItems: "center",
+                        gap: 9,
+                        width: "100%",
+                        padding: "10px 13px",
+                        textAlign: "left",
+                        fontSize: fontSize.sm,
+                        color: colors.ink2,
+                        borderBottom: i < suggestions.length - 1 ? `1px solid ${colors.line}` : "none",
+                      }}
+                    >
+                      <Icon name="location" size={15} color={colors.accent} />
+                      <span style={{ overflow: "hidden", textOverflow: "ellipsis", whiteSpace: "nowrap" }}>
+                        {s.description}
+                      </span>
+                    </button>
+                  ))}
+                </div>
+              )}
+            </div>
           </Field>
 
           <div className="grid grid-cols-2" style={{ gap: spacing.md }}>

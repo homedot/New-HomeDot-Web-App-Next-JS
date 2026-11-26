@@ -1,6 +1,6 @@
 import { create } from "zustand";
 import ProfessionalDashboardService, { type ProfessionalHomeRecord } from "@/services/ProfessionalDashboardService";
-import { getAuthToken } from "@/utils/authStorage";
+import { getAuthToken, setHasProfessionalRole } from "@/utils/authStorage";
 
 interface ProfessionalHomeState {
   home: ProfessionalHomeRecord | null;
@@ -29,13 +29,18 @@ export const useProfessionalHomeStore = create<ProfessionalHomeState>((set, get)
     set({ loading: true });
     const res = await ProfessionalDashboardService.getHome();
     if (res.success && res.data?.status && res.data.data?.[0]) {
-      set({ home: res.data.data[0], loaded: true, loading: false });
+      const home = res.data.data[0];
+      if ((home.userType?.length ?? 0) >= 2) setHasProfessionalRole();
+      set({ home, loaded: true, loading: false });
     } else {
       set({ loading: false, loaded: true });
     }
   },
 
-  setHome: (home) => set({ home, loaded: true }),
+  setHome: (home) => {
+    if ((home.userType?.length ?? 0) >= 2) setHasProfessionalRole();
+    set({ home, loaded: true });
+  },
 
   clear: () => set({ home: null, loaded: false, loading: false }),
 }));

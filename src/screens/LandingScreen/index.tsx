@@ -31,7 +31,7 @@ import SiteNav from "@/components/SiteNav";
 import SiteFooter, { SOCIALS } from "@/components/SiteFooter";
 import LoginModal, { type LoginModalHandle } from "@/components/LoginModal";
 import { getAuthToken, setActiveRole } from "@/utils/authStorage";
-import { useProfileStore } from "@/store/useProfileStore";
+import { useProfileStore, deriveHasProfessionalRole } from "@/store/useProfileStore";
 import { useAuthStore } from "@/store/useAuthStore";
 import { useRoleSwitchStore } from "@/store/useRoleSwitchStore";
 import SwitchProfessionalService from "@/services/SwitchProfessionalService";
@@ -2503,7 +2503,7 @@ function ProCta({
   // account with a professional profile already set up switches straight
   // into it; one that doesn't goes to Profile to start that flow (its full
   // form — trade, category, skills — belongs there, not duplicated here).
-  const hasProfessionalRole = (profile?.userType?.length ?? 0) >= 2;
+  const hasProfessionalRole = deriveHasProfessionalRole(profile);
 
   const handleClick = async () => {
     if (!signedIn) {
@@ -2532,6 +2532,10 @@ function ProCta({
           .getState()
           .setTokens({ token: pair.token, refreshToken: pair.reToken });
       setActiveRole("professional");
+      // The cached profile was fetched under the user token — clear it so
+      // the professional-side screens' mount-time fetch() (guarded to run
+      // once per session) re-runs instead of serving stale role data.
+      useProfileStore.getState().clear();
       router.push("/professional/dashboard");
       return true;
     });

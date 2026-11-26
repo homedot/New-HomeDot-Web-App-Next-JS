@@ -527,7 +527,7 @@ const JobEnquiryModal = forwardRef<JobEnquiryModalHandle>(
                           aria-label="Use my current location"
                           style={{ display: "flex", flexShrink: 0, color: colors.primary, opacity: locatingMe ? 0.5 : 1 }}
                         >
-                          <Icon name="compass" size={17} />
+                          {locatingMe ? <span className="pf-spinner-dark" /> : <Icon name="compass" size={17} />}
                         </button>
                       )}
                     </div>

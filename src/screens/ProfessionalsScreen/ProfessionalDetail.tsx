@@ -1536,7 +1536,7 @@ export default function ProfessionalDetail({
                               opacity: locatingMe ? 0.5 : 1,
                             }}
                           >
-                            <Icon name="compass" size={16} />
+                            {locatingMe ? <span className="pf-spinner-dark" /> : <Icon name="compass" size={16} />}
                           </button>
                         )}
                       </div>

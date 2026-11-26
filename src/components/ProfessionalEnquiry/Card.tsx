@@ -44,8 +44,16 @@ export default function ProfessionalEnquiryCard({
   // posts responseText: "rejected" as the professional's own decline, a
   // state token rather than a real message, distinct from the customer
   // declining the professional's response (userReject below).
-  const professionalDeclined = response?.responseText === "rejected";
-  const hasResponded = (!!response?.responseText || !!response?.response) && !professionalDeclined;
+  // Job "Ignore" (ignore-enquiry) posts no body, so the only trace it leaves
+  // is professionalResponse[0].response === false with no responseText —
+  // mobile's JobEnquiryScreen.handleEnquiryPress uses exactly that check to
+  // lock the card. Without it the card kept showing Respond/Ignore after a
+  // successful ignore, so the button looked like it did nothing.
+  const professionalDeclined =
+    response?.responseText === "rejected" ||
+    response?.response === false ||
+    response?.response === "false";
+  const hasResponded = (!!response?.responseText || response?.response === true || response?.response === "true") && !professionalDeclined;
   const customerDeclined = !!response?.userReject;
   const customerAccepted = !!response?.userAccepted;
   const hasProject = Array.isArray(enquiry.projectInfo) && enquiry.projectInfo.length > 0;

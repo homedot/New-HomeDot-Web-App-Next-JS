@@ -18,7 +18,7 @@ import ProDashboardSidebar from "@/components/ProDashboardSidebar";
 import ProDashboardSkeleton from "@/components/ProDashboardSkeleton";
 import { getAuthToken, setActiveRole } from "@/utils/authStorage";
 import { useAuthStore } from "@/store/useAuthStore";
-import { useProfileStore } from "@/store/useProfileStore";
+import { useProfileStore, deriveHasProfessionalRole } from "@/store/useProfileStore";
 import { useProfessionalHomeStore } from "@/store/useProfessionalHomeStore";
 import { useRoleSwitchStore } from "@/store/useRoleSwitchStore";
 import ProfileService from "@/services/ProfileService";
@@ -51,11 +51,18 @@ export default function ProfessionalSettingsScreen() {
     useProfessionalHomeStore.getState().refresh();
   }, []);
 
+  // Mirrors homedot-mobile-app's switch_BecomeButton: switchRole only works
+  // once the account already has both roles — a professional account that
+  // was signed up directly (userType.length === 1) has to hit becomeUser
+  // first to actually gain the "user" role.
   const switchToUser = async () => {
     setSwitchingRole(true);
     setRoleError(null);
+    const alreadyHasUserRole = deriveHasProfessionalRole(useProfessionalHomeStore.getState().home);
     await useRoleSwitchStore.getState().runSwitch("user", async () => {
-      const res = await SwitchProfessionalService.switchRole();
+      const res = await (alreadyHasUserRole
+        ? SwitchProfessionalService.switchRole()
+        : SwitchProfessionalService.becomeUser());
       if (!res.success || res.data?.status === false) {
         setRoleError(res.data?.message || res.message || "Couldn't switch modes. Please try again.");
         return false;
@@ -63,6 +70,10 @@ export default function ProfessionalSettingsScreen() {
       const pair = res.data?.data?.[0];
       if (pair) useAuthStore.getState().setTokens({ token: pair.token, refreshToken: pair.reToken });
       setActiveRole("user");
+      // The cached profile was fetched under the professional token — clear
+      // it so the user-side screens' mount-time fetch() (guarded to run
+      // once per session) re-runs instead of serving stale role data.
+      useProfileStore.getState().clear();
       router.push("/");
       return true;
     });

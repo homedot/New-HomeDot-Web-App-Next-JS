@@ -18,6 +18,7 @@ import Reveal from "@/components/Reveal";
 import LoginModal, { type LoginModalHandle } from "@/components/LoginModal";
 import AvatarLightbox from "@/components/AvatarLightbox";
 import ContactUpdateModal from "./ContactUpdateModal";
+import AvatarCropModal from "@/components/AvatarCropModal";
 import BecomeProfessionalModal from "./BecomeProfessionalModal";
 // Refer & earn (user side) — temporarily disabled, see the "invite" tab
 // branch and its RailItem below.
@@ -25,7 +26,7 @@ import BecomeProfessionalModal from "./BecomeProfessionalModal";
 import HelpPanel from "./HelpPanel";
 import ProfileService, { resolveLatLng } from "@/services/ProfileService";
 import SwitchProfessionalService from "@/services/SwitchProfessionalService";
-import { useProfileStore } from "@/store/useProfileStore";
+import { useProfileStore, deriveHasProfessionalRole } from "@/store/useProfileStore";
 import { useAuthStore } from "@/store/useAuthStore";
 import { useRoleSwitchStore } from "@/store/useRoleSwitchStore";
 import {
@@ -72,6 +73,7 @@ export default function ProfileScreen() {
     return t === "help" || t === "invite" ? t : "profile";
   });
   const [uploadingAvatar, setUploadingAvatar] = useState(false);
+  const [cropFile, setCropFile] = useState<File | null>(null);
   const [avatarExpanded, setAvatarExpanded] = useState(false);
   const [removingAvatar, setRemovingAvatar] = useState(false);
   const [editing, setEditing] = useState(false);
@@ -79,6 +81,7 @@ export default function ProfileScreen() {
   const [location, setLocation] = useState<LocationValue | null>(null);
   const [saving, setSaving] = useState(false);
   const [saveError, setSaveError] = useState<string | null>(null);
+  const [formBaseline, setFormBaseline] = useState("");
   const [toast, setToast] = useState<{
     text: string;
     tone: "success" | "error";
@@ -109,7 +112,7 @@ export default function ProfileScreen() {
     return () => clearTimeout(t);
   }, [toast]);
 
-  const hasProfessionalRole = (profile?.userType?.length ?? 0) >= 2;
+  const hasProfessionalRole = deriveHasProfessionalRole(profile);
 
   // Toggles the active role for an account that already has both — mirrors
   // homedot-mobile-app's ProfileScreen switcButton (userType.length === 2
@@ -136,6 +139,11 @@ export default function ProfileScreen() {
           .setTokens({ token: pair.token, refreshToken: pair.reToken });
       setActiveRole(next);
       setActiveRoleState(next);
+      // The cached profile was fetched under the previous role's token —
+      // clear it so the next screen's mount-time fetch() (guarded to run
+      // once per session) actually re-runs instead of serving stale data.
+      useProfileStore.getState().clear();
+      useProfileStore.getState().fetch();
       if (next === "professional") router.push("/professional/dashboard");
       return true;
     });
@@ -146,16 +154,21 @@ export default function ProfileScreen() {
   // (entering/cancelling edit mode) rather than synced via effect, so an
   // in-progress edit isn't clobbered if the store profile changes elsewhere.
   const resetFormFromProfile = () => {
-    setName(profile?.name || "");
-    setLocation(
-      profile?.location
-        ? {
-            address: profile.location,
-            ...resolveLatLng(profile.locationKey?.coordinates ?? [0, 0]),
-          }
-        : null,
-    );
+    const nextName = profile?.name || "";
+    const nextLocation: LocationValue | null = profile?.location
+      ? {
+          address: profile.location,
+          ...resolveLatLng(profile.locationKey?.coordinates ?? [0, 0]),
+        }
+      : null;
+    setName(nextName);
+    setLocation(nextLocation);
+    setFormBaseline(profileFormKey(nextName, nextLocation));
   };
+
+  // Save is only enabled once the form actually differs from what it was
+  // populated with on entering edit mode.
+  const isDirty = profileFormKey(name, location) !== formBaseline;
 
   const goToTab = (t: MainTab) => {
     setEditing(false);
@@ -174,6 +187,7 @@ export default function ProfileScreen() {
   };
 
   const saveEdit = async () => {
+    if (!isDirty) return;
     if (!name.trim()) {
       setSaveError("Name can't be empty.");
       return;
@@ -209,10 +223,20 @@ export default function ProfileScreen() {
     setToast({ text: "Profile updated successfully.", tone: "success" });
   };
 
-  const onAvatarSelected = async (e: React.ChangeEvent<HTMLInputElement>) => {
+  // Picking a file opens the 1:1 crop step first (mobile's
+  // `allowsEditing: true, aspect: [1, 1]`); the cropped file is uploaded.
+  const onAvatarSelected = (e: React.ChangeEvent<HTMLInputElement>) => {
     const file = e.target.files?.[0];
     e.target.value = "";
     if (!file) return;
+    if (!file.type.startsWith("image/")) {
+      setToast({ text: "Please choose an image file.", tone: "error" });
+      return;
+    }
+    setCropFile(file);
+  };
+
+  const uploadAvatar = async (file: File) => {
     setUploadingAvatar(true);
     const res = await ProfileService.updateProfileImage(file);
     setUploadingAvatar(false);
@@ -229,12 +253,13 @@ export default function ProfileScreen() {
         text: res.message || "Couldn't update your photo. Please try again.",
         tone: "error",
       });
-      return;
+      return false;
     }
     setToast({
       text: "Profile picture updated successfully.",
       tone: "success",
     });
+    return true;
   };
 
   const onRemoveAvatar = async () => {
@@ -298,6 +323,16 @@ export default function ProfileScreen() {
           removing={removingAvatar}
         />
       )}
+      {cropFile && (
+        <AvatarCropModal
+          file={cropFile}
+          busy={uploadingAvatar}
+          onCancel={() => setCropFile(null)}
+          onConfirm={async (cropped) => {
+            if (await uploadAvatar(cropped)) setCropFile(null);
+          }}
+        />
+      )}
       {contactModal && (
         <ContactUpdateModal
           mode={contactModal}
@@ -314,6 +349,12 @@ export default function ProfileScreen() {
                 );
             }
             setContactModal(null);
+            // Mirror mobile: re-pull profile-data after a successful verify
+            // so the server's canonical mobile/email/countryCode wins.
+            ProfileService.getProfileDetails().then((r) => {
+              if (r.success && r.data?.status && r.data.data)
+                useProfileStore.getState().setProfile(r.data.data);
+            });
           }}
         />
       )}
@@ -852,6 +893,7 @@ export default function ProfileScreen() {
                           variant="primary"
                           size="md"
                           onClick={saveEdit}
+                          disabled={saving || !isDirty}
                           icon={
                             saving ? undefined : <Icon name="check" size={16} />
                           }
@@ -1434,4 +1476,13 @@ function InfoField({
       </span>
     </div>
   );
+}
+
+// Stable comparison key for the edit form — trims the name and rounds
+// coordinates so float noise or stray whitespace don't count as an edit.
+function profileFormKey(name: string, loc: LocationValue | null): string {
+  return JSON.stringify([
+    name.trim(),
+    loc ? [loc.address, loc.lat.toFixed(6), loc.lng.toFixed(6)] : null,
+  ]);
 }

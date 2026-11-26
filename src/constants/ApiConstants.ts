@@ -58,6 +58,16 @@ export const API_ENDPOINTS = {
     // User) — only reachable once an account already has both roles. Returns
     // a fresh token pair scoped to the new active role.
     SWITCH_ROLE: "auth/switch-user",
+    // Requires a stored auth token. Mirrors PROFESSIONALS_API.BECOME_A_USER
+    // ("v1/auth/become-user") — POST with no body. Adds the "user" role to a
+    // professional-only account (userType.length === 1) — the professional-
+    // side counterpart of BECOME_A_PROFESSIONAL above. SWITCH_ROLE only
+    // flips which role an *existing* dual-role account is scoped to; a
+    // professional account that was signed up directly (never added "user")
+    // must hit this endpoint first, exactly as homedot-mobile-app's
+    // switch_BecomeButton branches on userType.length before picking which
+    // of the two to call. Returns a fresh token pair scoped to "user".
+    BECOME_A_USER: "auth/become-user",
     // Guest-accessible — no auth required. Mirrors
     // BACKEND_AUTH_URL.PROFESSIOANL_OR_USER_SIGN_IN ("v1/auth/signup") — single
     // endpoint for both normal-user and professional-user registration,
@@ -146,6 +156,7 @@ export const API_ENDPOINTS = {
     // rent listings.
     FILTER_RENT_PROPERTY: (page: number) =>
       `rent/properties-filter-auth?page=${page}`,
+
     // Guest-accessible — no auth required.
     PROPERTY_BY_SLUG: (slug: string) =>
       `property/guest/get-property/${encodeURIComponent(slug)}`,
@@ -389,6 +400,12 @@ export const API_ENDPOINTS = {
     // ("v1/professional/get-professional") — the signed-in professional's own
     // summary (name, profileImage, professionalInfo[], totalProjects).
     HOME: "professional/get-professional",
+    // Requires a stored auth token. Professional-side counterparts of
+    // USER.PHONE_UPDATE / USER.EMAIL_UPDATE — mirror PROFESSIONALS_API
+    // NUMBER_UPDATE_OTP_VALIDATION / EMAIL_UPDATE_OTP_VALIDATION. Same
+    // send (no `otp`) / verify (`otp` present) pattern.
+    PHONE_UPDATE: "professional/professional-phone-number-update",
+    EMAIL_UPDATE: "professional/professional-email-update",
     // Requires a stored auth token. Mirrors PROFESSIONALS_API.NOTIFICATION_LIST
     // ("v1/data/notification-list") — the Alerts feed
     // ProfessionalNotificationTabViewNavigator.js seeds on mount and grows

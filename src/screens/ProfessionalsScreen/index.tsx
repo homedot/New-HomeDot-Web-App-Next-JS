@@ -93,7 +93,7 @@ export default function ProfessionalsScreen({
   // suggestion list (GoogleServices.placeAutocomplete →
   // selectedPlaceDetailed) rather than Google's native "pac-container"
   // popup, which can't be restyled to match the rest of this screen.
-  const [locationText, setLocationText] = useState("Kochi, Kerala");
+  const [locationText, setLocationText] = useState("");
   const [appliedLocation, setAppliedLocation] = useState<{
     address: string;
     lat: number;
@@ -955,7 +955,7 @@ export default function ProfessionalsScreen({
                         opacity: locatingMe ? 0.5 : 1,
                       }}
                     >
-                      <Icon name="compass" size={17} />
+                      {locatingMe ? <span className="pf-spinner-dark" /> : <Icon name="compass" size={17} />}
                     </button>
                   )}
                 </label>
@@ -1153,8 +1153,12 @@ export default function ProfessionalsScreen({
                     {category === "all"
                       ? "Professionals"
                       : categoryOptions.find((c) => c.id === category)
-                          ?.name}{" "}
-                    in Kochi
+                          ?.name}
+                    {/* Only name a place once the user has actually applied
+                        one — no implied default city. */}
+                    {appliedLocation
+                      ? ` in ${shortPlace(appliedLocation.address)}`
+                      : ""}
                   </h2>
                   <p
                     style={{
@@ -2113,4 +2117,10 @@ function ProfessionalRow({
       </div>
     </article>
   );
+}
+
+// "Kakkanad, Kochi, Kerala 682030, India" → "Kakkanad". "Current location"
+// and other single-part labels pass through unchanged.
+function shortPlace(address: string): string {
+  return address.split(",")[0].trim() || address;
 }

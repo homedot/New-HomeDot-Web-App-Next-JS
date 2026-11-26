@@ -51,7 +51,10 @@ export interface EnquiryCustomerInfo {
 }
 
 export interface ProfessionalEnquiryResponse {
-  response?: string;
+  // Boolean on the wire: true once the professional responds, false after
+  // ignore-enquiry (Job) or professional-reject (Direct). Kept loose for any
+  // legacy string values.
+  response?: boolean | string;
   userAccepted?: boolean;
   userReject?: boolean;
   userRejectReason?: string;

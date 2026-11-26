@@ -31,7 +31,7 @@ export interface UserProfileRecord {
   name: string;
   email?: string;
   mobile?: string;
-  countryCode?: string;
+  countryCode?: string | number;
   location?: string;
   locationKey?: UserLocationKey;
   profileImage?: string;
@@ -70,8 +70,15 @@ export interface LogoutBody {
 }
 
 export interface ContactOtpBody {
-  status: boolean;
-  message: string;
+  status?: boolean;
+  message?: string;
+}
+
+export type ContactSide = "user" | "professional";
+
+function contactEndpoint(side: ContactSide, kind: "phone" | "email"): string {
+  const group = side === "professional" ? API_ENDPOINTS.PROFESSIONAL : API_ENDPOINTS.USER;
+  return kind === "phone" ? group.PHONE_UPDATE : group.EMAIL_UPDATE;
 }
 
 // All "my account" API calls live here. Screens/components only ever import
@@ -99,11 +106,22 @@ export const ProfileService = {
   // NUMBER_UPDATE_OTP_VALIDATION. `countryCode` is passed through exactly as
   // mobile's EditProfile does (the dial code with its leading "+", e.g.
   // "+91") — unlike AuthService's login-OTP flow, which strips it.
-  sendPhoneUpdateOtp: (phone: string, countryCode: string): Promise<ApiResponse<ContactOtpBody>> =>
-    ApiService.put<ContactOtpBody>(API_ENDPOINTS.USER.PHONE_UPDATE, { phone, countryCode }),
+  // `side` picks the user vs professional endpoint, matching mobile's
+  // EditProfile vs ProfessionalEditProfileScreen.
+  sendPhoneUpdateOtp: (
+    phone: string,
+    countryCode: string,
+    side: ContactSide = "user",
+  ): Promise<ApiResponse<ContactOtpBody>> =>
+    ApiService.put<ContactOtpBody>(contactEndpoint(side, "phone"), { phone, countryCode }),
 
-  verifyPhoneUpdateOtp: (phone: string, otp: string, countryCode: string): Promise<ApiResponse<ContactOtpBody>> =>
-    ApiService.put<ContactOtpBody>(API_ENDPOINTS.USER.PHONE_UPDATE, { phone, otp, countryCode }),
+  verifyPhoneUpdateOtp: (
+    phone: string,
+    otp: string,
+    countryCode: string,
+    side: ContactSide = "user",
+  ): Promise<ApiResponse<ContactOtpBody>> =>
+    ApiService.put<ContactOtpBody>(contactEndpoint(side, "phone"), { phone, otp, countryCode }),
 
   // Requires a stored auth token. PUT with no body. Shared by both the
   // user and professional profile screens — there's only one photo on the
@@ -113,11 +131,15 @@ export const ProfileService = {
 
   // Requires a stored auth token. Same send/verify pattern as the phone
   // update above, mirroring userEmailUpdateOtpSent/userEmailUpdateOtpVerify.
-  sendEmailUpdateOtp: (email: string): Promise<ApiResponse<ContactOtpBody>> =>
-    ApiService.put<ContactOtpBody>(API_ENDPOINTS.USER.EMAIL_UPDATE, { email }),
+  sendEmailUpdateOtp: (email: string, side: ContactSide = "user"): Promise<ApiResponse<ContactOtpBody>> =>
+    ApiService.put<ContactOtpBody>(contactEndpoint(side, "email"), { email }),
 
-  verifyEmailUpdateOtp: (email: string, otp: string): Promise<ApiResponse<ContactOtpBody>> =>
-    ApiService.put<ContactOtpBody>(API_ENDPOINTS.USER.EMAIL_UPDATE, { email, otp }),
+  verifyEmailUpdateOtp: (
+    email: string,
+    otp: string,
+    side: ContactSide = "user",
+  ): Promise<ApiResponse<ContactOtpBody>> =>
+    ApiService.put<ContactOtpBody>(contactEndpoint(side, "email"), { email, otp }),
 
   // Requires a stored auth token.
   logout: (): Promise<ApiResponse<LogoutBody>> =>

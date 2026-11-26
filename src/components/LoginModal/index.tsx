@@ -18,7 +18,11 @@ import Button from "@/components/Button";
 import AuthService from "@/services/AuthService";
 import { useAuthStore } from "@/store/useAuthStore";
 import { useProfileStore } from "@/store/useProfileStore";
-import { setActiveRole, type AccountRole } from "@/utils/authStorage";
+import {
+  getActiveRole,
+  setActiveRole,
+  type AccountRole,
+} from "@/utils/authStorage";
 import type { LocationValue } from "@/components/LocationMapPicker";
 import EmailField, { type EmailFieldHandle } from "@/components/EmailField";
 import RoleStep from "./RoleStep";
@@ -459,31 +463,91 @@ const LoginModal = forwardRef<LoginModalHandle, LoginModalProps>(
       <>
         {!hideTrigger &&
           (loggedIn ? (
+            // Avatar + name + account type, mirroring homedot-mobile-app's
+            // DrawerContent identity block (profileImage, name, and a
+            // "User"/"Professional" label from isScreenUserOrProfessional).
+            // The text is hidden below lg so the header doesn't overflow on
+            // narrow viewports, where the avatar alone remains.
             <button
               onClick={() => router.push("/profile")}
-              aria-label="My account"
+              aria-label={
+                profile?.name ? `My account — ${profile.name}` : "My account"
+              }
               style={{
-                width: 40,
-                height: 40,
-                borderRadius: "50%",
-                background: colors.primarySoft,
-                color: colors.primary,
-                display: "grid",
-                placeItems: "center",
-                border: `1.5px solid ${colors.line}`,
+                display: "flex",
+                alignItems: "center",
+                gap: 10,
+                padding: 0,
+                background: "transparent",
+                border: "none",
                 flexShrink: 0,
-                overflow: "hidden",
+                minWidth: 0,
+                textAlign: "left",
               }}
             >
-              {profile?.profileImage ? (
-                // eslint-disable-next-line @next/next/no-img-element
-                <img
-                  src={profile.profileImage}
-                  alt=""
-                  style={{ width: "100%", height: "100%", objectFit: "cover" }}
-                />
-              ) : (
-                <Icon name="user" size={18} strokeWidth={2.2} />
+              <span
+                style={{
+                  width: 40,
+                  height: 40,
+                  borderRadius: "50%",
+                  background: colors.primarySoft,
+                  color: colors.primary,
+                  display: "grid",
+                  placeItems: "center",
+                  border: `1.5px solid ${colors.line}`,
+                  flexShrink: 0,
+                  overflow: "hidden",
+                }}
+              >
+                {profile?.profileImage ? (
+                  // eslint-disable-next-line @next/next/no-img-element
+                  <img
+                    src={profile.profileImage}
+                    alt=""
+                    style={{
+                      width: "100%",
+                      height: "100%",
+                      objectFit: "cover",
+                    }}
+                  />
+                ) : (
+                  <Icon name="user" size={18} strokeWidth={2.2} />
+                )}
+              </span>
+              {profile?.name && (
+                <span
+                  className="hidden lg:flex"
+                  style={{
+                    flexDirection: "column",
+                    lineHeight: 1.2,
+                    maxWidth: 140,
+                    minWidth: 0,
+                  }}
+                >
+                  <span
+                    style={{
+                      fontSize: fontSize.sm,
+                      fontWeight: 700,
+                      color: colors.ink,
+                      whiteSpace: "nowrap",
+                      overflow: "hidden",
+                      textOverflow: "ellipsis",
+                    }}
+                  >
+                    {profile.name}
+                  </span>
+                  <span
+                    style={{
+                      fontSize: fontSize.xs,
+                      fontWeight: 600,
+                      color: colors.muted,
+                    }}
+                  >
+                    {getActiveRole() === "professional"
+                      ? "Professional"
+                      : "User"}
+                  </span>
+                </span>
               )}
             </button>
           ) : (

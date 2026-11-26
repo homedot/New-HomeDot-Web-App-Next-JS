@@ -29,6 +29,7 @@ export function clearAuthTokens(): void {
   localStorage.removeItem(TOKEN_KEY);
   localStorage.removeItem(REFRESH_TOKEN_KEY);
   localStorage.removeItem(ACTIVE_ROLE_KEY);
+  localStorage.removeItem(HAS_PROFESSIONAL_ROLE_KEY);
 }
 
 export type AccountRole = "user" | "professional";
@@ -49,4 +50,22 @@ export function getActiveRole(): AccountRole {
 export function setActiveRole(role: AccountRole): void {
   if (typeof window === "undefined") return;
   localStorage.setItem(ACTIVE_ROLE_KEY, role);
+}
+
+const HAS_PROFESSIONAL_ROLE_KEY = "hd_has_professional_role";
+
+// The /profile endpoint's userType array can come back scoped to just the
+// role the current token was issued for, so "this account also has a
+// professional profile" isn't safe to re-derive from the latest fetch
+// alone — once any fetch this login has shown userType.length >= 2, this
+// sticks for the rest of the login (through role switches) instead of
+// flipping back to "Become a Professional". Cleared on logout above.
+export function getHasProfessionalRole(): boolean {
+  if (typeof window === "undefined") return false;
+  return localStorage.getItem(HAS_PROFESSIONAL_ROLE_KEY) === "1";
+}
+
+export function setHasProfessionalRole(): void {
+  if (typeof window === "undefined") return;
+  localStorage.setItem(HAS_PROFESSIONAL_ROLE_KEY, "1");
 }

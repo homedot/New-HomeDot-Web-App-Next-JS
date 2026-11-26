@@ -1021,7 +1021,7 @@ export default function MarketplaceScreen({
                         opacity: locatingMe ? 0.5 : 1,
                       }}
                     >
-                      <Icon name="compass" size={17} />
+                      {locatingMe ? <span className="pf-spinner-dark" /> : <Icon name="compass" size={17} />}
                     </button>
                   )}
                 </label>

@@ -57,11 +57,34 @@ export default function LocationMapPicker({
   const mapDivRef = useRef<HTMLDivElement | null>(null);
   const inputRef = useRef<HTMLInputElement | null>(null);
   const googleRef = useRef<GoogleMapsNamespace | null>(null);
+  const mapRef = useRef<unknown>(null);
+  const applyLocationRef = useRef<
+    (
+      lat: number,
+      lng: number,
+      knownAddress?: string,
+      knownComponents?: GoogleMapsAddressComponent[],
+    ) => void
+  >(() => {});
   const initialized = useRef(false);
   const [loaded, setLoaded] = useState(false);
   const [error, setError] = useState<string | null>(null);
   const [address, setAddress] = useState(value?.address ?? "");
-  const [locationError, setLocationError] = useState(false);
+  const [locationError, setLocationError] = useState<string | null>(null);
+  const [locatingMe, setLocatingMe] = useState(false);
+
+  const NOT_FOUND_ERROR =
+    "We couldn't find that place. Try a city, locality, or landmark near you.";
+  // GeolocationPositionError.code: 1 = PERMISSION_DENIED, 2 =
+  // POSITION_UNAVAILABLE, 3 = TIMEOUT — each needs different user action,
+  // so a single generic message isn't actionable enough.
+  const GEOLOCATION_ERRORS: Record<number, string> = {
+    1: "Location access is blocked for this site. Allow it in your browser's site settings, then try again.",
+    2: "We couldn't determine your location right now. Try again, or search for it above.",
+    3: "That took too long to respond. Check your connection and try again, or search for it above.",
+  };
+  const GEOLOCATION_ERROR_FALLBACK =
+    "Couldn't get your current location. Check your browser's location permission, or search for it above.";
 
   useEffect(() => {
     let cancelled = false;
@@ -99,6 +122,8 @@ export default function LocationMapPicker({
       fullscreenControl: false,
       mapTypeControl: false,
     });
+
+    mapRef.current = map;
 
     const marker = new google.maps.Marker({
       position: center,
@@ -138,6 +163,8 @@ export default function LocationMapPicker({
         });
       });
     };
+
+    applyLocationRef.current = applyLocation;
 
     marker.addListener("dragend", () => {
       const pos = marker.getPosition();
@@ -179,10 +206,10 @@ export default function LocationMapPicker({
         const place = autocomplete.getPlace();
         const loc = place.geometry?.location;
         if (!loc) {
-          setLocationError(true);
+          setLocationError(NOT_FOUND_ERROR);
           return;
         }
-        setLocationError(false);
+        setLocationError(null);
         const lat = loc.lat();
         const lng = loc.lng();
         (
@@ -194,6 +221,35 @@ export default function LocationMapPicker({
       });
     }
   }, [loaded, value, onChange]);
+
+  const useCurrentLocation = () => {
+    if (typeof navigator === "undefined" || !navigator.geolocation) return;
+    setLocationError(null);
+    setLocatingMe(true);
+    navigator.geolocation.getCurrentPosition(
+      ({ coords }) => {
+        setLocatingMe(false);
+        const { latitude, longitude } = coords;
+        (
+          mapRef.current as {
+            panTo: (pos: { lat: number; lng: number }) => void;
+          } | null
+        )?.panTo({ lat: latitude, lng: longitude });
+        applyLocationRef.current(latitude, longitude);
+      },
+      (err) => {
+        setLocatingMe(false);
+        setLocationError(GEOLOCATION_ERRORS[err.code] ?? GEOLOCATION_ERROR_FALLBACK);
+      },
+      // enableHighAccuracy is slower (GPS lock) and isn't needed for a
+      // city/locality pick. timeout is generous — the browser's native
+      // permission prompt counts against it, so a quick clock here fires a
+      // false TIMEOUT while the user is still reading that prompt.
+      // maximumAge lets a quick second click reuse a recent fix instead of
+      // re-triggering the OS permission flow.
+      { enableHighAccuracy: false, timeout: 20000, maximumAge: 300000 },
+    );
+  };
 
   return (
     <div style={{ display: "flex", flexDirection: "column", gap: spacing.sm }}>
@@ -224,7 +280,7 @@ export default function LocationMapPicker({
           value={address}
           onChange={(e) => {
             setAddress(e.target.value);
-            setLocationError(false);
+            setLocationError(null);
           }}
           style={{
             border: "none",
@@ -235,18 +291,37 @@ export default function LocationMapPicker({
             color: colors.ink,
           }}
         />
-        {address && (
+        {address ? (
           <button
             type="button"
             onClick={() => {
               setAddress("");
-              setLocationError(false);
+              setLocationError(null);
               inputRef.current?.focus();
             }}
             aria-label="Clear search"
             style={{ display: "flex", flexShrink: 0, color: colors.muted }}
           >
             <Icon name="close" size={14} />
+          </button>
+        ) : (
+          <button
+            type="button"
+            onClick={useCurrentLocation}
+            disabled={!loaded || locatingMe}
+            aria-label="Use my current location"
+            style={{
+              display: "flex",
+              flexShrink: 0,
+              color: colors.primary,
+              opacity: !loaded || locatingMe ? 0.5 : 1,
+            }}
+          >
+            {locatingMe ? (
+              <span className="pf-spinner-dark" />
+            ) : (
+              <Icon name="compass" size={17} />
+            )}
           </button>
         )}
       </div>
@@ -290,7 +365,9 @@ export default function LocationMapPicker({
                 color: "#B91C1C",
               }}
             >
-              Location not found
+              {locationError === NOT_FOUND_ERROR
+                ? "Location not found"
+                : "Location access failed"}
             </p>
             <p
               style={{
@@ -300,8 +377,7 @@ export default function LocationMapPicker({
                 lineHeight: 1.4,
               }}
             >
-              We couldn&apos;t find that place. Try a city, locality, or
-              landmark near you.
+              {locationError}
             </p>
           </div>
         </div>
